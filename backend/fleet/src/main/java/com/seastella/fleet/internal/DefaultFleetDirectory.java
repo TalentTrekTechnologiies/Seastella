@@ -4,6 +4,9 @@ import com.seastella.fleet.api.FleetDirectory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -18,10 +21,13 @@ class DefaultFleetDirectory implements FleetDirectory {
 
     private final VesselRepository vessels;
     private final SpareRepository spares;
+    private final EquipmentCategoryRepository categories;
 
-    DefaultFleetDirectory(VesselRepository vessels, SpareRepository spares) {
+    DefaultFleetDirectory(VesselRepository vessels, SpareRepository spares,
+                          EquipmentCategoryRepository categories) {
         this.vessels = vessels;
         this.spares = spares;
+        this.categories = categories;
     }
 
     @Override
@@ -52,5 +58,24 @@ class DefaultFleetDirectory implements FleetDirectory {
     public Long vesselIdForSpare(Long spareId) {
         if (spareId == null) return null;
         return spares.findById(spareId).map(Spare::getVesselId).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Boolean> spareIdsWithHourTracking(Long vesselId) {
+        Map<Long, Boolean> result = new LinkedHashMap<>();
+        if (vesselId == null) {
+            return result;
+        }
+        for (Spare spare : spares.findByVesselIdOrderByPathAsc(vesselId)) {
+            result.put(spare.getId(), spare.isTracksRunningHours());
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> equipmentCategoryIdByCode(String code) {
+        return categories.findByCode(code).map(EquipmentCategory::getId);
     }
 }
