@@ -1,0 +1,68 @@
+# SeaStella Maritime Platform - base configuration.
+# Profile-specific overrides: application-dev.yml / application-prod.yml
+spring:
+  application:
+    name: seastella-platform
+  profiles:
+    default: dev
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema. Never let Hibernate write it.
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 25MB         # OI-09 working assumption; see docs/07-open-items.md
+      max-request-size: 30MB
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+  error:
+    include-message: never        # SEC-21: no internals in error responses
+    include-stacktrace: never
+    include-binding-errors: never
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: true
+        same-site: strict
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+seastella:
+  security:
+    jwt:
+      issuer: seastella-platform
+      access-token-ttl: PT15M
+      refresh-token-ttl: P7D
+    lockout:
+      max-failed-attempts: 5      # SEC-03
+      lockout-duration: PT15M
+  upload:
+    # OI-09 working assumption. Validated by magic bytes, not extension (SEC-15).
+    max-bytes: 26214400
+    allowed-types: application/pdf,image/png,image/jpeg,image/webp,video/mp4,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv
+    storage-dir: ./data/documents

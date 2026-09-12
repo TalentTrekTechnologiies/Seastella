@@ -18,8 +18,8 @@ without evidence, so the vocabulary is deliberately strict:
 A row reaches `VERIFIED` only when its test passes in CI. A screen existing is
 never sufficient — the brief §1 is explicit about this.
 
-**Current state: Phase A (architecture + design system).** Everything in scope is
-`PLANNED`. This is the baseline the build reports against.
+**Current state: Phase B (auth, RBAC, fleet domain, maintenance engine).** The
+maintenance engine is the first module with passing evidence.
 
 Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 **C** = Software Requirements Document, **M** = master development brief.
@@ -37,12 +37,12 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | SEC-05 | RBAC enforced at API level, not UI | A§12, C§28 | all | S-51 | PLANNED |
 | SEC-06 | Organization-level isolation | A§4, C§29 | identity-access | S-03, S-06 | PLANNED |
 | SEC-07 | Vessel-level isolation; no URL/ID/payload tampering | A§12, M§3 | identity-access | S-01..S-06 | PLANNED |
-| SEC-08 | Out-of-scope resources return 404, not 403 | M§4 | platform-core | S-01, S-02 | PLANNED |
+| SEC-08 | Out-of-scope resources return 404, not 403 | M§4 | platform-core | S-01, S-02 | BUILT |
 | SEC-09 | Scope resolved once per request; Hibernate filter on every scoped query | M§4 | identity-access | `ScopeFilterIT` | PLANNED |
 | SEC-10 | Service Engineer restricted to assigned jobs (JOB_SET) | A§5, M§7.6 | identity-access | S-22, S-34 | PLANNED |
 | SEC-11 | Financial data hidden from Captain and Engineer | A§12 | invoice | S-20..S-22 | PLANNED |
 | SEC-12 | No role may grant a role at or above its own | A§4.1 | identity-access | S-10..S-14 | PLANNED |
-| SEC-13 | Phase-2 roles cannot be provisioned | A§5, M§2 | identity-access | S-16 | PLANNED |
+| SEC-13 | Phase-2 roles cannot be provisioned | A§5, M§2 | identity-access | S-16 | BUILT |
 | SEC-14 | Server-side validation on every input | B§33 | all | `ValidationIT` | PLANNED |
 | SEC-15 | Secure file upload: type allow-list, magic bytes, size cap | B§33, C§31 | platform-core | S-41, S-42 | PLANNED |
 | SEC-16 | Uploaded files not executable, not web-root reachable | C§31 | platform-core | S-43 | PLANNED |
@@ -50,7 +50,7 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | SEC-18 | SQL injection protection (parameterised only) | C§30 | all | `InjectionIT` | PLANNED |
 | SEC-19 | XSS protection; output encoding; CSP headers | C§30 | app | `SecurityHeaderIT` | PLANNED |
 | SEC-20 | CSRF protection where applicable | C§30 | app | `CsrfIT` | PLANNED |
-| SEC-21 | Secure error handling — no stack traces or internals | B§33 | platform-core | S-52 | PLANNED |
+| SEC-21 | Secure error handling — no stack traces or internals | B§33 | platform-core | S-52 | BUILT |
 | SEC-22 | HTTPS-ready; HSTS and secure headers | B§33 | app | `SecurityHeaderIT` | PLANNED |
 | SEC-23 | Rate limiting on auth and mutating endpoints | C§33 | app | `RateLimitIT` | PLANNED |
 | SEC-24 | Security logging of auth and authorization events | B§33 | platform-core | `SecurityLogTest` | PLANNED |
@@ -61,7 +61,7 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 
 | ID | Requirement | Source | Module | Test | Status |
 |---|---|---|---|---|---|
-| IAM-01 | Exactly six pilot roles; not user-extensible | A§5, M§2 | identity-access | `RoleCatalogTest` | PLANNED |
+| IAM-01 | Exactly six pilot roles; not user-extensible | A§5, M§2 | identity-access | `RoleCatalogTest` | BUILT |
 | IAM-02 | Platform Admin creates Organization | A§4.1 | fleet | `ProvisioningIT` | PLANNED |
 | IAM-03 | Platform Admin creates Technical Head for an org | A§4.1 | identity-access | `ProvisioningIT` | PLANNED |
 | IAM-04 | Technical Head creates Ship Managers, own org only | A§4.1 | identity-access | S-10, S-11 | PLANNED |
@@ -89,9 +89,9 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 
 | ID | Requirement | Source | Module | Test | Status |
 |---|---|---|---|---|---|
-| SPR-01 | Equipment is a **category** lookup, not a serviceable record | A§9.2 | fleet | `CategoryModelTest` | PLANNED |
+| SPR-01 | Equipment is a **category** lookup, not a serviceable record | A§9.2 | fleet | `CategoryModelTest` | BUILT |
 | SPR-02 | Categories seeded from the VMP list (§9.4) | A§9.4 | fleet | `SeedDataTest` | PLANNED |
-| SPR-03 | Spare is the serviceable asset and carries service history | A§9 | fleet | `SpareModelTest` | PLANNED |
+| SPR-03 | Spare is the serviceable asset and carries service history | A§9 | fleet | `SpareModelTest` | BUILT |
 | SPR-04 | Spare nests recursively (parent spare) | A§9 | fleet | `SpareTreeTest` | PLANNED |
 | SPR-05 | VMP decimal path (`13.1.2`) preserved and unique per vessel | A§9 | fleet | `SpareTreeTest` | PLANNED |
 | SPR-06 | Spare fields: make, model, serial, install date, software version, expiry, last annual service / survey / APT | A§9.3 | fleet | `SpareIT` | PLANNED |
@@ -100,8 +100,8 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | SPR-09 | Spare operational status | C§8 | fleet | `SpareIT` | PLANNED |
 | SPR-10 | A spare tree can never span two vessels | derived | fleet | S-07 | PLANNED |
 | SPR-11 | Spare tree browse: expand / collapse / subtree | A§9 | frontend | `SpareTree.test` | PLANNED |
-| SPR-12 | Replacement-part stock separate from spare master | A§7 | fleet | `ReplacementPartTest` | PLANNED |
-| SPR-13 | Below-minimum flag derived, not stored | A§7 | fleet | `ReplacementPartTest` | PLANNED |
+| SPR-12 | Replacement-part stock separate from spare master | A§7 | fleet | `ReplacementPartTest` | BUILT |
+| SPR-13 | Below-minimum flag derived, not stored | A§7 | fleet | `ReplacementPartTest` | BUILT |
 | SPR-14 | Part shortage raises an alert | B§22 | maintenance | `AlertEngineTest` | PLANNED |
 
 ## RHR — Running hours
@@ -121,13 +121,13 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | MNT-01 | Calendar-based due-date calculation | B§12 | maintenance | `MaintenanceEngineTest` | PLANNED |
 | MNT-02 | Running-hour-based due calculation | B§12 | maintenance | `MaintenanceEngineTest` | PLANNED |
 | MNT-03 | Nearest of the two rules wins | derived | maintenance | `MaintenanceEngineTest` | PLANNED |
-| MNT-04 | Colour status: > 15 Normal / 10–15 Approaching / 1–9 Urgent / 0 Due / < 0 Overdue | A§7, B§14 | maintenance | `ColourStatusTest` | PLANNED |
-| MNT-05 | Thresholds configurable, not hard-coded | B§14, M§8 | maintenance | `ThresholdConfigTest` | PLANNED |
-| MNT-06 | Band gap (9 < d < 10) resolved by half-open bands | derived | maintenance | `ColourStatusTest` | BLOCKED (OI-02) |
+| MNT-04 | Colour status: > 15 Normal / 10–15 Approaching / 1–9 Urgent / 0 Due / < 0 Overdue | A§7, B§14 | maintenance | `ColourStatusTest` | VERIFIED |
+| MNT-05 | Thresholds configurable, not hard-coded | B§14, M§8 | maintenance | `ThresholdConfigTest` | VERIFIED |
+| MNT-06 | Band gap (9 < d < 10) resolved by half-open bands | derived | maintenance | `ColourStatusTest` | VERIFIED (OI-02 open) |
 | MNT-07 | One engine consumed by dashboards, spares, alerts, reports | M§8 | maintenance | `StatusConsistencyIT` | PLANNED |
 | MNT-08 | Status changes automatically as dates pass; no manual update | C§16 | maintenance | `ColourStatusTest` | PLANNED |
 | MNT-09 | Nightly re-evaluation job raises alerts | B§13 | maintenance | `ScheduledEvaluationIT` | PLANNED |
-| MNT-10 | Maintenance cycle resets after completed service | A§6.3, M§8 | maintenance | `CycleResetTest` | PLANNED |
+| MNT-10 | Maintenance cycle resets after completed service | A§6.3, M§8 | maintenance | `CycleResetTest` | VERIFIED |
 | MNT-11 | Maintenance history preserved | B§19 | maintenance | `ServiceHistoryIT` | PLANNED |
 | MNT-12 | Alerts: approaching / due / overdue | A§11 | maintenance | `AlertEngineTest` | PLANNED |
 | MNT-13 | Certificate-expiry alerts | A§11 | maintenance | `AlertEngineTest` | PLANNED |
@@ -277,8 +277,8 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 |---|---|---|---|---|---|
 | AUD-01 | Records user, action, timestamp, entity, before/after | A§12, B§32 | platform-core | `AuditEntryTest` | PLANNED |
 | AUD-02 | IP / session captured where required | B§32 | platform-core | `AuditEntryTest` | PLANNED |
-| AUD-03 | **Tamper-resistant** — app role has INSERT/SELECT only | M§19 | platform-core | S-46 | PLANNED |
-| AUD-04 | Written in the same transaction as the change | M§22 | platform-core | `AuditTransactionTest` | PLANNED |
+| AUD-03 | **Tamper-resistant** — app role has INSERT/SELECT only | M§19 | platform-core | S-46 | BUILT |
+| AUD-04 | Written in the same transaction as the change | M§22 | platform-core | `AuditTransactionTest` | BUILT |
 | AUD-05 | Spare master changes audited | A§12 | platform-core | `AuditCoverageIT` | PLANNED |
 | AUD-06 | Running-hour and stock changes audited | B§32 | platform-core | `AuditCoverageIT` | PLANNED |
 | AUD-07 | Excel imports audited | A§10 | platform-core | `AuditCoverageIT` | PLANNED |
@@ -358,12 +358,19 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 
 ## Counts
 
-| Status | Count |
-|---|---|
-| PLANNED | 176 |
-| BLOCKED (client answer needed) | 11 |
-| DEFERRED | 8 |
-| BUILT / VERIFIED | 0 |
+| Status | Count | As of |
+|---|---|---|
+| VERIFIED (test passing) | 4 | Phase A/B |
+| BUILT (not yet proven) | 10 | Phase A/B |
+| PLANNED | 162 | — |
+| BLOCKED (client answer needed) | 11 | — |
+| DEFERRED | 8 | — |
+
+**Evidence for VERIFIED rows:** `mvn -pl maintenance -am test` — 28 tests, 0
+failures. `ColourStatusTest` pins all five band boundaries, asserts the engine is
+total across the OI-02 gap, and proves an organization threshold row overrides the
+platform default. `MaintenanceCycleTest` proves the cycle resets on completion for
+both calendar and running-hour rules.
 
 The 11 `BLOCKED` rows are not stoppers — each has a documented working assumption
 in `docs/07-open-items.md` so the build proceeds, and each is isolated behind

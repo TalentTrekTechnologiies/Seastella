@@ -1,0 +1,23 @@
+# Local development: H2 in PostgreSQL compatibility mode, so the platform runs
+# with nothing installed. Production is PostgreSQL only - see docs/02 s7.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/seastella;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: seastella
+    password: seastella
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+
+seastella:
+  seed:
+    enabled: true                 # NFR-11: demo data, clearly marked as seed
+    marker: "SEED"
+
+logging:
+  level:
+    com.seastella: DEBUG
