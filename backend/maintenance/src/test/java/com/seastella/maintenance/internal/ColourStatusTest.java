@@ -1,5 +1,6 @@
 package com.seastella.maintenance.internal;
 
+import com.seastella.fleet.api.FleetDirectory;
 import com.seastella.maintenance.api.DueStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,7 +28,7 @@ class ColourStatusTest {
         return new DefaultMaintenanceStatusEngine(
                 mock(SpareMaintenanceRuleRepository.class),
                 thresholds,
-                mock(SpareOrganizationLookup.class));
+                mock(FleetDirectory.class));
     }
 
     private DefaultMaintenanceStatusEngine seededEngine() {

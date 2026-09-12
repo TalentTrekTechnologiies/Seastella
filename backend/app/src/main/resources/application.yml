@@ -16,7 +16,11 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: false
-    locations: classpath:db/migration
+    # Per-module migrations all resolve onto db/migration/common; {vendor}
+    # picks up engine-specific work (the audit-hardening triggers).
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor}
+    placeholders:
+      appRole: ${DB_APP_ROLE:seastella_app}
   servlet:
     multipart:
       max-file-size: 25MB         # OI-09 working assumption; see docs/07-open-items.md

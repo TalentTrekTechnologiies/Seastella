@@ -1,5 +1,6 @@
 package com.seastella.maintenance.internal;
 
+import com.seastella.fleet.api.FleetDirectory;
 import com.seastella.maintenance.api.DueAssessment;
 import com.seastella.maintenance.api.DueStatus;
 import com.seastella.maintenance.api.MaintenanceStatusEngine;
@@ -33,14 +34,14 @@ class DefaultMaintenanceStatusEngine implements MaintenanceStatusEngine {
 
     private final SpareMaintenanceRuleRepository rules;
     private final MaintenanceThresholdRepository thresholds;
-    private final SpareOrganizationLookup organizationLookup;
+    private final FleetDirectory fleet;
 
     DefaultMaintenanceStatusEngine(SpareMaintenanceRuleRepository rules,
                                    MaintenanceThresholdRepository thresholds,
-                                   SpareOrganizationLookup organizationLookup) {
+                                   FleetDirectory fleet) {
         this.rules = rules;
         this.thresholds = thresholds;
-        this.organizationLookup = organizationLookup;
+        this.fleet = fleet;
     }
 
     @Override
@@ -76,7 +77,7 @@ class DefaultMaintenanceStatusEngine implements MaintenanceStatusEngine {
         }
 
         int days = (int) ChronoUnit.DAYS.between(asOf, due);
-        Long orgId = organizationLookup.organizationIdForSpare(spareId);
+        Long orgId = fleet.organizationIdForSpare(spareId);
         return new DueAssessment(classify(days, orgId), days, due, basis);
     }
 

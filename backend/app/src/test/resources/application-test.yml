@@ -1,0 +1,26 @@
+# Integration tests: in-memory H2 in PostgreSQL compatibility mode, recreated
+# per run so every test starts from a clean migration.
+spring:
+  datasource:
+    url: jdbc:h2:mem:seastella-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    clean-disabled: false
+
+seastella:
+  seed:
+    enabled: false
+  security:
+    jwt:
+      secret: "test-only-secret-value-at-least-32-bytes-long-0123456789"
+
+logging:
+  level:
+    org.flywaydb: INFO
