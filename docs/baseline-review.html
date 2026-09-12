@@ -1,0 +1,497 @@
+<title>SeaStella Platform Baseline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;450;500;600&display=swap">
+<style>
+:root{
+  --c-bg:#F4F6F8; --c-surface:#FFFFFF; --c-sunk:#EDF1F4;
+  --c-border:#D6DEE5; --c-border-strong:#B4C1CC;
+  --c-text:#16232C; --c-muted:#5A6B78; --c-faint:#8095A3;
+  --c-accent:#0B6E7F; --c-accent-hover:#095868; --c-accent-weak:#E2F0F3;
+  --c-normal:#1B7F4B; --c-normal-weak:#E3F3EA;
+  --c-approaching:#9A7009; --c-approaching-weak:#FBF2DC;
+  --c-urgent:#C2610C; --c-urgent-weak:#FCEDE0;
+  --c-overdue:#B3261E; --c-overdue-weak:#FBE6E4;
+  --c-critical:#6B2D5C; --c-critical-weak:#F3E8F0;
+  --font-ui:'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'Cascadia Mono',Consolas,monospace;
+  --shadow:0 1px 2px rgba(22,35,44,.06),0 4px 12px rgba(22,35,44,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --c-bg:#0C1418; --c-surface:#131F26; --c-sunk:#0F1A20;
+    --c-border:#223038; --c-border-strong:#33454F;
+    --c-text:#E4ECF1; --c-muted:#9BAFBB; --c-faint:#6D8492;
+    --c-accent:#2FA8BC; --c-accent-hover:#48BCCF; --c-accent-weak:#10333B;
+    --c-normal:#3BAE71; --c-normal-weak:#122C20;
+    --c-approaching:#D9A625; --c-approaching-weak:#302710;
+    --c-urgent:#E8823C; --c-urgent-weak:#33200F;
+    --c-overdue:#E5584D; --c-overdue-weak:#331614;
+    --c-critical:#B57FA6; --c-critical-weak:#2B1A27;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --c-bg:#0C1418; --c-surface:#131F26; --c-sunk:#0F1A20;
+  --c-border:#223038; --c-border-strong:#33454F;
+  --c-text:#E4ECF1; --c-muted:#9BAFBB; --c-faint:#6D8492;
+  --c-accent:#2FA8BC; --c-accent-hover:#48BCCF; --c-accent-weak:#10333B;
+  --c-normal:#3BAE71; --c-normal-weak:#122C20;
+  --c-approaching:#D9A625; --c-approaching-weak:#302710;
+  --c-urgent:#E8823C; --c-urgent-weak:#33200F;
+  --c-overdue:#E5584D; --c-overdue-weak:#331614;
+  --c-critical:#B57FA6; --c-critical-weak:#2B1A27;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+
+*{box-sizing:border-box}
+body{background:var(--c-bg);color:var(--c-text);font:400 15px/1.6 var(--font-ui);
+  -webkit-font-smoothing:antialiased;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:0 72px}
+.col{max-width:720px}
+h1,h2,h3{text-wrap:balance;margin:0}
+p{margin:0 0 14px}
+a{color:var(--c-accent)}
+code,.mono{font-family:var(--font-mono);font-size:.92em;font-variant-numeric:tabular-nums}
+
+/* ---- masthead ---- */
+.mast{border-bottom:2px solid var(--c-text);padding-block:44px 22px;margin-bottom:44px}
+.eyebrow{font:500 11px/1.4 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--c-accent);margin-bottom:14px}
+.mast h1{font:600 40px/1.1 var(--font-ui);letter-spacing:-.02em;margin-bottom:12px}
+.mast .lede{font-size:17px;color:var(--c-muted);max-width:640px;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:0 32px;margin-top:26px;
+  border-top:1px solid var(--c-border);padding-top:16px}
+.meta div{min-width:0}
+.meta dt{font:500 10px/1.4 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--c-faint);margin-bottom:3px}
+.meta dd{margin:0;font-family:var(--font-mono);font-size:13px;font-weight:450}
+
+/* ---- sections ---- */
+section{margin-block:0 56px}
+.shead{display:flex;gap:14px;align-items:baseline;margin-bottom:8px;
+  border-top:1px solid var(--c-border);padding-top:18px}
+.snum{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--c-accent);
+  letter-spacing:.04em;flex:none;padding-top:4px}
+.shead h2{font:600 24px/1.25 var(--font-ui);letter-spacing:-.012em}
+.sdek{color:var(--c-muted);margin:0 0 24px 38px;max-width:660px}
+@media (max-width:560px){.sdek{margin-left:0}}
+
+/* ---- callout ---- */
+.callout{background:var(--c-surface);border:1px solid var(--c-border);
+  border-left:3px solid var(--c-accent);border-radius:0 6px 6px 0;
+  padding:18px 20px;margin:0 0 24px;box-shadow:var(--shadow)}
+.callout.warn{border-left-color:var(--c-urgent)}
+.callout h3{font:600 14px/1.4 var(--font-ui);margin-bottom:6px}
+.callout p:last-child{margin-bottom:0}
+.callout p{font-size:14px;color:var(--c-muted)}
+blockquote{margin:0 0 14px;padding-left:16px;border-left:2px solid var(--c-border-strong);
+  color:var(--c-muted);font-size:14px;font-style:italic}
+
+/* ---- spare tree ---- */
+.tree{background:var(--c-surface);border:1px solid var(--c-border);border-radius:6px;
+  padding:22px;box-shadow:var(--shadow);overflow-x:auto}
+.tree-row{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);
+  font-size:13px;padding:5px 0;white-space:nowrap}
+.tree-id{color:var(--c-accent);font-weight:600;min-width:56px}
+.tree-name{font-weight:450}
+.tree-tag{font-family:var(--font-ui);font-size:10px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;padding:2px 7px;border-radius:3px;margin-left:4px}
+.tag-cat{background:var(--c-sunk);color:var(--c-faint);border:1px solid var(--c-border)}
+.tag-spare{background:var(--c-accent-weak);color:var(--c-accent)}
+.tree-note{font-family:var(--font-ui);font-size:12px;color:var(--c-faint);margin-left:6px}
+
+/* ---- status bands ---- */
+.bands{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin-bottom:8px}
+.band{border-radius:5px;padding:13px 14px;border:1px solid}
+.band .d{font:600 19px/1 var(--font-mono);font-variant-numeric:tabular-nums;margin-bottom:7px}
+.band .l{font:600 11px/1.3 var(--font-ui);letter-spacing:.07em;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px}
+.gl{width:9px;height:9px;flex:none}
+.b-n{background:var(--c-normal-weak);border-color:var(--c-normal);color:var(--c-normal)}
+.b-n .gl{border-radius:50%;background:var(--c-normal)}
+.b-a{background:var(--c-approaching-weak);border-color:var(--c-approaching);color:var(--c-approaching)}
+.b-a .gl{border-radius:50%;background:linear-gradient(90deg,var(--c-approaching) 50%,transparent 50%);
+  box-shadow:inset 0 0 0 1.5px var(--c-approaching)}
+.b-u{background:var(--c-urgent-weak);border-color:var(--c-urgent);color:var(--c-urgent)}
+.b-u .gl{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-bottom:9px solid var(--c-urgent)}
+.b-o{background:var(--c-overdue-weak);border-color:var(--c-overdue);color:var(--c-overdue)}
+.b-o .gl{background:var(--c-overdue)}
+
+/* ---- flow ---- */
+.flow{display:flex;flex-direction:column;gap:0}
+.phase{border:1px solid var(--c-border);background:var(--c-surface);border-radius:6px;
+  padding:18px 20px;box-shadow:var(--shadow)}
+.phase + .phase{margin-top:14px}
+.phase-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.phase-k{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--c-text-invert);
+  background:var(--c-accent);color:#fff;width:20px;height:20px;border-radius:3px;
+  display:grid;place-items:center;flex:none}
+.phase-h h3{font:600 14px/1.3 var(--font-ui)}
+.steps{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.step{font-family:var(--font-ui);font-size:12.5px;font-weight:500;padding:6px 11px;
+  background:var(--c-sunk);border:1px solid var(--c-border);border-radius:4px;white-space:nowrap}
+.step .who{display:block;font-size:10px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--c-faint);margin-bottom:1px}
+.arrow{color:var(--c-faint);font-size:13px;flex:none}
+.gate{border:1.5px solid var(--c-overdue);background:var(--c-overdue-weak);
+  border-radius:5px;padding:12px 14px;margin:14px 0;display:flex;gap:11px;align-items:flex-start}
+.gate-icon{width:18px;height:18px;flex:none;margin-top:1px}
+.gate-txt{font-size:13px;line-height:1.5}
+.gate-txt strong{color:var(--c-overdue)}
+
+/* ---- tables ---- */
+.tscroll{overflow-x:auto;border:1px solid var(--c-border);border-radius:6px;
+  background:var(--c-surface);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th{text-align:left;font:600 10px/1.4 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--c-faint);padding:11px 14px;border-bottom:1px solid var(--c-border-strong);
+  background:var(--c-sunk);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--c-border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.mono,th.num{font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font:600 10px/1.5 var(--font-ui);letter-spacing:.06em;
+  text-transform:uppercase;padding:2px 8px;border-radius:3px;white-space:nowrap}
+.p-plan{background:var(--c-accent-weak);color:var(--c-accent)}
+.p-block{background:var(--c-urgent-weak);color:var(--c-urgent)}
+.p-def{background:var(--c-sunk);color:var(--c-faint);border:1px solid var(--c-border)}
+.p-ok{background:var(--c-normal-weak);color:var(--c-normal)}
+.p-crit{background:var(--c-overdue-weak);color:var(--c-overdue)}
+
+/* ---- traceability bar ---- */
+.tbar{display:flex;height:34px;border-radius:5px;overflow:hidden;border:1px solid var(--c-border);
+  margin-bottom:14px}
+.tseg{display:grid;place-items:center;font:600 12px/1 var(--font-mono);color:#fff;
+  font-variant-numeric:tabular-nums}
+.tkey{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;color:var(--c-muted)}
+.tkey span{display:flex;align-items:center;gap:7px}
+.tkey i{width:10px;height:10px;border-radius:2px;display:block}
+
+/* ---- module grid ---- */
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.mod{border:1px solid var(--c-border);background:var(--c-surface);border-radius:5px;padding:13px 15px}
+.mod h4{font:600 13px/1.3 var(--font-mono);margin:0 0 5px;color:var(--c-accent)}
+.mod p{font-size:12.5px;color:var(--c-muted);margin:0;line-height:1.45}
+
+/* ---- dashboards ---- */
+.dash{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.dcard{border:1px solid var(--c-border);background:var(--c-surface);border-radius:6px;
+  padding:16px 17px;box-shadow:var(--shadow)}
+.dcard h4{font:600 14px/1.3 var(--font-ui);margin:0 0 3px}
+.dscope{font:450 11.5px/1.4 var(--font-mono);color:var(--c-accent);margin-bottom:10px;
+  padding-bottom:9px;border-bottom:1px solid var(--c-border)}
+.dcard ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--c-muted);line-height:1.55}
+.dcard li{margin-bottom:2px}
+.dno{margin-top:9px;padding-top:9px;border-top:1px dashed var(--c-border);
+  font-size:11.5px;color:var(--c-overdue);font-weight:500}
+
+ul.clean{margin:0 0 14px;padding-left:19px}
+ul.clean li{margin-bottom:6px}
+.foot{border-top:2px solid var(--c-text);margin-top:16px;padding-top:18px;
+  font-size:12.5px;color:var(--c-faint)}
+.foot .mono{font-size:12px}
+@media (max-width:560px){
+  .mast h1{font-size:30px}
+  .shead h2{font-size:20px}
+  .meta{gap:0 20px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">Phase A Baseline · Talent Trek Technologies</div>
+  <h1>SeaStella Platform Baseline</h1>
+  <p class="lede">Requirements analysis, implementation architecture, traceability structure and design system for the Maritime Navigation Equipment Asset &amp; Service Management Platform — established before implementation begins.</p>
+  <dl class="meta">
+    <div><dt>Governing document</dt><dd>SoW v1.0 · 2026-09-03</dd></div>
+    <div><dt>Client</dt><dd>Seastella Maritime</dd></div>
+    <div><dt>Delivery window</dt><dd>5 weeks · pilot MVP</dd></div>
+    <div><dt>Requirements traced</dt><dd>195</dd></div>
+  </dl>
+</header>
+
+<section>
+  <div class="shead"><span class="snum">00</span><h2>Four documents, one baseline</h2></div>
+  <p class="sdek">The source documents conflict with one another on role count, workflow order, technology stack and — most consequentially — on what the serviceable asset actually is. Precedence had to be settled before anything could be designed.</p>
+  <div class="col">
+  <div class="tscroll" style="margin-bottom:20px">
+    <table>
+      <thead><tr><th>Document</th><th>Date</th><th>Standing</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Statement of Work v1.0</strong></td><td class="mono">2026-09-03</td><td><span class="pill p-ok">Governing</span></td></tr>
+        <tr><td>Software Requirements &amp; System Functional Spec</td><td class="mono">2026-09-01</td><td><span class="pill p-def">Reference</span></td></tr>
+        <tr><td>Software Requirements Document</td><td class="mono">2026-09-01</td><td><span class="pill p-def">Superseded</span></td></tr>
+        <tr><td>Original job scope (client posting)</td><td class="mono">2026-08-28</td><td><span class="pill p-def">Historical</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The SoW asserts its own authority: it “consolidates and reconciles three inputs” (§1) and “forms the baseline for pilot development” (§19). It makes <strong>ten material overrides</strong> over the earlier specifications. Two of them change the shape of the system.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">01</span><h2>The Spare is the asset — not the Equipment</h2></div>
+  <p class="sdek">The single most consequential correction in the analysis. The earlier specifications modelled Equipment as the serviceable record carrying serial number, running hours and service history. The SoW overrides this.</p>
+
+  <div class="col">
+  <blockquote>“‘Equipment’ is a category (e.g., Radar, ECDIS, GPS); the individual serviceable item within that category — whether a full unit or a component of one — is a ‘Spare,’ and it is the Spare, not the category, that carries a service history.” — SoW §9</blockquote>
+  </div>
+
+  <div class="tree" style="margin-bottom:18px">
+    <div class="tree-row"><span class="tree-id">13</span><span class="tree-name">Radar</span><span class="tree-tag tag-cat">Category</span><span class="tree-note">groups spares for dashboards — not serviceable</span></div>
+    <div class="tree-row"><span class="tree-id" style="padding-left:22px">13.1</span><span class="tree-name">X-Band Radar</span><span class="tree-tag tag-spare">Spare</span><span class="tree-note">magnetron running hours tracked here</span></div>
+    <div class="tree-row"><span class="tree-id" style="padding-left:44px">13.1.2</span><span class="tree-name">Display Fan</span><span class="tree-tag tag-spare">Spare</span><span class="tree-note">nested — its own service history</span></div>
+    <div class="tree-row"><span class="tree-id" style="padding-left:44px">13.1.3</span><span class="tree-name">Scanner Unit Fan</span><span class="tree-tag tag-spare">Spare</span></div>
+    <div class="tree-row"><span class="tree-id" style="padding-left:22px">13.2</span><span class="tree-name">S-Band Radar</span><span class="tree-tag tag-spare">Spare</span></div>
+  </div>
+
+  <div class="col">
+  <p>Spares nest <strong>recursively</strong>, mirroring the VMP template’s decimal IDs. Service requests, troubleshooting, running hours, maintenance and documents all attach to the Spare.</p>
+  <div class="callout">
+    <h3>Why this had to be settled first</h3>
+    <p>Building Equipment as the asset would have put running hours, service history and maintenance scheduling on the wrong entity — breaking the VMP import, every dashboard and the service-history requirement simultaneously, and discovering it only at integration.</p>
+  </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">02</span><h2>The operational flow, and the gate inside it</h2></div>
+  <p class="sdek">One unified Service Request replaces the earlier two-spreadsheet handoff. The workflow runs in three phases, and one transition inside it is a hard server-side guard rather than a convention.</p>
+
+  <div class="flow">
+    <div class="phase">
+      <div class="phase-h"><span class="phase-k">A</span><h3>Service Request &amp; assisted troubleshooting</h3></div>
+      <div class="steps">
+        <span class="step"><span class="who">Captain</span>Raises request on Spare</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">System</span>Troubleshooting assistant</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">Captain ↔ Coordinator</span>Live agent chat</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">Ship Manager</span>Operational approval</span>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-k">B</span><h3>Invoice acceptance gate</h3></div>
+      <div class="steps">
+        <span class="step"><span class="who">Coordinator</span>Reviews full log</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">Coordinator</span>Raises invoice</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">Ship Manager</span>Accepts / rejects</span>
+      </div>
+      <div class="gate">
+        <svg class="gate-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="3" y="8.5" width="14" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--c-overdue)"/>
+          <path d="M6.5 8.5V6a3.5 3.5 0 017 0v2.5" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--c-overdue)"/>
+        </svg>
+        <div class="gate-txt"><strong>Hard guard.</strong> A Service Engineer cannot be assigned until the invoice is accepted. Enforced in the state machine — <code>assignEngineer()</code> is rejected unless status is <code>INVOICE_ACCEPTED</code>. This is an acceptance criterion (SoW §18), not a UI rule, and it is tested on the failure path.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-k">C</span><h3>Execution &amp; completion</h3></div>
+      <div class="steps">
+        <span class="step"><span class="who">Engineer</span>Performs service</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">Engineer → Coordinator</span>Completion report</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">Coordinator → Ship Manager</span>Relayed update</span>
+        <span class="arrow">→</span>
+        <span class="step"><span class="who">System</span>History + next due recalculated</span>
+      </div>
+      <div class="gate" style="border-color:var(--c-accent);background:var(--c-accent-weak)">
+        <svg class="gate-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <circle cx="10" cy="10" r="7.2" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--c-accent)"/>
+          <path d="M6.6 10.2l2.3 2.3 4.5-4.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:var(--c-accent)"/>
+        </svg>
+        <div class="gate-txt"><strong style="color:var(--c-accent)">Reporting chain.</strong> The Engineer reports to the Coordinator <em>only</em> — never directly to the Ship Manager or Technical Head. The Coordinator’s relay is the Ship Manager’s single channel for completion. The Engineer has no transition that reaches either role.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">03</span><h2>Maintenance colour status</h2></div>
+  <p class="sdek">One engine calculates due status; dashboards, spare screens, alerts and reports all consume it. Thresholds are configuration rows, never constants — and status is never recomputed in a frontend component.</p>
+
+  <div class="bands">
+    <div class="band b-n"><div class="d">&gt; 15 d</div><div class="l"><i class="gl"></i>Normal</div></div>
+    <div class="band b-a"><div class="d">10–15 d</div><div class="l"><i class="gl"></i>Approaching</div></div>
+    <div class="band b-u"><div class="d">1–9 d</div><div class="l"><i class="gl"></i>Urgent</div></div>
+    <div class="band b-o"><div class="d">0 d</div><div class="l"><i class="gl"></i>Due</div></div>
+    <div class="band b-o"><div class="d">&lt; 0 d</div><div class="l"><i class="gl"></i>Overdue</div></div>
+  </div>
+  <div class="col">
+  <p style="font-size:13px;color:var(--c-faint);margin-bottom:18px">Each status also carries a distinct shape — dot, half-dot, triangle, square — so it survives greyscale printing and colour-vision deficiency, which matters when reports reach class surveyors.</p>
+  <div class="callout warn">
+    <h3>Ambiguity found in the published bands</h3>
+    <p>“10–15 days” and “1–9 days” do not meet — <strong>9 &lt; d &lt; 10</strong> is unclassified. Harmless under whole-day arithmetic, but any fractional-day or timezone-boundary calculation lands in the gap. Implemented as half-open bands so no day is unclassified, and raised with Seastella as open item OI-02.</p>
+  </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">04</span><h2>Architecture</h2></div>
+  <p class="sdek">A modular monolith — one deployable Spring Boot application built from Maven modules with boundaries the build enforces, and contracts written so any module can be extracted later without a rewrite.</p>
+  <div class="col">
+  <p>The SoW is specific about this shape: “clear module boundaries … <strong>without over-fragmenting into microservices for the pilot, to keep MVP delivery risk low</strong>” (§13). True microservices were rejected — a distributed transaction across the invoice-acceptance gate would be the riskiest thing in the build, for no pilot benefit.</p>
+  </div>
+  <div class="mods" style="margin:20px 0">
+    <div class="mod"><h4>platform-core</h4><p>Audit, documents, configuration, domain events, error envelope</p></div>
+    <div class="mod"><h4>identity-access</h4><p>Users, six roles, org/vessel assignment, JWT, scope resolution</p></div>
+    <div class="mod"><h4>fleet</h4><p>Organization, vessel, equipment category, the Spare tree, parts stock</p></div>
+    <div class="mod"><h4>maintenance</h4><p>Due-date engine, colour status, thresholds, alert generation</p></div>
+    <div class="mod"><h4>service-request</h4><p>The request aggregate and its state machine</p></div>
+    <div class="mod"><h4>troubleshooting</h4><p>Rule engine, session log, live agent chat</p></div>
+    <div class="mod"><h4>invoice</h4><p>Invoice record and the acceptance gate</p></div>
+    <div class="mod"><h4>masterdata-import</h4><p>VMP template, validate → preview → confirm → commit</p></div>
+    <div class="mod"><h4>activity-feed</h4><p>Platform-wide real-time feed over SSE</p></div>
+    <div class="mod"><h4>notification</h4><p>In-app and email fan-out, configurable recipients</p></div>
+    <div class="mod"><h4>reporting</h4><p>Role-scoped reports and PDF export</p></div>
+    <div class="mod"><h4>app</h4><p>Boot entry, security filter chain, composition root</p></div>
+  </div>
+  <div class="col">
+  <h3 style="font:600 15px/1.3 var(--font-ui);margin-bottom:8px">Four rules keep extraction cheap</h3>
+  <ul class="clean" style="font-size:14px;color:var(--c-muted)">
+    <li>Every module exposes only <code>api</code>; <code>internal</code> is unreachable across boundaries.</li>
+    <li>No shared entities and no cross-module SQL joins — modules exchange DTOs and IDs.</li>
+    <li>Side effects travel as domain events, not calls, behind a publisher interface.</li>
+    <li>Each module owns its schema namespace and its own migrations.</li>
+  </ul>
+  <p style="font-size:14px">ArchUnit tests fail the build on any violation. Boundaries that are only documented are not boundaries.</p>
+
+  <h3 style="font:600 15px/1.3 var(--font-ui);margin:24px 0 8px">Vessel isolation is structural</h3>
+  <p style="font-size:14px">Every access rule reduces to one question — which vessels may this principal touch — so it is answered once, in a request-scoped resolver, and applied three ways: method security for the coarse role check, a Hibernate filter that narrows <em>every</em> scoped query in SQL, and an aggregate guard on each write path. A forgotten <code>WHERE</code> clause still cannot leak another vessel’s rows. Out-of-scope resources return <code>404</code>, never <code>403</code>, so IDs cannot be probed for existence.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">05</span><h2>Six role dashboards</h2></div>
+  <p class="sdek">Genuinely different compositions, not one layout with cards hidden by role. Every figure is served by a role-scoped endpoint — none is hard-coded.</p>
+  <div class="dash">
+    <div class="dcard">
+      <h4>Platform Admin</h4>
+      <div class="dscope">Entire platform</div>
+      <ul><li>Live platform-wide activity feed</li><li>Organizations, users, vessels</li><li>Threshold &amp; content configuration</li><li>Full audit trail</li></ul>
+    </div>
+    <div class="dcard">
+      <h4>Technical Head</h4>
+      <div class="dscope">All vessels in own org</div>
+      <ul><li>Fleet spare health, due &amp; overdue</li><li>Open requests by workflow stage</li><li>Resolved without cost vs engineer visit</li><li>Invoices fleet-wide, count &amp; value</li></ul>
+    </div>
+    <div class="dcard">
+      <h4>Ship Manager</h4>
+      <div class="dscope">Allocated vessels only</div>
+      <ul><li>Requests awaiting operational review</li><li>Invoices awaiting acceptance</li><li>Assigned vessel status</li><li>Completion via Coordinator relay</li></ul>
+    </div>
+    <div class="dcard">
+      <h4>Captain</h4>
+      <div class="dscope">One assigned vessel</div>
+      <ul><li>Raise a Service Request — primary action</li><li>My requests &amp; approval history</li><li>Active conversations</li><li>Running hours, spares due</li></ul>
+      <div class="dno">No invoice values — SoW §12</div>
+    </div>
+    <div class="dcard">
+      <h4>Service Coordinator</h4>
+      <div class="dscope">Assigned service scope</div>
+      <ul><li>Pipeline board by stage</li><li>Live chat queue awaiting reply</li><li>Accepted invoices ready to assign</li><li>Reports pending relay to Ship Manager</li></ul>
+    </div>
+    <div class="dcard">
+      <h4>Service Engineer</h4>
+      <div class="dscope">Assigned jobs only</div>
+      <ul><li>Today’s schedule &amp; upcoming jobs</li><li>Job detail with full context</li><li>Work log, parts, attachments</li><li>Completion report to Coordinator</li></ul>
+      <div class="dno">No invoice amounts, no other vessels</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">06</span><h2>Traceability</h2></div>
+  <p class="sdek">Every requirement mapped to the module that owns it and the test that proves it. A requirement reaches <code>VERIFIED</code> only when its named test passes — a screen existing is never sufficient.</p>
+
+  <div class="tbar" role="img" aria-label="195 requirements: 176 planned, 11 blocked pending client answers, 8 deferred to Phase 2">
+    <div class="tseg" style="flex:176;background:var(--c-accent)">176</div>
+    <div class="tseg" style="flex:11;background:var(--c-urgent)">11</div>
+    <div class="tseg" style="flex:8;background:var(--c-faint)">8</div>
+  </div>
+  <div class="tkey" style="margin-bottom:20px">
+    <span><i style="background:var(--c-accent)"></i>Planned &amp; traced</span>
+    <span><i style="background:var(--c-urgent)"></i>Blocked on a client answer</span>
+    <span><i style="background:var(--c-faint)"></i>Deferred to Phase 2</span>
+  </div>
+  <div class="col">
+  <p>Zero requirements are marked built or verified — implementation has not started. That is the point of establishing the baseline first.</p>
+  <p style="font-size:14px;color:var(--c-muted)">The eleven blocked rows are not stoppers: each has a documented working assumption and is isolated behind configuration, so a client answer changes a setting rather than code.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">07</span><h2>What Seastella needs to confirm</h2></div>
+  <p class="sdek">Fifteen open items, ordered by the cost of a late answer rather than by document order.</p>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th style="width:44px">#</th><th>Item</th><th>Working assumption</th><th>Cost if late</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">OI-13</td><td><strong>Backend stack</strong><br><span style="color:var(--c-muted);font-size:12.5px">The proposal the client holds says Django; the SoW says Spring Boot</span></td><td>Java / Spring Boot</td><td><span class="pill p-crit">Total</span></td></tr>
+        <tr><td class="mono">OI-04</td><td>Do Service Engineers log in, or receive jobs by notification only?</td><td>They log in</td><td><span class="pill p-block">High</span></td></tr>
+        <tr><td class="mono">OI-05</td><td>Troubleshooting content breadth — client deliverable</td><td>Engine complete; seed content for 5 categories</td><td><span class="pill p-block">High</span></td></tr>
+        <tr><td class="mono">OI-06</td><td>Invoice currency &amp; numbering convention</td><td>USD, <code>INV-&lt;org&gt;-&lt;yyyymm&gt;-&lt;seq&gt;</code></td><td><span class="pill p-block">Migration</span></td></tr>
+        <tr><td class="mono">OI-10</td><td>PDF report branding; any class-society format</td><td>Seastella-branded, no statutory format</td><td><span class="pill p-plan">Medium</span></td></tr>
+        <tr><td class="mono">OI-02</td><td>Colour-threshold band gap</td><td>Half-open bands</td><td><span class="pill p-plan">Config</span></td></tr>
+        <tr><td class="mono">—</td><td>Nine further items</td><td>All documented &amp; isolated</td><td><span class="pill p-plan">Config</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">08</span><h2>Scope variances</h2></div>
+  <p class="sdek">Where the development brief asks for work the SoW places in Phase 2. Nothing is dropped silently — each states what is built, what is not, and what it would take to change that.</p>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th style="width:56px">#</th><th>Item</th><th>Brief</th><th>SoW</th><th>Building</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">V-01</td><td><strong>Spare requisition workflow</strong></td><td>Required</td><td>Phase 2</td><td><span class="pill p-def">No</span></td></tr>
+        <tr><td class="mono">V-02</td><td><strong>RFQ / procurement</strong></td><td>Required</td><td>Phase 2</td><td><span class="pill p-def">No</span></td></tr>
+        <tr><td class="mono">V-03</td><td>Global search palette</td><td>Requested</td><td>Phase 2</td><td><span class="pill p-plan">Per-module</span></td></tr>
+        <tr><td class="mono">V-04</td><td>Payment settlement</td><td>Excluded</td><td>Out of scope</td><td><span class="pill p-def">No</span></td></tr>
+        <tr><td class="mono">V-05</td><td>Equipment as asset</td><td>Implied</td><td>Corrected</td><td><span class="pill p-ok">Per SoW</span></td></tr>
+        <tr><td class="mono">V-06</td><td>Chief Engineer role</td><td>Excluded</td><td>Phase 2</td><td><span class="pill p-def">No</span></td></tr>
+        <tr><td class="mono">V-09</td><td>Six dashboards</td><td>Required</td><td>5 + 1 view</td><td><span class="pill p-ok">Six</span></td></tr>
+        <tr><td class="mono">V-10</td><td>Parts stock management</td><td>Required</td><td>View-only</td><td><span class="pill p-plan">View + alerts</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+  <div class="callout warn" style="margin-top:20px">
+    <h3>The decision to make before scope freeze</h3>
+    <p><strong>V-01 and V-02</strong> are the two that remove committed brief scope. Either accept the SoW’s Phase-2 classification, or raise a Change Request under §19 and extend the five-week plan by an estimated 1.5–2 weeks. The data model already carries the shortage trigger a requisition would start from, so either path is open — but the timeline differs.</p>
+  </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">09</span><h2>Next</h2></div>
+  <div class="col">
+  <p>Phase A is complete and committed. Implementation follows the SoW’s five-week plan:</p>
+  <ul class="clean">
+    <li><strong>Week 1</strong> — authentication, RBAC, the delegated provisioning chain (Platform Admin → Technical Head → Ship Manager → Captain)</li>
+    <li><strong>Week 2</strong> — Spare tree per the VMP structure, the Excel import engine, vessel and spare screens</li>
+    <li><strong>Week 3</strong> — Service Request, troubleshooting assistant, live agent chat</li>
+    <li><strong>Week 4</strong> — invoice acceptance gate, service execution, maintenance engine and alerts</li>
+    <li><strong>Week 5</strong> — the six dashboards, activity feed, reports, security testing, deployment</li>
+  </ul>
+  <p>The design system and application shell are built first, before any dashboard — six dashboards is precisely the situation where skipping that produces six divergent implementations.</p>
+  </div>
+</section>
+
+<div class="foot">
+  <p class="mono" style="margin-bottom:6px">Talent Trek Technologies · Phase A baseline · 2026-09-12</p>
+  <p style="margin:0">Prepared for Seastella Maritime, a venture of Pucho Consultant Private Limited. Full documentation — architecture, data model, RBAC matrix, traceability register, design system, open items and scope variances — is held in the project repository.</p>
+</div>
+
+</div>
