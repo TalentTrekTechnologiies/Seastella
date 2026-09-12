@@ -19,7 +19,7 @@
   <description>Maritime Navigation Equipment Asset and Service Management Platform</description>
 
   <properties>
-    <java.version>17</java.version>
+    <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <archunit.version>1.3.0</archunit.version>
     <springdoc.version>2.8.6</springdoc.version>
