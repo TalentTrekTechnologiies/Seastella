@@ -1,0 +1,122 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-radius: var(--r-pill);
+  border: 1px solid;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.badge--md {
+  font-size: 11px;
+  padding: 4px 9px;
+}
+.badge--sm {
+  font-size: 10px;
+  padding: 3px 7px;
+  letter-spacing: 0.05em;
+}
+
+.badge__detail {
+  font-size: 0.92em;
+  font-weight: 500;
+  opacity: 0.85;
+  padding-left: 5px;
+  margin-left: 1px;
+  border-left: 1px solid currentColor;
+}
+
+.badge--normal {
+  background: var(--c-normal-weak);
+  color: var(--c-normal);
+  border-color: color-mix(in srgb, var(--c-normal) 35%, transparent);
+}
+.badge--approaching {
+  background: var(--c-approaching-weak);
+  color: var(--c-approaching);
+  border-color: color-mix(in srgb, var(--c-approaching) 35%, transparent);
+}
+.badge--urgent {
+  background: var(--c-urgent-weak);
+  color: var(--c-urgent);
+  border-color: color-mix(in srgb, var(--c-urgent) 35%, transparent);
+}
+.badge--overdue {
+  background: var(--c-overdue-weak);
+  color: var(--c-overdue);
+  border-color: color-mix(in srgb, var(--c-overdue) 40%, transparent);
+}
+.badge--neutral {
+  background: var(--c-neutral-weak);
+  color: var(--c-text-muted);
+  border-color: var(--c-border);
+}
+.badge--accent {
+  background: var(--c-accent-weak);
+  color: var(--c-accent);
+  border-color: color-mix(in srgb, var(--c-accent) 35%, transparent);
+}
+.badge--critical {
+  background: var(--c-critical-weak);
+  color: var(--c-critical);
+  border-color: color-mix(in srgb, var(--c-critical) 35%, transparent);
+}
+
+/* Shape carries the status as well as colour: greyscale and colour-vision safe. */
+.glyph {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+}
+.glyph--dot {
+  border-radius: 50%;
+}
+.glyph--half {
+  border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+  box-shadow: inset 0 0 0 1.25px currentColor;
+}
+.glyph--triangle {
+  width: 0;
+  height: 0;
+  background: none;
+  border-left: 4.5px solid transparent;
+  border-right: 4.5px solid transparent;
+  border-bottom: 8px solid currentColor;
+}
+.glyph--square {
+  border-radius: 1px;
+}
+.glyph--none {
+  display: none;
+}
+
+.vessel-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.vessel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.vessel-dot--active {
+  background: var(--c-normal);
+}
+.vessel-dot--dry_dock {
+  background: var(--c-approaching);
+}
+.vessel-dot--inactive {
+  background: var(--c-text-faint);
+}
+.vessel-dot--decommissioned {
+  background: var(--c-border-strong);
+}

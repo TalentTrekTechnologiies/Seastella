@@ -69,7 +69,8 @@ public interface ServiceRequestMetrics {
             Instant raisedAt, Instant lastUpdatedAt, Integer ageDays) {}
 
     record ActivityItem(
-            Long serviceRequestId, String requestNumber, Long vesselId, String vesselName,
+            Long serviceRequestId, String requestNumber,
+            Long organizationId, Long vesselId, String vesselName,
             ServiceRequestStatus fromStatus, ServiceRequestStatus toStatus,
             ServiceRequestAction action, String actionLabel,
             Long actorUserId, String actorName, String actorRole,

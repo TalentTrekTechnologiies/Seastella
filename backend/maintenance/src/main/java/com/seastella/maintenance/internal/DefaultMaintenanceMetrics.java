@@ -143,6 +143,32 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
 
     @Override
     @Transactional(readOnly = true)
+    public List<RadarPoint> radarPoints(Set<Long> vesselIds, int limit) {
+        if (vesselIds.isEmpty()) return List.of();
+        LocalDate today = LocalDate.now();
+
+        // One row per tracked spare. Banding is applied by the engine, as
+        // everywhere else - the plot colours points by the same rule the
+        // badges use, so a blip and a badge can never disagree.
+        return named.query(DUE_SELECT + """
+                where r.vessel_id in (:ids) and r.active = true
+                  and r.next_due_date is not null
+                order by r.next_due_date asc
+                limit :lim
+                """, new MapSqlParameterSource("ids", vesselIds).addValue("lim", limit),
+                (rs, i) -> {
+                    Date due = rs.getDate("next_due_date");
+                    int days = (int) ChronoUnit.DAYS.between(today, due.toLocalDate());
+                    return new RadarPoint(
+                            rs.getLong("spare_id"), rs.getLong("vessel_id"),
+                            rs.getString("vessel_name"), rs.getString("spare_name"),
+                            rs.getString("cat_code"), days,
+                            engine.classify(days, rs.getLong("organization_id")));
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Map<Long, VesselDueCounts> perVessel(Set<Long> vesselIds) {
         Map<Long, VesselDueCounts> result = new HashMap<>();
         if (vesselIds.isEmpty()) return result;

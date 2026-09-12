@@ -31,6 +31,14 @@ public interface MaintenanceMetrics {
     /** Spares needing attention: approaching, urgent, due or overdue. */
     long attentionCount(Set<Long> vesselIds);
 
+    /**
+     * Every tracked spare as a plottable point, for the maintenance radar.
+     *
+     * @param limit hard cap, so a very large fleet cannot produce an unbounded
+     *              response
+     */
+    List<RadarPoint> radarPoints(Set<Long> vesselIds, int limit);
+
     /** Per-vessel due and overdue counts, for the fleet drill-down table. */
     Map<Long, VesselDueCounts> perVessel(Set<Long> vesselIds);
 
@@ -41,4 +49,15 @@ public interface MaintenanceMetrics {
             DueStatus status, String colour, String shape, String basis) {}
 
     record VesselDueCounts(long dueSoon, long overdue, long total) {}
+
+    /**
+     * Every tracked spare reduced to the three values a polar plot needs.
+     *
+     * <p>Deliberately compact: this is one row per spare across the fleet, so
+     * the payload stays small enough to send whole rather than paginated, and
+     * the client can plot it without a second request.
+     */
+    record RadarPoint(
+            Long spareId, Long vesselId, String vesselName, String spareName,
+            String categoryCode, Integer daysRemaining, DueStatus status) {}
 }

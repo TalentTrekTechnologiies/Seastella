@@ -31,6 +31,8 @@ public record TechnicalHeadDashboard(
         List<VesselHealthRow> vessels,
         List<MaintenanceMetrics.DueItem> overdue,
         List<MaintenanceMetrics.DueItem> dueSoon,
+        /** Every tracked spare, plotted on the maintenance radar. */
+        List<MaintenanceMetrics.RadarPoint> maintenanceRadar,
         InvoiceRollup invoices,
         List<ServiceRequestMetrics.ActivityItem> recentActivity) {
 

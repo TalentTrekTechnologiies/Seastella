@@ -1,0 +1,224 @@
+/* Shared layout vocabulary. Every dashboard composes from these, so the six
+   read as one product rather than six visual designs. */
+
+.page {
+  display: grid;
+  gap: var(--s-5);
+  align-content: start;
+  min-width: 0;
+}
+
+/* Two-column working layout: dominant content beside a supporting rail. */
+.grid-main-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: var(--s-5);
+  align-items: start;
+}
+
+.grid-halves {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--s-5);
+  align-items: start;
+}
+
+.grid-thirds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s-5);
+  align-items: start;
+}
+
+.stack {
+  display: grid;
+  gap: var(--s-5);
+  align-content: start;
+}
+
+.select {
+  font-size: 12px;
+  padding: 5px 9px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-input);
+  background: var(--c-surface);
+  color: var(--c-text);
+  max-width: 200px;
+}
+.select:focus {
+  outline: none;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-ring);
+}
+
+/* ---- activity feed ---- */
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.feed__item {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 0 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--c-border);
+  align-items: start;
+}
+.feed__item:last-child {
+  border-bottom: none;
+}
+
+.feed__rail {
+  align-self: stretch;
+  border-radius: 2px;
+  min-height: 28px;
+}
+.feed__rail--accent {
+  background: var(--c-accent);
+}
+.feed__rail--normal {
+  background: var(--c-normal);
+}
+.feed__rail--approaching {
+  background: var(--c-approaching);
+}
+.feed__rail--overdue {
+  background: var(--c-overdue);
+}
+
+.feed__body {
+  min-width: 0;
+}
+
+.feed__line {
+  font-size: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.feed__action {
+  font-weight: 500;
+}
+.feed__ref {
+  font-size: 11.5px;
+  color: var(--c-text-muted);
+}
+.feed__sep {
+  color: var(--c-border-strong);
+}
+
+.feed__meta {
+  font-size: 11.5px;
+  color: var(--c-text-faint);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.feed__role {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--c-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--c-text-muted);
+}
+
+.feed__reason {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  font-style: italic;
+  margin-top: 5px;
+  padding-left: 9px;
+  border-left: 2px solid var(--c-border);
+}
+
+.feed__time {
+  font-size: 11px;
+  color: var(--c-text-faint);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* ---- queue list: a work item with an action ---- */
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.queue__item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-border);
+  display: grid;
+  gap: 7px;
+}
+.queue__item:last-child {
+  border-bottom: none;
+}
+.queue__head {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.queue__title {
+  font-size: 13.5px;
+  font-weight: 500;
+  min-width: 0;
+}
+.queue__ref {
+  font-size: 11px;
+  color: var(--c-text-faint);
+}
+.queue__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--c-text-muted);
+}
+.queue__spare {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+
+/* A blocked queue states why, rather than looking broken. */
+.queue-blocked {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 10px 16px;
+  background: var(--c-approaching-weak);
+  border-bottom: 1px solid var(--c-border);
+  font-size: 12px;
+  color: var(--c-approaching);
+  line-height: 1.45;
+}
+.queue-blocked strong {
+  font-weight: 600;
+}
+
+/* The action a queue expects, stated on the panel. */
+.queue-action-hint {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--c-accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .grid-main-rail {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,284 @@
+/* =====================================================================
+   SeaStella design tokens — "Night Bridge".
+
+   The identity is drawn from the thing this software is about: a ship's
+   bridge at night. Deep, low-glare grounds; phosphor-cyan instrument
+   light; hairline rules and corner ticks borrowed from instrument
+   bezels; numerals set like gauge readings.
+
+   Two rules govern colour, and everything else follows:
+
+   1. The four maintenance status colours are SPEC-MANDATED (SoW §7) and
+      therefore RESERVED. Nothing decorative may use them, so a green pill
+      always means "normal" and never "primary action".
+   2. The brand accent must not collide with any of the four — which rules
+      out green, amber, orange and red, and lands the accent on cold
+      phosphor cyan. That is also, not coincidentally, the colour of every
+      radar and ECDIS display on a real bridge.
+   ===================================================================== */
+
+:root {
+  /* ---- Ground & surface (light: "chart table") ---- */
+  --c-bg: #eaeef1;
+  --c-surface: #ffffff;
+  --c-surface-sunk: #e3e9ed;
+  --c-surface-raised: #ffffff;
+  --c-border: #cbd6de;
+  --c-border-strong: #a6b6c2;
+  --c-hairline: rgba(22, 45, 58, 0.08);
+
+  /* ---- Text ---- */
+  --c-text: #0f2028;
+  --c-text-muted: #4e6472;
+  --c-text-faint: #78909e;
+  --c-text-invert: #eaeef1;
+
+  /* ---- Accent: instrument cyan ---- */
+  --c-accent: #0a6d7e;
+  --c-accent-hover: #085462;
+  --c-accent-weak: #dcecef;
+  --c-accent-ring: rgba(10, 109, 126, 0.32);
+  --c-accent-glow: rgba(10, 109, 126, 0.14);
+  --c-on-accent: #ffffff;
+
+  /* ---- Status: RESERVED. Spec-mandated, never decorative. ---- */
+  --c-normal: #17764a;
+  --c-normal-weak: #dcefe4;
+  --c-approaching: #8f6708;
+  --c-approaching-weak: #f8eed6;
+  --c-urgent: #b85a09;
+  --c-urgent-weak: #fae8da;
+  --c-overdue: #a92019;
+  --c-overdue-weak: #f9e1df;
+  --c-neutral: #4e6472;
+  --c-neutral-weak: #e3e9ed;
+
+  /* ---- Criticality: its own hue, never the reserved four ---- */
+  --c-critical: #63295a;
+  --c-critical-weak: #f0e4ef;
+
+  /* ---- Typography ---- */
+  --font-display: 'Archivo', 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  /* ---- Spacing: 4px base ---- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* ---- Radius: instruments are square. Spend it sparingly. ---- */
+  --r-input: 2px;
+  --r-pill: 2px;
+  --r-panel: 3px;
+  --r-float: 4px;
+
+  /* ---- Elevation ---- */
+  --shadow-panel: 0 1px 2px rgba(15, 32, 40, 0.05);
+  --shadow-float: 0 18px 48px rgba(15, 32, 40, 0.18), 0 2px 8px rgba(15, 32, 40, 0.1);
+
+  /* ---- Layout ---- */
+  --sidebar-w: 232px;
+  --topbar-h: 54px;
+  --content-max: 1760px;
+
+  --z-drawer: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  color-scheme: light;
+}
+
+/* ---- Dark: the bridge at night. The primary theme. ---- */
+:root[data-theme='dark'] {
+  --c-bg: #050c11;
+  --c-surface: #0b161d;
+  --c-surface-sunk: #081218;
+  --c-surface-raised: #10222b;
+  --c-border: #162933;
+  --c-border-strong: #27414e;
+  --c-hairline: rgba(120, 200, 220, 0.055);
+
+  --c-text: #dfeaf0;
+  --c-text-muted: #8fa8b6;
+  --c-text-faint: #5f7a8a;
+  --c-text-invert: #050c11;
+
+  /* Phosphor cyan — the colour of the displays this replaces. */
+  --c-accent: #38c8dd;
+  --c-accent-hover: #5ad9eb;
+  --c-accent-weak: #0a2b34;
+  --c-accent-ring: rgba(56, 200, 221, 0.38);
+  --c-accent-glow: rgba(56, 200, 221, 0.16);
+  --c-on-accent: #03161b;
+
+  /* Brightened to hold contrast on a dark ground, not inverted. */
+  --c-normal: #35c07c;
+  --c-normal-weak: #0c2a1d;
+  --c-approaching: #e0ae2c;
+  --c-approaching-weak: #2c2410;
+  --c-urgent: #f08840;
+  --c-urgent-weak: #301c0e;
+  --c-overdue: #f2594d;
+  --c-overdue-weak: #2f1211;
+  --c-neutral: #8fa8b6;
+  --c-neutral-weak: #14242c;
+
+  --c-critical: #c98cba;
+  --c-critical-weak: #261729;
+
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02);
+  --shadow-float: 0 24px 60px rgba(0, 0, 0, 0.6), 0 2px 10px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+/* ---- Reset ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--c-text);
+  font: 400 14px/1.55 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* A chart grid, at the threshold of visibility. It gives the ground a
+     material rather than a colour — the same reason chart paper is ruled. */
+  background-color: var(--c-bg);
+  background-image:
+    linear-gradient(var(--c-hairline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-hairline) 1px, transparent 1px);
+  background-size: 48px 48px, 48px 48px;
+  background-position: -1px -1px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  text-wrap: balance;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* Digits that line up in columns must line up. */
+.tnum,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Uppercase micro-label. Used for every field label and section eyebrow. */
+.label-micro {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+::selection {
+  background: var(--c-accent-weak);
+  color: var(--c-text);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--c-border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

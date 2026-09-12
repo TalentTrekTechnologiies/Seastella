@@ -36,6 +36,8 @@ class TechnicalHeadDashboardService {
 
     private static final int DUE_WINDOW_DAYS = 15;
     private static final int LIST_LIMIT = 25;
+    /** Bounded so a large fleet cannot produce an unbounded payload. */
+    private static final int RADAR_LIMIT = 600;
 
     private final DashboardSupport support;
     private final FleetMetrics fleet;
@@ -96,6 +98,7 @@ class TechnicalHeadDashboardService {
                 vesselRows(vesselIds),
                 maintenance.overdue(vesselIds, LIST_LIMIT),
                 maintenance.dueSoon(vesselIds, DUE_WINDOW_DAYS, LIST_LIMIT),
+                maintenance.radarPoints(vesselIds, RADAR_LIMIT),
                 new TechnicalHeadDashboard.InvoiceRollup(
                         pending.count(), pending.total(),
                         accepted.count(), accepted.total(), "USD"),

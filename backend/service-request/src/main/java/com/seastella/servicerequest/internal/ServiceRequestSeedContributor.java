@@ -7,6 +7,7 @@ import com.seastella.servicerequest.api.Priority;
 import com.seastella.servicerequest.api.ResolutionType;
 import com.seastella.servicerequest.api.ServiceRequestAction;
 import com.seastella.servicerequest.api.ServiceRequestStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -40,17 +41,20 @@ public class ServiceRequestSeedContributor implements SeedContributor {
     private final CompletionReportRepository completionReports;
     private final ProblemTypeRepository problemTypes;
     private final FleetDirectory fleet;
+    private final JdbcTemplate jdbc;
 
     ServiceRequestSeedContributor(ServiceRequestRepository requests,
                                   ServiceRequestTransitionLogRepository transitions,
                                   CompletionReportRepository completionReports,
                                   ProblemTypeRepository problemTypes,
-                                  FleetDirectory fleet) {
+                                  FleetDirectory fleet,
+                                  JdbcTemplate jdbc) {
         this.requests = requests;
         this.transitions = transitions;
         this.completionReports = completionReports;
         this.problemTypes = problemTypes;
         this.fleet = fleet;
+        this.jdbc = jdbc;
     }
 
     @Override public int order() { return 40; }
@@ -275,8 +279,18 @@ public class ServiceRequestSeedContributor implements SeedContributor {
             sr.seedClosure(shipManagerId, raisedAt.plus(1, ChronoUnit.DAYS), ResolutionType.NONE);
         }
 
-        ServiceRequest saved = requests.save(sr);
+        ServiceRequest saved = requests.saveAndFlush(sr);
         ctx.put(handle, saved.getId());
+
+        // JPA auditing stamps created_at with "now", but a seeded request was
+        // raised in the past and may already be closed. Left alone, closed_at
+        // precedes created_at and every turnaround figure comes out negative.
+        // Back-dating the audit column is the one place seeding legitimately
+        // reaches past the entity.
+        jdbc.update("update service_request set created_at = ?, updated_at = ? where id = ?",
+                java.sql.Timestamp.from(raisedAt),
+                java.sql.Timestamp.from(raisedAt),
+                saved.getId());
 
         seedTransitionHistory(saved, status, captainId, shipManagerId, coordinatorId,
                 engineerId, raisedAt);

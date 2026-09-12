@@ -298,7 +298,8 @@ class DefaultServiceRequestMetrics implements ServiceRequestMetrics {
             """;
 
     private static final String ACTIVITY_SELECT = """
-            select t.service_request_id, r.request_number, t.vessel_id, v.name as vessel_name,
+            select t.service_request_id, r.request_number, r.organization_id,
+                   t.vessel_id, v.name as vessel_name,
                    t.from_status, t.to_status, t.action, t.actor_user_id,
                    au.full_name as actor_name, t.actor_role, t.reason, t.occurred_at, t.id
             from service_request_transition t
@@ -332,7 +333,7 @@ class DefaultServiceRequestMetrics implements ServiceRequestMetrics {
 
         return new ActivityItem(
                 rs.getLong("service_request_id"), rs.getString("request_number"),
-                rs.getLong("vessel_id"), rs.getString("vessel_name"),
+                rs.getLong("organization_id"), rs.getLong("vessel_id"), rs.getString("vessel_name"),
                 from == null ? null : ServiceRequestStatus.valueOf(from),
                 ServiceRequestStatus.valueOf(rs.getString("to_status")),
                 action, action.label(),

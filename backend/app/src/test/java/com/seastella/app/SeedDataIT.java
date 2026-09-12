@@ -370,6 +370,39 @@ class SeedDataIT {
     }
 
     @Nested
+    @DisplayName("temporal coherence")
+    class Temporal {
+
+        /**
+         * A closed request must not predate its own creation.
+         *
+         * <p>JPA auditing stamps created_at with "now" while seeded requests
+         * are raised in the past, so without back-dating every turnaround
+         * average comes out negative — which is exactly how it first appeared
+         * on the Coordinator dashboard.
+         */
+        @Test
+        void noRequestClosesBeforeItWasRaised() {
+            Integer inverted = jdbc.queryForObject("""
+                    select count(*) from service_request
+                    where closed_at is not null and closed_at < created_at
+                    """, Integer.class);
+
+            assertThat(inverted).as("requests closed before they were raised").isZero();
+        }
+
+        @Test
+        void closedRequestsSpanAPlausibleRange() {
+            List<Map<String, Object>> rows = jdbc.queryForList("""
+                    select request_number, created_at, closed_at from service_request
+                    where closed_at is not null
+                    """);
+
+            assertThat(rows).isNotEmpty();
+        }
+    }
+
+    @Nested
     @DisplayName("stock and seed marking")
     class StockAndMarking {
 
