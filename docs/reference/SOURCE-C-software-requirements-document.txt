@@ -1,0 +1,770 @@
+Software Requirements Document
+Maritime Navigation Equipment Asset & Service Management Platform
+
+1. Purpose of the Application
+The application will provide a centralized web-based platform for managing:
+Companies
+Ships / Vessels
+Vessel users
+Equipment
+Equipment service history
+Maintenance
+Surveys
+Health checks
+Running hours
+Critical spares
+Service requests
+Service providers
+Payments / service costs
+Documents
+Alerts and notifications
+Fleet-level dashboards and reports
+The system must provide clear ownership and control at every level.
+The primary hierarchy will be:
+Platform → Company → Vessel → Equipment → Service / Maintenance / Documents / Spares
+
+
+2. Core Business Hierarchy
+2.1 Platform Administrator
+The highest-level system administrator will have control over the entire application.
+Responsibilities
+Create and manage companies
+Create and manage users
+Assign company administrators
+View all vessels
+Manage system-wide configurations
+Configure maintenance rules
+Manage master data
+Monitor system activity
+Manage permissions
+View system-level reports
+Manage notification settings
+The platform administrator should have visibility across all organizations while maintaining strict audit logging.
+
+3. Company Management
+Each customer/company will have its own isolated environment.
+Company Administrator
+A company administrator can:
+Create vessels
+Manage vessel users
+View company vessels
+Manage vessel information
+View equipment
+Assign users to vessels
+Manage service activities
+Review service requests
+Monitor maintenance
+Review service costs/payments
+View company reports
+A company user must not be able to access another company's information.
+
+4. Vessel / Ship Management
+Each company can manage multiple ships/vessels.
+Structure
+Company
+↓
+Vessel / Ship
+↓
+Equipment
+↓
+Services / Maintenance / Documents / Spares
+Vessel Information
+Each vessel should have:
+Vessel name
+IMO number
+Vessel type
+Flag
+Registration information
+Operational status
+Company/owner
+Vessel manager
+Assigned users
+Equipment inventory
+Documents
+Service history
+Maintenance status
+Vessel Status
+A vessel can have statuses such as:
+Active
+Under Maintenance
+Inactive
+Decommissioned
+
+5. User & Role Management
+The system must implement role-based access control.
+Proposed Roles
+5.1 Super Administrator
+Full system access.
+5.2 Company Administrator
+Controls the company's vessels, users and operational data.
+5.3 Marine Administrator / Service Coordinator
+Manages service operations, maintenance schedules, service requests and coordination.
+5.4 Vessel Manager / Superintendent
+Can monitor assigned vessels and approve/coordinate vessel-level activities.
+5.5 Master
+Can access operational information for the assigned vessel and raise service/maintenance requests.
+5.6 Chief Engineer
+Can manage equipment-related operational information, running hours, service records and maintenance information for the assigned vessel.
+5.7 Service Provider / Technician
+If enabled, can access only assigned service jobs and relevant equipment information.
+
+6. Permission Model
+Access should be controlled at multiple levels.
+Level 1 – Organization
+User belongs to a specific company.
+Level 2 – Vessel
+User is assigned to one or more vessels.
+Level 3 – Equipment
+User access is inherited from the vessel unless specifically restricted.
+Level 4 – Function
+Different users can have different permissions:
+View
+Create
+Edit
+Approve
+Delete
+Export
+Manage payments
+Manage users
+Manage configuration
+Example:
+A Chief Engineer assigned to Vessel A should not be able to view Vessel B.
+A Company Administrator can view all vessels belonging to their company.
+A Super Administrator can manage the entire platform.
+
+7. Equipment Management
+Every vessel will maintain an equipment inventory.
+Each equipment record should contain:
+Equipment name
+Equipment category/type
+Manufacturer
+Model
+Serial number
+Installation date
+Installation location
+Running hours
+Current condition/status
+Service interval
+Last service date
+Next service date
+Survey date
+Next survey date
+Health-check date
+Critical spare information
+Documents
+Service history
+The original project scope specifically requires equipment records covering manufacturer, model, serial number, installation details, running hours, service history, survey history, maintenance schedules, health checks, critical spares and documents.
+
+8. Equipment Status
+Equipment should have a visible status.
+Example:
+Operational
+Under Maintenance
+Service Due
+Overdue
+Critical
+Out of Service
+The status should be clearly visible on the equipment page and dashboard.
+
+9. Service Management
+The application should provide complete service lifecycle management.
+Service Workflow
+Service Request
+↓
+Request Review
+↓
+Service Assignment
+↓
+Service Scheduled
+↓
+Service In Progress
+↓
+Service Completed
+↓
+Verification / Approval
+↓
+Service Closed
+
+10. Service Request
+A vessel user should be able to create a service/issue request.
+Request Information
+Vessel
+Equipment
+Issue type
+Description
+Priority
+Date reported
+Reported by
+Attachments/photos/documents
+Required service date
+Current equipment condition
+Priority
+Possible priorities:
+Low
+Medium
+High
+Critical
+Critical issues should immediately appear on the relevant dashboard and trigger notifications.
+The source requirements explicitly include service-request/issue-reporting functionality.
+
+11. Service Provider Management
+The system should allow authorized administrators to assign service jobs.
+A service record can contain:
+Service provider
+Technician
+Service type
+Service location
+Planned date
+Actual date
+Work performed
+Parts used
+Labour cost
+Service cost
+Attachments
+Service report
+Completion status
+Approval status
+
+12. Service Payment Management
+Payment management should be linked to the service record.
+Service Cost Workflow
+Service Created
+↓
+Quotation / Estimated Cost
+↓
+Service Approved
+↓
+Service Completed
+↓
+Invoice Added
+↓
+Payment Pending
+↓
+Payment Completed
+↓
+Payment Closed
+Payment Information
+Each payment record can contain:
+Service ID
+Vendor/service provider
+Quotation amount
+Approved amount
+Invoice number
+Invoice date
+Tax
+Total amount
+Payment status
+Payment due date
+Payment date
+Payment reference
+Supporting invoice/document
+Payment Status
+Estimate
+Pending Approval
+Approved
+Invoice Received
+Payment Due
+Overdue
+Paid
+Cancelled
+Only authorized roles should be able to approve or modify financial information.
+
+13. Payment Control
+Payment permissions must be separated from normal operational permissions.
+For example:
+Chief Engineer
+→ Can raise service request
+Service Coordinator
+→ Can coordinate service
+Company Administrator / Authorized Finance User
+→ Can approve service cost/payment
+Super Administrator
+→ Can manage system-level financial configuration
+This separation prevents unauthorized users from changing financial information.
+
+
+14. Maintenance Scheduling
+The system will automatically calculate maintenance due dates based on configurable rules.
+Maintenance can be based on:
+Calendar interval
+Running hours
+Service interval
+Manufacturer recommendation
+Custom company rule
+Example:
+Equipment requires service every 180 days.
+If the last service was on 1 January:
+Next Service → 30 June
+The system should automatically monitor the approaching deadline.
+
+15. Deadline & Colour-Coded Status System
+This is a key dashboard requirement.
+The application should visually communicate how close an activity is to its deadline.
+Proposed Colour Logic
+Green – Normal
+More than 15 days remaining.
+Yellow – Approaching
+10–15 days remaining.
+Orange – Urgent
+1–9 days remaining.
+Red – Overdue
+Deadline has passed.
+Example
+Maintenance due on 30 September:
+Remaining Time | Status
+16+ days | 🟢 Green
+10–15 days | 🟡 Yellow
+1–9 days | 🟠 Orange
+0 / Due Today | 🔴 Red
+Overdue | 🔴 Red / Overdue
+The exact thresholds can be configured by the administrator rather than hard-coded.
+
+16. Dynamic Status Colour
+The colour must automatically change as the deadline approaches.
+Example:
+Day 20
+🟢 Normal
+Day 15
+🟡 Approaching
+Day 9
+🟠 Urgent
+Day 1
+🟠 Urgent
+Due Date
+🔴 Due Today
+Day +1
+🔴 Overdue
+No manual status update should be required.
+
+17. Alert System
+The application should automatically generate alerts for:
+Annual survey approaching
+Health check approaching
+Maintenance due
+Maintenance overdue
+Service overdue
+Critical spare shortage
+Payment due
+Payment overdue
+Critical equipment issue
+The source scope specifically requires alerts for annual surveys, health checks, maintenance due dates, overdue services and critical spare shortages.
+
+18. Notification System
+Notifications should be available through:
+In-App
+Notification center inside the application.
+Email
+Automated email notifications for important events.
+Notification Examples
+Maintenance approaching
+Equipment XYZ maintenance is due in 10 days.
+Maintenance overdue
+Equipment XYZ maintenance is overdue by 2 days.
+Payment approaching
+Invoice INV-001 is due in 5 days.
+Critical issue
+Critical service request raised for Vessel ABC.
+
+19. Dashboard
+The dashboard should provide an immediate operational overview.
+Company Dashboard
+Display:
+Total vessels
+Total equipment
+Maintenance due
+Maintenance overdue
+Upcoming surveys
+Health checks
+Open service requests
+Critical equipment
+Critical spare shortages
+Pending payments
+Overdue payments
+
+
+
+
+20. Vessel Dashboard
+Each vessel should have its own dashboard.
+Example
+Vessel: MV Example
+Equipment: 128
+Services Due: 7
+Overdue: 2
+Open Issues: 4
+Critical Equipment: 1
+Spare Shortages: 3
+Pending Payments: 2
+The user should be able to click each number and navigate directly to the relevant records.
+
+21. Equipment Dashboard
+Each equipment record should show:
+Current status
+Last service
+Next service
+Running hours
+Survey status
+Health-check status
+Critical spares
+Open issues
+Service history
+Documents
+Payment/service information where authorized
+
+22. Critical Equipment
+Equipment marked as critical should receive higher visibility.
+Critical equipment can trigger:
+Dashboard highlighting
+Immediate notification
+Priority service request
+Escalation workflow
+
+23. Critical Spare Management
+The system should track:
+Spare name
+Part number
+Equipment
+Required quantity
+Available quantity
+Minimum quantity
+Reorder level
+Supplier
+Last updated date
+Automatic Alert
+If:
+Available Quantity < Minimum Required Quantity
+then the system should generate a critical spare shortage alert.
+
+
+24. Excel / CSV Import
+Vessels should be able to upload standardized Excel/CSV data.
+Workflow:
+Upload File
+↓
+Read Data
+↓
+Validate
+↓
+Display Errors
+↓
+User Correction
+↓
+Re-upload
+↓
+Confirm Import
+↓
+Database Update
+The system should not directly insert unvalidated Excel data into production records.
+The source requirements explicitly call for automated validation and error handling during Excel uploads.
+
+
+
+
+
+25. Document Management
+Documents can be attached to:
+Company
+Vessel
+Equipment
+Service request
+Service record
+Invoice/payment
+Examples:
+Equipment manuals
+Certificates
+Service reports
+Survey reports
+Invoices
+Quotations
+Maintenance documents
+Access to documents must follow the user's permissions.
+
+26. Search & Filtering
+Users should be able to search by:
+Vessel
+Equipment
+Serial number
+Manufacturer
+Model
+Service status
+Maintenance status
+Date
+Service provider
+Payment status
+Filters should allow users to quickly identify:
+Due items
+Overdue items
+Critical items
+Open service requests
+Pending payments
+
+27. Audit Trail
+Because the application handles operational and potentially financial information, important actions must be logged.
+The audit system should record:
+User
+Date/time
+Action
+Record affected
+Previous value
+New value
+IP/device information where appropriate
+Examples:
+Admin changed maintenance interval from 180 days to 120 days.
+User approved service quotation.
+Payment status changed from Pending to Paid.
+Equipment record updated.
+Audit records should not be editable by normal users.
+
+28. Security Requirements
+Security is a major requirement of the application.
+Authentication
+Secure login
+Strong password policy
+Secure session management
+Password reset
+Account lock/rate limiting where appropriate
+Authorization
+Every API request must verify that the logged-in user has permission to access the requested company/vessel/equipment.
+Frontend hiding alone is not sufficient.
+The backend must enforce permissions.
+
+29. Multi-Tenant Data Isolation
+The application must prevent cross-company data access.
+Example:
+Company A
+User A → Vessel A1, Vessel A2
+Company B
+User B → Vessel B1, Vessel B2
+User A must never be able to access:
+Company B → Vessel B1
+even if they attempt to manipulate URLs, IDs or API requests.
+This is one of the most important security requirements.
+
+30. Data Security
+The application should implement:
+HTTPS
+Secure password hashing
+Input validation
+API authentication
+Role-based authorization
+Secure file uploads
+SQL injection protection
+XSS protection
+CSRF protection where applicable
+Secure headers
+Database access controls
+Regular backups
+Logging
+Error monitoring
+
+31. File Upload Security
+Uploaded documents must be validated.
+The system should check:
+File type
+File size
+File name
+Upload permissions
+Files should not be executed as application code.
+Access to uploaded documents should require authorization.
+
+32. Backup & Recovery
+Database backups should be configured.
+The system should support:
+Automated backups
+Backup retention policy
+Recovery procedure
+Production database protection
+The original scope also explicitly includes database backups, logging, security and basic monitoring.
+
+33. API Security
+The application will use REST APIs.
+APIs must implement:
+Authentication
+Authorization
+Input validation
+Rate limiting where appropriate
+Secure error handling
+API logging
+Permission checks
+No sensitive information should be exposed through unauthorized API responses.
+
+34. Admin Configuration
+Authorized administrators should be able to configure:
+Maintenance intervals
+Alert thresholds
+User roles
+Vessel assignments
+Equipment categories
+Service types
+Payment statuses
+Notification rules
+Criticality levels
+The deadline colour thresholds should preferably be configurable.
+Example:
+Green: >15 days
+Yellow: 10–15 days
+Orange: 1–9 days
+Red: overdue
+
+35. Reporting
+The platform should provide reports for:
+Fleet
+Vessel status
+Equipment count
+Maintenance status
+Service status
+Equipment
+Service history
+Maintenance history
+Running hours
+Survey history
+Financial
+For authorized users:
+Service costs
+Pending invoices
+Paid invoices
+Overdue payments
+Vendor/service-provider costs
+
+36. Recommended End-to-End Workflow
+A typical operational workflow will be:
+Company Created
+↓
+Vessel Added
+↓
+Users Assigned
+↓
+Equipment Added
+↓
+Maintenance Rules Configured
+↓
+Running Hours Updated
+↓
+System Calculates Maintenance
+↓
+Deadline Approaches
+↓
+Colour Changes Automatically
+↓
+Notification Generated
+↓
+Service Request Raised
+↓
+Service Provider Assigned
+↓
+Service Completed
+↓
+Service Report Uploaded
+↓
+Invoice Added
+↓
+Payment Approved
+↓
+Payment Completed
+↓
+Service Closed
+↓
+Equipment Service History Updated
+
+
+37. Four-Week MVP Priorities
+Because the initial target is four weeks, development should prioritize the following core workflow.
+Week 1
+Architecture
+Database
+Authentication
+Roles
+Company
+Vessel
+User management
+Week 2
+Equipment
+Service history
+Running hours
+Critical spares
+Documents
+Week 3
+Maintenance
+Deadline calculation
+Colour status
+Alerts
+Service requests
+Payment workflow
+Excel import
+Week 4
+Dashboard
+Reports
+Notifications
+Security testing
+Permission testing
+API testing
+Deployment
+Backup
+Documentation
+Handover
+
+38. MVP Acceptance Criteria
+The MVP should be considered functionally ready when:
+A company can be created.
+Vessels can be created under a company.
+Users can be assigned to appropriate vessels.
+Equipment can be registered under vessels.
+Equipment service history can be recorded.
+Running hours can be updated.
+Critical spares can be tracked.
+Maintenance schedules can be configured.
+Due dates are calculated automatically.
+Status colours change automatically according to configured thresholds.
+Overdue items become red.
+Service requests can be raised and tracked.
+Service costs/payment information can be managed by authorized users.
+Excel/CSV data can be validated before import.
+Alerts are generated automatically.
+Users cannot access unauthorized vessels or companies.
+Important actions are recorded in an audit trail.
+Documents can be securely uploaded and accessed.
+Dashboard displays operational status.
+Application can be deployed to production.
+
+39. Future Expansion
+The architecture should allow additional modules without major redevelopment.
+Possible future features include:
+Advanced analytics
+Predictive maintenance
+Mobile application/PWA
+Third-party integrations
+ERP integration
+Advanced financial management
+Vendor management
+Purchase orders
+Inventory management
+Advanced fleet reporting
+AI-assisted maintenance insights
+Automated document analysis
+
+
+
+40. Key Requirement
+The application should be designed as a secure, scalable and maintainable product, not merely a collection of screens.
+The technical implementation should cover:
+Architecture → Database → Backend → Frontend → APIs → Business Logic → Automation → Security → Deployment
+The original scope likewise defines the role as end-to-end technical ownership rather than simply screen development.
+
+Final Requirement Summary
+The core system should answer five questions immediately:
+1. WHAT?
+What equipment, service, maintenance or issue exists?
+2. WHERE?
+Which company and vessel does it belong to?
+3. WHO?
+Who owns, manages, reports, approves or services it?
+4. WHEN?
+When is the next service, survey, health check, payment or deadline?
+5. WHAT IS THE STATUS?
+Is it:
+🟢 Normal
+🟡 Approaching
+🟠 Urgent
+🔴 Overdue / Critical
+This should be reflected consistently throughout the dashboard and individual records.
+

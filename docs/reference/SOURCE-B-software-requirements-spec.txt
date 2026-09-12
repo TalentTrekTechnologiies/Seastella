@@ -1,0 +1,1105 @@
+SOFTWARE REQUIREMENTS & SYSTEM FUNCTIONAL SPECIFICATION
+Maritime Navigation Equipment Asset & Service Management Platform
+
+1. DOCUMENT PURPOSE
+This document defines the functional, technical, operational, security, workflow, and access-control requirements for the proposed Maritime Navigation Equipment Asset & Service Management Platform for SeaStella.
+The document consolidates:
+Requirements and Use Cases provided by SeaStella
+Proposed functional modules by Talent Trek Technologies
+User roles and access control
+Equipment and maintenance workflows
+Service and vendor management
+Spare and procurement workflows
+Financial approval and payment tracking
+Automated alerts and deadline management
+Security and audit requirements
+Four-week MVP implementation plan
+Acceptance criteria and pending client confirmations
+
+2. REQUIREMENT CLASSIFICATION
+To avoid confusion between confirmed client requirements and implementation recommendations, requirements are classified as follows.
+CLIENT – CONFIRMED
+Requirements directly provided by SeaStella.
+PROPOSED – TALENT TREK
+Additional implementation recommendations proposed by Talent Trek to make the platform secure, scalable, maintainable, and development-ready.
+TBD – CLIENT CONFIRMATION
+Items requiring confirmation from SeaStella before final scope freeze.
+
+3. PRODUCT OBJECTIVE
+The platform will provide SeaStella with a centralized system for managing:
+Organizations
+Vessels
+Vessel equipment
+Running hours
+Maintenance schedules
+Service jobs
+Service providers
+Critical spare parts
+Spare requisitions
+RFQs and procurement
+Troubleshooting requests
+Equipment-related communication
+Certificates and documents
+Financial approvals
+Payment tracking
+Alerts and notifications
+Technical reports
+Audit history
+The system should provide a clear Organization → Vessel → Equipment hierarchy so users can quickly navigate from fleet-level information to individual equipment history.
+
+4. SYSTEM HIERARCHY
+The core structure of the application will be:
+Platform
+↓
+Organization / Company
+↓
+Vessel
+↓
+Equipment
+↓
+Maintenance / Service / Spares / Documents / Troubleshooting / Requisitions
+This hierarchy will also control user access.
+A user assigned to a particular organization or vessel should not automatically have access to unrelated organizations or vessels.
+
+5. SYSTEM ACTORS & RESPONSIBILITIES
+5.1 Platform Administrator
+The Platform Administrator is the highest-level system administrator.
+Responsibilities
+Manage organizations
+Manage global master data
+Manage users
+Manage roles and permissions
+Configure global settings
+Configure notification rules
+Configure maintenance thresholds
+Manage vessels and assignments
+Monitor overall platform activity
+Access system-wide reports
+Review audit logs
+Access
+Full platform-level access.
+
+5.2 Technical Head
+The Technical Head provides technical oversight across the organization's fleet.
+Responsibilities
+View assigned vessels
+Monitor equipment condition
+Monitor maintenance status
+Review service history
+Monitor critical spare availability
+Review troubleshooting activities
+View technical reports
+Drill down from fleet → vessel → equipment
+Access
+Organization/fleet-level technical access.
+
+5.3 Ship Manager / Superintendent
+The Ship Manager or Superintendent manages assigned vessels.
+Responsibilities
+Monitor vessel operations
+Review service requests
+Coordinate service activities
+Approve/reject spare requisitions
+Review vessel equipment
+Monitor maintenance
+Coordinate with service providers
+Review troubleshooting tickets
+Monitor vessel-level alerts
+Access
+Assigned vessels only.
+
+5.4 Captain
+The Captain is an operational user assigned to a vessel.
+Responsibilities
+View vessel information
+Update operational information
+Update running hours
+Raise service requests
+Raise troubleshooting requests
+Raise spare requisitions
+Upload relevant documents
+View vessel alerts
+Communicate through tickets
+Access
+Assigned vessel only.
+
+5.5 Chief Engineer
+The Chief Engineer manages technical equipment and maintenance activities onboard.
+Responsibilities
+Manage equipment inventory
+Update equipment information
+Update running hours
+Monitor maintenance deadlines
+Raise service requests
+Attach photos/documents
+Review service history
+Update equipment-related information
+Access
+Assigned vessel only.
+
+5.6 Service Coordinator
+The Service Coordinator coordinates service and procurement-related activities.
+Responsibilities
+Review service requests
+Coordinate service providers
+Manage troubleshooting tickets
+Coordinate RFQs
+Coordinate quotations
+Coordinate procurement activities
+Communicate with vessel teams and vendors
+Track service progress
+Access
+Based on assigned operational permissions.
+
+5.7 Service Provider / Technician
+External vendors receive restricted access.
+Responsibilities
+View assigned service jobs
+Review service requirements
+Schedule service
+Update work logs
+Record parts used
+Upload service reports
+Upload invoices where applicable
+Communicate through assigned service/ticket
+Access Restriction
+A Service Provider must only be able to access:
+Their assigned jobs and related information.
+They must not have access to:
+Other vessels
+Other organizations
+Unassigned service jobs
+Internal financial records
+Platform administration
+
+6. ROLE-BASED ACCESS CONTROL
+The application must use Role-Based Access Control (RBAC).
+Access must be enforced at the backend/API level and must not depend only on hiding buttons or screens in the frontend.
+Role | Organization | Vessel | Equipment | Service | Finance | Administration
+Platform Admin | Full | Full | Full | Full | Global | Full
+Technical Head | Assigned | Assigned Fleet | View/Manage as permitted | View/Review | TBD | No
+Ship Manager | Assigned | Assigned | Manage | Manage/Approve | TBD | No
+Captain | Assigned | Assigned Vessel | View/Update | Raise | No | No
+Chief Engineer | Assigned | Assigned Vessel | Manage | Raise/Manage | No | No
+Service Coordinator | Assigned Scope | Assigned Scope | Related | Manage | TBD | No
+Service Provider | Restricted | Related | Related Job | Assigned Jobs | No | No
+
+7. FUNCTIONAL MODULES
+7.1 Organization Management
+The system shall provide:
+Organization creation
+Organization modification
+Organization activation/deactivation
+Organization details
+Organization status
+Organization-level users
+Organization-level configuration
+
+7.2 User & Role Management
+The system shall support:
+User creation
+User modification
+User activation/deactivation
+Role assignment
+Organization assignment
+Vessel assignment
+Permission management
+Access control
+User activity tracking
+
+8. VESSEL MANAGEMENT
+Each vessel shall have a dedicated profile.
+Vessel Information
+Vessel Name
+IMO Number
+Vessel Type
+Flag
+Call Sign
+Built Year
+Shipyard
+Owner
+Ship Manager
+Captain
+Vessel Status
+Vessel Image
+Vessel Dashboard
+The dashboard should display:
+Total equipment
+Equipment status
+Maintenance due
+Maintenance overdue
+Service requests
+Open troubleshooting tickets
+Critical spare shortages
+Certificates expiring
+Recent alerts
+Recent activities
+
+9. EQUIPMENT MANAGEMENT
+Equipment is the primary technical asset managed by the system.
+Equipment Details
+Equipment Category
+Equipment Name
+Manufacturer
+Model
+Serial Number
+Installation Date
+Installation Location
+Equipment Status
+Running Hours
+Last Service Date
+Next Service Date
+Service Interval
+Maintenance Type
+Equipment Criticality
+Calibration Requirements
+Class Requirements
+Firmware/Software Information
+Critical Spare Parts
+
+10. EQUIPMENT REGISTRATION WORKFLOW
+UC-01 – Register & Manage Vessel Equipment
+Primary Actors: Company Administrator / Chief Engineer
+Workflow
+User opens Vessel Dashboard.
+User opens Equipment Inventory.
+User selects Add Equipment.
+User enters equipment details.
+User enters initial running hours.
+User configures maintenance rules.
+System calculates the next service date.
+System saves the equipment.
+Equipment becomes available in vessel and fleet dashboards.
+Maintenance tracking starts automatically.
+Result
+The equipment is registered and becomes part of the automated maintenance monitoring system.
+
+11. RUNNING-HOUR MANAGEMENT
+The system shall maintain equipment running-hour information.
+Information
+Previous Reading
+Current Reading
+Total Running Hours
+Monthly Running Hours
+Last Updated Date
+Updated By
+Historical Readings
+The system should retain historical readings instead of overwriting previous values without traceability.
+
+12. MAINTENANCE MANAGEMENT
+Maintenance may be based on:
+Calendar-Based Maintenance
+Example:
+Every 180 days
+Running-Hour-Based Maintenance
+Example:
+Every 5,000 operating hours
+Maintenance Information
+Maintenance Type
+Last Maintenance
+Next Maintenance
+Service Interval
+Running-Hour Interval
+Current Running Hours
+Equipment Criticality
+Service Provider
+Service History
+Work Performed
+Parts Replaced
+Service Report
+
+13. AUTOMATED MAINTENANCE TRACKING
+UC-02 – Automated Maintenance Tracking & Deadline Alerts
+The system will continuously evaluate:
+Current date
+Maintenance due date
+Equipment running hours
+Configured maintenance intervals
+The system will automatically calculate and update equipment status.
+
+14. MAINTENANCE COLOUR STATUS
+The platform will use dynamic colour indicators to make approaching deadlines immediately visible.
+Remaining Time | Status | Colour
+More than 15 days | Normal | 🟢 Green
+10–15 days | Approaching | 🟡 Yellow
+1–9 days | Urgent | 🟠 Orange
+Due Today | Due | 🔴 Red
+Past Due Date | Overdue | 🔴 Red
+Recommended Implementation
+The threshold values should be configurable from the Administration module rather than hard-coded.
+This allows SeaStella to change the warning period in the future without requiring application redevelopment.
+TBD – Client Confirmation
+SeaStella should confirm:
+Exact warning thresholds
+Due Today vs Overdue treatment
+Notification recipients
+Escalation timing
+
+
+
+
+
+
+
+
+15. MAINTENANCE ALERTS
+When an equipment deadline approaches, the system should automatically generate notifications.
+Possible Notification Channels
+In-App Notifications
+Email Notifications
+Example
+Equipment: Radar System
+Service Due: 15 September
+If the current date reaches the configured warning period:
+Status → Yellow
+As the deadline becomes closer:
+Status → Orange
+After the deadline:
+Status → Red / Overdue
+The system should notify the appropriate users based on configured rules.
+
+16. SERVICE REQUEST MANAGEMENT
+UC-03 – End-to-End Service Request & Job Fulfillment
+Workflow
+Service Issue
+↓
+Service Request
+↓
+Company Admin / Authorized User Review
+↓
+Vendor / Service Provider Assignment
+↓
+Service Scheduling
+↓
+Service Execution
+↓
+Work Log
+↓
+Parts Used
+↓
+Service Report
+↓
+Operational Completion
+↓
+Invoice
+↓
+Financial Approval
+↓
+Payment
+↓
+Job Closure
+↓
+Maintenance History Update
+
+
+
+
+17. SERVICE REQUEST CREATION
+The Captain or Chief Engineer can raise a service request from the equipment page.
+Service Request Information
+Equipment
+Problem/Issue
+Description
+Priority
+Photos
+Videos/Documents
+Requested Service
+Date Raised
+Raised By
+Priority Examples
+Critical
+High
+Medium
+Low
+
+18. SERVICE PROVIDER WORKFLOW
+After assignment:
+Service Provider receives notification.
+Service Provider logs in.
+Provider sees only assigned jobs.
+Provider reviews job details.
+Provider schedules service.
+Provider performs maintenance/service.
+Provider records work performed.
+Provider records parts used.
+Provider uploads Service Report.
+Company Admin reviews the report.
+Job is marked operationally completed.
+
+19. SERVICE HISTORY
+Each equipment record shall maintain a permanent service history.
+Service History
+Service Date
+Service Provider
+Technician
+Work Performed
+Parts Used
+Running Hours
+Service Report
+Remarks
+Next Service Date
+After successful completion, the system should automatically calculate/reset the next maintenance deadline.
+
+
+
+
+
+
+20. TROUBLESHOOTING & SUPPORT TICKETS
+The platform shall provide equipment-specific troubleshooting.
+Workflow
+User selects equipment.
+User selects the problem category.
+User describes the issue.
+User uploads evidence.
+System generates a unique ticket number.
+Relevant personnel are notified.
+Recommended troubleshooting steps are displayed where configured.
+Service Coordinator/Manager can communicate with the vessel.
+Additional photos or information can be requested.
+Ticket is resolved.
+Ticket is closed.
+Complete history remains associated with the equipment.
+
+21. TICKET CHAT / COMMUNICATION
+Each troubleshooting/service ticket should have a dedicated communication thread.
+Users should be able to:
+Send messages
+Upload images
+Upload documents
+Request additional information
+Respond to technical questions
+Track communication history
+All communication should remain associated with the ticket.
+
+22. CRITICAL SPARE MANAGEMENT
+The system shall maintain critical spare information.
+Spare Details
+Spare Name
+Part Number
+Manufacturer
+Model
+Equipment
+Vessel
+Quantity
+Minimum Stock
+Location
+Installation Date
+Expiry Date
+Status
+Automatic Spare Alert
+When:
+Current Quantity < Minimum Required Quantity
+the system should generate a Low Stock / Requisition Required alert.
+
+23. SPARE REQUISITION WORKFLOW
+Workflow
+Stock Below Minimum
+↓
+Captain Creates Requisition
+↓
+System Pre-Populates Spare Information
+↓
+Ship Manager Review
+↓
+Approve / Reject / Request Clarification
+↓
+Approved
+↓
+RFQ / Procurement
+↓
+Supplier / Service Provider
+↓
+Quotation
+↓
+Procurement
+↓
+Delivery
+↓
+Inventory Updated
+
+
+
+
+
+
+24. RFQ & PROCUREMENT
+The system should support:
+RFQ creation
+Supplier/service provider selection
+RFQ details
+Quotation submission
+Quotation comparison
+Procurement status
+Purchase tracking
+Delivery tracking
+Inventory update
+
+25. FINANCIAL APPROVAL & PAYMENT MANAGEMENT
+UC-04 – Financial Approvals and Payments
+Financial operations must be separated from normal operational permissions.
+Workflow
+Service is marked Completed.
+Vendor uploads invoice.
+Authorized finance user reviews invoice.
+Invoice is compared with quotation/service details.
+Authorized user approves invoice.
+Payment is processed externally.
+Authorized finance user updates payment status.
+Payment reference/document is uploaded.
+Financial lifecycle is closed.
+Audit trail is generated.
+Payment Status Examples
+Pending Invoice
+Invoice Received
+Under Review
+Approved
+Payment Processing
+Paid
+Rejected
+On Hold
+
+26. FINANCIAL ACCESS CONTROL
+Financial information must not be automatically visible to every operational user.
+Financial Access
+Only authorized users should be able to:
+View invoices
+Approve invoices
+View payment details
+Update payment status
+Upload payment references
+Access financial reports
+Every financial action must be recorded in the audit trail.
+
+
+
+
+
+27. DOCUMENT & CERTIFICATE MANAGEMENT
+The platform shall maintain equipment-related documents.
+Examples
+Calibration Certificates
+Class Certificates
+Service Certificates
+Installation Documents
+Warranty Documents
+Manufacturer Documents
+Manuals
+Inspection Reports
+Features
+Upload
+View
+Download
+Expiry Date
+Reminder
+Document Status
+Equipment Association
+Vessel Association
+Access Control
+Audit History
+
+
+
+
+28. EXCEL / CSV DATA IMPORT
+The platform shall support bulk equipment/fleet data updates.
+Workflow
+Download Template
+↓
+Enter/Update Data
+↓
+Upload File
+↓
+Validate
+↓
+Identify Vessel & Equipment
+↓
+Detect New / Modified / Invalid Records
+↓
+Preview Changes
+↓
+User Confirmation
+↓
+Commit Import
+↓
+Store Upload History
+Validation
+The system should detect:
+Missing required fields
+Duplicate records
+Invalid values
+Invalid equipment identifiers
+Incorrect formats
+Conflicting data
+No bulk update should be committed without user confirmation after validation.
+
+29. DASHBOARDS
+Platform Administrator Dashboard
+Organizations
+Users
+Vessels
+Equipment
+Alerts
+System status
+Configuration
+Technical Head Dashboard
+Fleet status
+Vessel status
+Equipment health
+Maintenance due
+Overdue equipment
+Spare shortages
+Open troubleshooting
+Service status
+Ship Manager Dashboard
+Assigned vessels
+Equipment
+Maintenance
+Services
+Spare inventory
+Troubleshooting
+Alerts
+Captain Dashboard
+Assigned vessel
+Equipment
+Running hours
+Maintenance
+Service requests
+Critical spares
+Alerts
+Requisitions
+Service Coordinator Dashboard
+Service requests
+Troubleshooting tickets
+RFQs
+Requisitions
+Quotations
+Procurement
+Service jobs
+Service Provider Dashboard
+Only assigned service jobs and related information.
+
+30. REPORTING
+The platform should provide:
+Equipment Report
+Vessel
+IMO
+Equipment
+Manufacturer
+Model
+Serial Number
+Running Hours
+Service Status
+Service History
+Spare Inventory Report
+Vessel
+Equipment
+Spare
+Part Number
+Current Quantity
+Minimum Quantity
+Shortage Status
+Service Due Report
+Equipment
+Last Service
+Next Service
+Remaining Days
+Colour Status
+Troubleshooting Report
+Ticket
+Equipment
+Problem
+Priority
+Status
+Resolution
+Dates
+Certificate Report
+Equipment
+Certificate
+Issue Date
+Expiry Date
+Status
+Fleet Technical Summary
+Fleet → Vessel → Equipment technical overview.
+
+31. SEARCH
+The platform should provide global search across permitted data.
+Search fields may include:
+Vessel Name
+IMO Number
+Equipment Name
+Serial Number
+Manufacturer
+Model
+Spare Part Number
+Ticket Number
+Certificate
+Service Job
+Search results must respect user permissions.
+
+32. AUDIT TRAIL
+The system shall maintain an audit trail for important actions.
+Audit Information
+User
+Action
+Date
+Time
+Record
+Previous Value
+New Value
+IP/Session information where required
+Important Actions
+Equipment modifications
+Spare quantity changes
+Excel imports
+User changes
+Role changes
+Vessel assignments
+Service changes
+Approvals
+Rejections
+Requisitions
+RFQs
+Document uploads
+Ticket changes
+Payment actions
+Configuration changes
+
+33. SECURITY REQUIREMENTS
+Security is a critical requirement because the platform contains operational, technical, vendor and financial information.
+Authentication
+Secure login
+Secure password storage
+Session management
+Account activation/deactivation
+Password management
+Authorization
+Role-Based Access Control
+Organization-level isolation
+Vessel-level isolation
+Function-level permissions
+API-level authorization
+Service Provider restricted access
+Financial permission separation
+Application Security
+HTTPS
+Server-side validation
+Input sanitization
+Secure API design
+Secure file upload
+Access-control validation
+Protection against common web vulnerabilities
+Secure error handling
+Security logging
+Data Security
+Database access controls
+Backup strategy
+Recovery strategy
+Restricted document access
+Controlled financial data access
+
+34. SECURITY TESTING
+Before production deployment, Talent Trek should specifically test:
+Unauthorized API access
+Unauthorized URL access
+Cross-vessel data access
+Cross-company data access
+Role escalation
+Service Provider access restrictions
+Financial permission restrictions
+Document access restrictions
+File upload security
+Authentication/session security
+
+35. NOTIFICATION SYSTEM
+The system should support automated notifications for:
+Maintenance approaching
+Maintenance urgent
+Maintenance overdue
+Service request created
+Service provider assigned
+Service scheduled
+Service completed
+Spare shortage
+Requisition created
+Requisition approved/rejected
+RFQ activity
+Certificate expiry
+Troubleshooting ticket updates
+Payment approval
+Payment completion
+Notification recipients must be configurable.
+
+
+
+
+
+36. PROPOSED TECHNICAL ARCHITECTURE
+Core Technology
+Java
+Spring Boot
+Microservices Architecture
+Proposed Logical Services
+Identity & Access Service
+Organization & Vessel Service
+Equipment Service
+Maintenance Service
+Spare & Inventory Service
+Service & Ticket Service
+Procurement Service
+Notification Service
+Document Service
+Reporting Service
+Audit Service
+Architecture Principle
+The system should maintain clear service boundaries while avoiding unnecessary microservice fragmentation that could increase MVP development risk.
+
+
+
+
+
+
+37. NON-FUNCTIONAL REQUIREMENTS
+Security
+Secure authentication, authorization, data isolation and API security.
+Performance
+Dashboards, search and normal application operations should provide responsive performance for the expected pilot workload.
+Scalability
+Architecture should allow expansion from initial vessels to a larger fleet.
+Availability
+Production environment should include appropriate backup and monitoring.
+Auditability
+Important technical, operational and financial actions must be traceable.
+Maintainability
+Code and services should follow clean architecture and documented API/service boundaries.
+Usability
+The application should provide a modern, responsive interface with a simplified workflow for vessel users.
+Data Integrity
+The system should validate user input and imported data before committing changes.
+
+
+
+
+
+
+
+
+38. FOUR-WEEK MVP IMPLEMENTATION PLAN
+WEEK 1 – PLATFORM FOUNDATION
+Activities
+Technical architecture
+Database design
+Microservice foundation
+Authentication
+RBAC
+Organization management
+User management
+Vessel management
+User-vessel assignment
+Deliverable
+Secure platform foundation with:
+Organization → Vessel → User
+
+WEEK 2 – CORE TECHNICAL ASSET MANAGEMENT
+Activities
+Equipment management
+Equipment inventory
+Running hours
+Spare management
+Service history
+Document management
+Vessel dashboard
+Equipment dashboard
+Deliverable
+Complete technical asset management foundation.
+
+WEEK 3 – AUTOMATION & BUSINESS WORKFLOWS
+Activities
+Maintenance engine
+Due-date calculation
+Colour status
+Alerts
+Service requests
+Service provider workflow
+Troubleshooting
+Ticket/chat
+Spare requisition
+RFQ
+Procurement
+Financial approval/payment workflow
+Excel import
+Deliverable
+Core end-to-end operational workflow.
+
+
+
+
+
+
+WEEK 4 – HARDENING & PRODUCTION READINESS
+Activities
+Reports
+Notification hardening
+Integration testing
+Role/permission testing
+Security testing
+Data validation testing
+Performance testing
+Bug fixing
+Deployment
+Backup configuration
+Monitoring
+Documentation
+User acceptance support
+Deliverable
+Pilot-ready MVP
+
+39. MVP PRIORITY
+P0 – MUST HAVE
+Authentication
+RBAC
+Organization Management
+Vessel Management
+Equipment Management
+Running Hours
+Critical Spares
+Maintenance Tracking
+Colour Status
+Alerts
+Service Requests
+Service Workflow
+Excel Import
+Audit Trail
+Security
+Dashboards
+P1 – REQUIRED BUSINESS WORKFLOW
+Troubleshooting
+Ticket Chat
+Spare Requisition
+RFQ
+Procurement
+Financial Approval
+Payment Tracking
+Documents
+Certificates
+Reports
+P2 – FUTURE ENHANCEMENTS
+Advanced analytics
+Predictive maintenance
+Mobile application/PWA
+External integrations
+Advanced automation
+Advanced fleet intelligence
+
+40. ACCEPTANCE CRITERIA
+The MVP will be considered functionally ready when:
+Users can securely log in.
+Users can access only permitted organizations and vessels.
+Platform Admin can manage organizations and users.
+Vessels can be created and assigned.
+Equipment can be registered under vessels.
+Running hours can be recorded and tracked.
+Maintenance rules calculate next service dates.
+Maintenance colours change automatically.
+Yellow, Orange and Red thresholds operate according to approved rules.
+Maintenance alerts are generated.
+Service requests can be raised.
+Service providers can access only assigned jobs.
+Service reports can be uploaded.
+Service history is automatically updated.
+Next maintenance date is recalculated after service completion.
+Spare shortages generate alerts.
+Spare requisitions can be created.
+Ship Managers can approve/reject requisitions.
+RFQs can be generated from approved requisitions.
+Procurement status can be tracked.
+Authorized finance users can approve invoices.
+Payment status can be recorded.
+Excel data can be validated before import.
+Documents and certificates can be uploaded and tracked.
+Troubleshooting tickets can be created and closed.
+Ticket communication is retained.
+Reports can be generated.
+Audit history is maintained.
+Unauthorized data access is blocked.
+Security testing is completed before production deployment.
+
+41. CLIENT CONFIRMATIONS REQUIRED
+Before development scope is finally frozen, SeaStella should confirm the following:
+User & Permissions
+Exact permission matrix for each role.
+Whether Finance is a separate role from Company Administrator.
+Exact responsibilities of the Service Coordinator.
+Service Provider onboarding process.
+Vendor account structure.
+Maintenance
+Calendar-based maintenance rules.
+Running-hour-based maintenance rules.
+Exact Yellow/Orange/Red thresholds.
+Due Today vs Overdue treatment.
+Alert recipients.
+Escalation timing.
+Documents
+Supported document types.
+Maximum file size.
+Document storage requirements.
+Certificate reminder periods.
+Communication
+Email provider.
+In-app notification requirements.
+Whether ticket chat needs real-time messaging for MVP.
+Finance
+Payment integration requirements.
+Whether payments are processed outside the platform.
+Required invoice/payment fields.
+Required financial reports.
+Deployment
+Cloud/environment preference.
+Deployment ownership.
+Backup requirements.
+Expected number of vessels.
+Expected number of users.
+Expected data volume.
+Reporting
+Required report formats.
+Required PDF branding/template.
+
+
+
+42. REQUIREMENT TRACEABILITY
+Client Requirement | Covered In
+UC-01 – Register & Manage Equipment | Equipment Management, Maintenance
+UC-02 – Automated Maintenance Tracking | Maintenance Engine, Alerts, Colour Status
+UC-03 – Service Request & Fulfillment | Service Management, Service Provider Workflow
+UC-04 – Financial Approval & Payment | Financial Management
+Spare Requisition | Spare Management
+RFQ & Procurement | Procurement
+Troubleshooting | Ticket Management
+Chat | Ticket Communication
+Excel Import | Data Import
+Documents & Certificates | Document Management
+Fleet Reporting | Reporting
+Audit Trail | Audit Management
+Security | Security Requirements
+RBAC | Access Control
+Java/Spring Boot/Microservices | Technical Architecture
+
+
+
+
+
+
+
+43. GOVERNANCE & CHANGE CONTROL
+Once this document is reviewed and approved by SeaStella and Talent Trek Technologies, it will serve as the baseline for MVP development.
+Any new requirement introduced after scope freeze should be classified as:
+Change Request
+MVP Enhancement
+Post-MVP Requirement
+The impact on:
+Development effort
+Timeline
+Testing
+Architecture
+Cost
+should be evaluated before incorporating the change into the committed MVP scope.

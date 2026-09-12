@@ -1,0 +1,370 @@
+
+
+STATEMENT OF WORK
+Maritime Navigation Equipment Asset & Service Management Platform
+Functional Flows, Role Dashboards & Implementation Scope
+
+Client | Seastella Maritime
+Client Entity | A venture of Pucho Consultant Private Limited
+Client Address | GHP Sonnet, Plot 16, Kharghar Sector 35F, Navi Mumbai — 410210
+Solution Partner / Developer | Talent Trek Technologies (www.talenttrektechnologies.com)
+Document Type | Statement of Work (SoW)
+Document Version | 1.0 — Draft for Review
+Date | September 3, 2026
+
+This document is confidential and prepared exclusively for discussion between Seastella Maritime and Talent Trek Technologies.
+
+
+1. Document Purpose
+This Statement of Work (SoW) defines the functional scope, operational flows, role-based dashboards, data structures and implementation plan for the Maritime Navigation Equipment Asset & Service Management Platform being proposed by Talent Trek Technologies for Seastella Maritime.
+This document consolidates and reconciles three inputs reviewed for this engagement:
+The “Bridge Equipment Management Platform — Real-Life Use Case & Functional Capability Specification” (organizational roles, equipment lifecycle and reporting requirements).
+The “Software Requirements & System Functional Specification” for the Maritime Navigation Equipment Asset & Service Management Platform (detailed modules, workflows, access control, architecture and the four-week MVP plan).
+The “VMP Vessel Creation Template” (the live vessel and navigational-equipment master data structure Seastella already uses).
+In addition, this SoW formalizes the end-to-end operating flow confirmed for the pilot engagement: a single, in-app Service Request raised directly by the Captain against a Spare (replacing the earlier two-step Excel handoff); an Automated Troubleshooting Assistant, with escalation to a Live Agent Chat if unresolved; Ship Manager operational approval; an invoice raised by the Service Coordinator and accepted by the Ship Manager before any Service Engineer is assigned (payment settlement itself is out of scope for now); and completion reporting from the Service Engineer to the Coordinator only, relayed from there to the Ship Manager — with Seastella maintaining the complete service and invoice history against every Spare, visible platform-wide to the Platform Admin.
+Requirement Classification
+To keep this SoW unambiguous, every requirement below falls into one of three categories:
+Tag | Meaning
+CONFIRMED | Requirement directly provided by Seastella / described in the process flow supplied for this SoW.
+PROPOSED — TALENT TREK | Recommendation added by Talent Trek Technologies to make the platform complete, secure and scalable.
+TBD — CLIENT CONFIRMATION | Item requiring Seastella’s confirmation before scope is frozen (see Section 17).
+2. Background & Context
+Seastella Maritime, a venture of Pucho Consultant Private Limited, provides technical and navigational-equipment management support to ship-management companies operating merchant vessel fleets. Vessel operators today track bridge and navigational equipment — ECDIS, radar, gyrocompass, GMDSS equipment, AIS, GPS and related systems — largely through manual records and spreadsheets, with limited visibility for shore-side management into fleet-wide equipment health, service due-dates and critical spare availability.
+Talent Trek Technologies is engaged to design and build a centralized digital platform that gives every role — from the Captain onboard to the Technical Head overseeing the fleet — a single, role-appropriate view of equipment status. Vessel and equipment master data continues to be onboarded through the familiar VMP Excel structure, while day-to-day issue and service reporting moves to a single in-app Service Request, backed by immediate, guided troubleshooting support — removing the earlier two-document (issue Excel + service-request Excel) handoff.
+3. Project Objective
+The platform will act as the single source of truth for navigational and bridge equipment across Seastella’s managed fleet, enabling:
+Centralized vessel and equipment master data, structured around the existing VMP data format.
+A self-service administrative hierarchy: the Platform Admin provisions each Organization and its Technical Head; the Technical Head creates Ship Managers and allocates vessels to each; each Ship Manager then assigns the Captain to their own vessels — so fleet structure stays in Seastella’s hands day-to-day (Section 4.1).
+A single Service Request raised directly by the Captain — no separate issue file and service-request file to reconcile.
+An Automated Troubleshooting Assistant that engages the moment a request is raised, helping the crew identify the likely root cause and, where possible, apply a temporary fix while a permanent service is arranged.
+Role-based approval and routing: Ship Manager operational approval of each request, escalation to a Live Agent Chat if automated troubleshooting doesn’t resolve it, and a Ship Manager acceptance of the Service Coordinator’s invoice before a Service Engineer is ever assigned. Payment settlement itself is out of scope for now.
+Real-time, role-appropriate dashboards — particularly a fleet health dashboard for the Technical Head.
+A single, continuous service and invoice history per Spare — covering automated troubleshooting outcomes, live-agent sessions, invoices and Service Engineer visits alike — maintained centrally by Seastella and fully visible to the Platform Admin.
+A foundation that can be extended in later phases to AI-driven chat, payment settlement/gateway processing, and spare requisition/RFQ automation, as detailed in the reference specification.
+4. System Hierarchy
+The platform is structured around a strict organizational hierarchy, which also governs data visibility and access control. “Equipment” is a category (e.g., Radar, ECDIS, GPS); the individual serviceable item within that category — whether a full unit or a component of one — is a “Spare,” and it is the Spare, not the category, that carries a service history:
+Platform | Organization
+(Seastella) | Vessel | Equipment
+(Category) | Spare | Service
+Request
+
+A user assigned to a vessel or set of vessels cannot see data belonging to vessels outside that assignment. Ship Managers see only their assigned vessels; the Technical Head and Platform Admin see the full fleet.
+4.1  Organization & User Provisioning Flow
+Setting up a new Seastella client organization follows its own short administrative flow, separate from the day-to-day Service Request flow in Section 6:
+Platform Admin Creates
+Organization (CMS/Backend) | Platform Admin Creates
+Technical Head User | Technical Head Creates
+Ship Manager Users | Technical Head Assigns
+Vessel Count per Manager | Ship Manager Assigns
+Captain to Vessel
+
+The Platform Admin, via the backend/CMS, creates the Organization record — the client company (e.g., a vessel-owning or ship-management company) — with its organization details.
+The Platform Admin creates the Technical Head user for that Organization and grants full-fleet access within it.
+The Technical Head then creates Ship Manager users for their Organization and decides how many — and which — vessels each Ship Manager is responsible for.
+The Ship Manager, in turn, assigns the Captain to each of their vessels — the last step before that vessel is operational on the platform.
+This keeps day-to-day fleet-structure administration (Ship Managers, vessel allocation, Captain assignment) with the Technical Head and Ship Manager, while the Platform Admin’s role stays at the Organization/Technical-Head level and system-wide configuration (Section 5).
+5. User Roles & Responsibilities
+The following roles are in scope for the pilot engagement. Roles are mapped to the terminology used in the reference specification where it differs (shown in brackets).
+Role | Access Scope | Key Responsibilities | Dashboard
+Platform Admin | Full platform | Creates Organizations and their Technical Head users (Section 4.1); vessel and equipment/spare-master configuration; alert thresholds; system settings; full visibility of every update across the platform via the platform-wide activity feed (Section 8.5). | ✓
+Technical Head | All fleet vessels | Creates Ship Manager users and allocates vessels to each (Section 4.1); monitors overall fleet and vessel health; drills down from fleet → vessel → equipment → spare; no operational (service-request) data entry. | ✓
+Ship Manager | Assigned vessels (n, as allocated by the Technical Head) | Assigns the Captain to each of their vessels (Section 4.1); reviews and approves/rejects each Service Request raised by the Captain (operational approval); separately reviews and accepts/rejects the Service Coordinator’s invoice before a Service Engineer is assigned; receives completion updates from the Service Coordinator (not directly from the Service Engineer); monitors assigned-vessel status. | ✓
+Captain | Assigned vessel only (by the Ship Manager) | Raises a single Service Request directly from the Spare record; works through the Automated Troubleshooting Assistant, escalating to a Live Agent Chat with the Service Coordinator if unresolved; tracks request, invoice-acceptance and service status for own vessel. | ✓
+Service Coordinator
+(Seastella) | Assigned service scope | Reviews incoming Service Requests, troubleshooting logs and Live Agent Chat sessions; closes requests resolved without a visit, or raises an invoice to the Ship Manager and — once accepted — assigns a Service Engineer; receives the Engineer’s completion report and relays the update to the Ship Manager; maintains the complete Spare service and invoice history. | ✓
+Service Engineer
+[Service Provider / Technician] | Assigned job only | Receives forwarded service jobs; performs the service; reports work performed and outcome to the Service Coordinator only — no direct update to the Ship Manager or Technical Head. | ✓ (view)
+
+Chief Engineer, dedicated Finance approver and external-vendor self-service portal roles are documented in the reference specification as optional extensions and are addressed under Phase 2 (Section 8).
+6. Core Operational Flow (Pilot Scope)
+A single, unified workflow forms the operational core of this engagement, replacing the earlier two-document (issue Excel + service-request Excel) design. The Captain raises one Service Request directly against the Spare record — the individual serviceable item within an Equipment category (Section 9). The flow runs in three phases: (A) troubleshooting, with escalation to a live human agent if automated checks don’t resolve it; (B) an invoice acceptance gate — the Service Coordinator cannot assign a Service Engineer until the Ship Manager has accepted an invoice for the job (payment settlement itself is confirmed out of scope for now — Section 15); and (C) service execution and completion. Every step is logged permanently against the Spare by Seastella, and every update across the platform is visible to the Platform Admin in real time.
+6.1  Phase A — Service Request & Assisted Troubleshooting
+Captain Raises
+Service Request
+(In-App, on Spare) | Automated
+Troubleshooting
+Assistant Engages | Guided Checks
+& Root-Cause
+Capture | Unresolved? Escalate
+to Live Agent Chat
+
+Live Agent Chat with
+Service Coordinator | Ship Manager
+Notified & Reviews | Approve → Sent to
+Service Coordinator | Reject /
+Request Clarification ↻
+
+Step-by-step:
+The Captain identifies an issue with a Spare and raises a single Service Request directly from its record — Spare, problem description, priority, and supporting photos/video. No Excel file is involved at this step.
+On submission, the system immediately opens the Automated Troubleshooting Assistant — a Spare- and problem-specific guided chat (e.g., for an ECDIS display-fan / GPS input failure: verify GPS receiver status → check signal → check NMEA/interface connection → record error code).
+If the guided checks don’t resolve it, the Captain can escalate the same request to a Live Agent Chat — a real-time conversation with the Seastella Service Coordinator for further diagnosis or a temporary workaround, so the vessel isn’t left waiting on the Spare while a permanent service is arranged.
+Every question, check and message across both the automated session and the live chat is logged against the request, whether or not it fully resolves the issue.
+The Ship Manager is notified as soon as the request is raised and reviews/approves it on the same record — an operational approval, not yet a financial one.
+On approval, the request (with its full troubleshooting and live-chat log attached) is forwarded to the Seastella Service Coordinator. The Platform Admin’s activity feed reflects the request from the moment it is raised.
+6.2  Phase B — Invoice Acceptance Gate
+Service Coordinator
+Reviews Full Log | Resolved Already?
+→ Close, No Cost | Unresolved → Coordinator
+Raises Invoice | Invoice Sent to
+Ship Manager
+
+Ship Manager Reviews
+& Accepts Invoice | Only Then: Coordinator
+Assigns Service Engineer | Reject / Query
+Invoice ↻
+
+Step-by-step:
+The Service Coordinator reviews the full troubleshooting and live-chat log. If the issue is already resolved, the Coordinator closes the request with the fix recorded as the resolution — no invoice is raised and no cost is incurred.
+If the issue remains unresolved and a Service Engineer visit is needed, the Coordinator raises an invoice against the request — a cost description for the service — and sends it to the Ship Manager.
+The Ship Manager reviews and accepts, rejects or queries the invoice. This is a distinct acceptance step — separate from the earlier operational approval in Phase A.
+The Service Coordinator cannot assign a Service Engineer until the invoice is accepted. No engineer is dispatched against an unaccepted invoice.
+Once accepted, the Coordinator assigns the appropriate Service Engineer, who receives the full context: original report, troubleshooting/live-chat log, and the accepted invoice.
+Per Seastella’s confirmation, this is an invoice ACCEPTANCE workflow only — the Coordinator raises the invoice and the Ship Manager accepts or rejects it in-app. Actual payment settlement (collecting or transferring money) is explicitly out of scope for this engagement and remains part of Seastella’s existing finance process (Section 15).
+6.3  Phase C — Service Execution & Completion
+Service Engineer
+Performs Service | Engineer Reports to
+Service Coordinator
+(Only) | Coordinator Reconciles
+Final Cost vs. Invoice | Coordinator Updates
+Ship Manager
+
+Spare Service &
+Payment History Updated | Tech Head & Platform
+Admin See via Dashboard
+
+Step-by-step:
+The Service Engineer performs the service and reports work performed, parts used (where applicable) and final outcome back to the Service Coordinator only — the Engineer does not update the Ship Manager or Technical Head directly.
+The Service Coordinator reconciles the final cost against the accepted invoice (flagging any variance) and updates the Ship Manager. This is the single channel through which the Ship Manager learns a service is complete.
+The Spare’s service history and its invoice record are updated together, and the next-service-due date is recalculated where applicable.
+Every request — whether closed without cost in Phase B or completed by a Service Engineer visit — remains permanently attached to that Spare’s service history, maintained centrally by Seastella.
+The Technical Head and Platform Admin see the full status — Reported → Troubleshooting → (Live Agent, if escalated) → Operationally Approved → Invoice Raised → Invoice Accepted → Assigned → Completed — on their dashboards throughout, without waiting on manual relay; the Platform Admin’s view spans every organization and vessel on the platform.
+7. Extended Functional Modules
+Beyond the core flow in Section 6, the reference specification documents provide a fuller platform vision. The modules below are grouped by whether they are part of this pilot’s MVP or recommended for a later phase, so that scope, effort and timeline stay realistic for the five-week pilot window in Section 14.
+Module | Description | Phase
+Organization & Vessel Management | Create/maintain Seastella’s client organizations and vessels; vessel master data per the VMP structure. | MVP
+Equipment & Spare Master Management | Digitized master data — Equipment (category) → Spare (the individual serviceable item), based on the VMP navigational-equipment list (Section 9). | MVP
+Vessel/Equipment/Spare Excel Import Engine | Bulk onboarding of vessel, equipment and spare master data only (Section 10) — template download, validation, preview, confirm, commit, upload history. Not used for day-to-day issue/service reporting. | MVP
+Service Request Ticketing | The single in-app Service Request record, raised against a Spare, that replaces the earlier dual-Excel design (Section 6). | MVP
+Automated Troubleshooting Assistant | Rule-based, Spare- and problem-specific guided checks; root-cause and temporary-fix logging against each request (Section 6.1). | MVP
+Running-Hour Tracking | Monthly running-hour capture per Spare, historical readings retained. | MVP
+Maintenance & Alert Engine | Calendar- and running-hour-based service due-dates with colour-coded status (Green/Yellow/Orange/Red). | MVP
+Replacement Parts Inventory (view-only) | Stock levels and below-minimum flag for backup/replacement parts kept for swapping into a Spare — distinct from the Spare master record itself. | MVP
+Platform-Wide Activity Feed (Platform Admin) | Consolidated, real-time feed of every Service Request, troubleshooting outcome, approval, escalation and completion, across all organizations and vessels — gives the Platform Admin full visibility without individually notifying on each event. | MVP
+Live Agent Chat (Escalation) | Real-time chat between the Captain and the Service Coordinator, available when the Automated Troubleshooting Assistant’s guided checks don’t resolve the issue; full transcript logged against the request (Section 6.1). Human-to-human for the pilot — not an AI-driven chatbot. | MVP
+Invoice Acceptance Workflow | The Service Coordinator raises an invoice (amount, description) against an unresolved request; the Ship Manager accepts or rejects it in-app; a Service Engineer is assigned only after acceptance (Section 6.2). An acceptance-and-tracking workflow only — no payment settlement (Section 15). | MVP
+Role Dashboards | Platform Admin, Technical Head, Ship Manager, Captain and Service Coordinator dashboards (Section 8). | MVP
+Notifications | In-app and email alerts for requests, troubleshooting outcomes, live-chat escalation, invoices, approvals, assignment and completion. | MVP
+Audit Trail | User, action, date/time and before/after values for every request, troubleshooting step, live-chat session, invoice, approval and service update. | MVP
+Documents & Certificates | Spare document repository with expiry reminders. | MVP
+Reports | Spare, service-due, invoice/cost, and fleet technical summary reports (PDF export). | MVP
+AI-Assisted Chat | An AI-driven chatbot layer beyond the MVP’s rule-based checks and human live chat (Section 6.1). | Phase 2
+Spare Requisition & RFQ | Formal requisition → approval → RFQ → supplier quotation → procurement workflow. | Phase 2
+Global Search | Cross-module search across vessels, equipment, spares, serial numbers and requests. | Phase 2
+Payment Settlement / Gateway Integration | Real payment/transaction processing (e.g., Razorpay/Stripe) for actually collecting or transferring funds against an accepted invoice. Confirmed out of scope for this engagement — the MVP's Invoice Acceptance Workflow stops at acceptance; settlement stays with Seastella's existing finance process. | Out of Scope
+Mobile App / PWA, Predictive Maintenance, External Integrations | Longer-horizon enhancements. | Future
+8. Dashboards
+Every dashboard is scoped to the logged-in user’s role and vessel assignment, per Section 5.
+8.1  Technical Head — Fleet Health Dashboard
+A single, fleet-wide view for monitoring overall vessel-company health, with drill-down from fleet → vessel → equipment → spare.
+Total vessels and status breakdown (active / dry-dock / inactive)
+Total spares across the fleet, with Normal / Attention / Critical counts
+Services due soon and overdue, fleet-wide
+Open requests pending Ship Manager approval, and requests approved this period
+Open service requests, by status (troubleshooting / live agent / invoice pending / invoice accepted / assigned / completed)
+Requests resolved without cost (Phase A/B) vs. those needing a Service Engineer visit
+Pending and accepted invoices, fleet-wide, by value and count
+Recent alerts and notifications
+Visual elements: status cards, traffic-light indicators, donut/bar charts
+8.2  Ship Manager Dashboard
+Limited to the Ship Manager’s assigned vessels (n vessels).
+Assigned vessels and spare counts
+Service Requests awaiting operational review/approval
+Invoices awaiting acceptance — a Service Engineer is assigned only after this step
+Service requests raised, and their current status — completion status is relayed via the Service Coordinator, not directly from the Service Engineer
+Services due / overdue on assigned vessels
+Recent alerts for assigned vessels
+8.3  Captain Dashboard
+Limited to the Captain’s single assigned vessel; the simplest of the dashboards.
+Vessel and spare overview
+Service Requests raised, their status and approval history
+Automated Troubleshooting Assistant and Live Agent Chat history for each request
+Running hours and service-due status for onboard spares
+Notifications (e.g., request approved/rejected, invoice accepted, service completed)
+8.4  Service Coordinator Dashboard (Seastella)
+Incoming Service Requests, with troubleshooting/live-chat logs attached, by status
+Requests resolved without a Service Engineer visit (closed, no invoice raised)
+Invoices raised, pending Ship Manager acceptance
+Accepted invoices, ready for Service Engineer assignment
+Requests forwarded to Service Engineers, pending completion
+Service Engineer completion reports received, pending relay to the Ship Manager
+Recent activity and turnaround-time indicators
+8.5  Platform Admin Dashboard
+Organizations, users and vessels overview
+Platform-wide activity feed — real-time visibility of every Service Request, troubleshooting outcome, live-chat escalation, invoice, approval, escalation and completion, across all organizations and vessels on the platform
+Equipment/Spare-master and alert-threshold configuration
+Full audit-trail access (not limited to configuration actions)
+System status and configuration shortcuts
+9. Equipment & Spare Master and Vessel Data Structure
+The VMP Vessel Creation Template supplied by Seastella is adopted as the platform’s master-data structure, so no re-mapping is required for existing vessel data. “Equipment” (e.g., Radar, ECDIS, GPS, EPIRB) is a category used for grouping and fleet-level reporting. The individual serviceable item within that category — a full unit (e.g., GPS 1) or a component of a larger unit (e.g., the Display Fan on an X-Band Radar) — is a “Spare.” Service Requests, troubleshooting, running hours, maintenance and documents are all raised and tracked at the Spare level, mirroring the VMP template’s own decimal ID structure (e.g., 13 Radar → 13.1 X-Band Radar → 13.1.2 Display Fan). A Spare can itself be the parent of further Spares, exactly as in the template.
+9.1  Vessel-Level Fields
+Vessel Name, IMO Number, MMSI, Call Sign, Flag, Class, Area, Vessel Type, DWT
+9.2  Equipment Category
+Category Name (e.g., Radar, ECDIS, GPS, EPIRB, GMDSS, VDR/SVDR, Gyro) — used to group Spares for dashboards and reports; not itself a serviceable record.
+9.3  Spare-Level Fields
+Spare ID/Description, Equipment Category, Parent Spare (where nested, e.g., Display Fan under X-Band Radar)
+Make, Model, Serial Number
+Date of Installation, Software Version
+Expiration Date, Last Annual Service / Survey / APT Date
+Running Hours, where applicable (e.g., magnetron running hours)
+9.4  Navigational Equipment Categories & Spares Covered
+The template’s equipment list is comprehensive and is carried into the platform as the standard bridge-equipment checklist per vessel, with each line — unit or component — modeled as its own Spare:
+AIS; VHF (Nos. 1 & 2); MF/HF with DSC and NBDP; SAT-C (Nos. 1 & 2); LRIT; SSAS; NAVTEX — tracked as single Spares
+EPIRB (Nos. 1 & 2), each a Spare with its own Battery and Hydrostatic Release tracked as further Spares underneath it
+SART (Nos. 1 & 2); GMDSS Walkie-Talkie (Nos. 1–3) — tracked as single Spares
+VDR / SVDR, with Backup Batteries, Acoustic Beacon, FFC Battery and FFC HRU tracked as further Spares underneath it
+Gyro (Nos. 1–3) — tracked as single Spares; Radar — X-Band and S-Band, each a Spare with Magnetron Running Hours, Display Fan, Processor Fan and Scanner Unit Fan as further Spares underneath it
+ECDIS (Nos. 1 & 2), each a Spare with Display Fan, Processor Fan and SSD Unit as further Spares underneath it
+Speed Log; Echo Sounder; Anemometer; Autopilot; BNWAS — tracked as single Spares
+ITU Publications — List IV, GMDSS Manual, List V (Stations & Maritime Mobile)
+GPS (Nos. 1 & 2) — tracked as single Spares
+
+This structure is the basis for the Equipment & Spare Master module and the bulk Excel Import/Export engine described in Section 10, which is used for master-data onboarding only — day-to-day issue and service reporting uses the in-app Service Request flow in Section 6, raised against the Spare.
+10. Vessel, Equipment & Spare Master Data Import/Export (Technical Detail)
+This module is scoped to bulk onboarding and periodic updates of vessel, equipment and spare master data — it is not part of the day-to-day Service Request flow in Section 6, which is a direct in-app action, not a file upload.
+Download
+Template | Enter / Update
+Data Offline | Upload
+File
+
+Validate
+(Format & Fields) | Preview Changes
+(New / Modified / Invalid) | User
+Confirms | Commit &
+Log History
+
+Validation Rules
+Correct file format and column structure, matching the VMP template layout
+Vessel, equipment and spare identified using unique identifiers (IMO number, Spare ID)
+Detection of new vs. modified vs. unrecognized/invalid records
+Missing mandatory fields and conflicting data flagged before commit
+No import is committed without explicit user confirmation after preview
+Audit
+Every upload is retained in an upload/audit history: uploader, date/time, vessel, and a before/after summary of what changed
+11. Notifications & Alerts
+Service Request raised — notifies the responsible Ship Manager
+Automated troubleshooting completed (resolved / unresolved) — notifies the Service Coordinator
+Captain escalates to Live Agent Chat — notifies the Service Coordinator
+Request approved / rejected / clarification requested (operational) — notifies the Captain
+Payment invoice raised — notifies the Ship Manager
+Invoice accepted / rejected / queried — notifies the Service Coordinator
+Request forwarded to a Service Engineer — notifies the Service Engineer
+Service Engineer submits completion report — notifies the Service Coordinator only
+Service Coordinator marks a request Completed — notifies the Ship Manager (the Ship Manager’s only channel for this update)
+Maintenance approaching / due / overdue (colour-status change) — notifies Captain, Ship Manager and Technical Head per configured rules
+Certificate/document expiry approaching
+Every event above also lands in the Platform Admin’s platform-wide activity feed in real time (Section 8.5), so the Platform Admin has full visibility without being individually paged on each one
+12. Non-Functional Requirements
+Requirement | Detail
+Security & RBAC | Role-based access enforced at the API level; organization- and vessel-level data isolation; a Ship Manager or Captain cannot see vessels outside their assignment; invoice/cost data is visible only to the Ship Manager, Service Coordinator, Technical Head and Platform Admin — not the Captain or Service Engineer.
+Auditability | Every approval, rejection, upload and service update is logged with user, timestamp and old/new values, and surfaced platform-wide to the Platform Admin via the activity feed.
+Performance | Dashboards, search and Excel validation should remain responsive for the pilot fleet’s expected data volume.
+Scalability | Architecture should allow expansion from the pilot fleet to Seastella’s broader client base without redesign.
+Data Integrity | All Excel imports are validated before commit; no partial or unconfirmed data reaches the database.
+Usability | Vessel-side workflow (Captain) is kept deliberately simple — one form and a guided troubleshooting chat — to minimize onboarding effort for crew.
+13. Proposed Technical Architecture
+PROPOSED — TALENT TREK
+Core stack: Java, Spring Boot
+Service-oriented backend with clear module boundaries (Identity & Access, Vessel/Equipment/Spare, Master-Data Import, Service Request & Troubleshooting, Live Agent Chat, Invoice Acceptance, Maintenance & Alerts, Notification, Activity Feed/Audit, Document, Reporting) — without over-fragmenting into microservices for the pilot, to keep MVP delivery risk low
+Automated Troubleshooting Assistant implemented as a configurable rule engine (Spare category + problem type → guided checks), so Seastella can add new Spare/problem combinations without code changes
+Live Agent Chat implemented as an in-app, human-to-human messaging channel between Captain and Service Coordinator for the pilot — no third-party chat/AI API is assumed unless Section 17 confirms otherwise
+Invoice Acceptance implemented as an in-app record (amount, description, status) with a Ship-Manager acceptance gate — payment settlement (an actual payment gateway/transaction processor) is confirmed out of scope for this engagement (Section 15)
+An event-driven Activity Feed service captures every state change platform-wide (request, troubleshooting, live chat, invoice, approval, escalation, completion) and streams it to the Platform Admin dashboard in real time
+Web-based responsive front end, with the Captain view simplified to only vessel-relevant functions
+Final hosting/deployment environment, backup strategy and expected data volumes to be confirmed by Seastella (Section 17)
+14. Implementation Plan & Timeline
+A five-week pilot delivery plan, scoped to the MVP modules identified in Section 7. This extends from the original four-week estimate by one week to accommodate the Invoice Acceptance workflow and the Live Agent Chat escalation added to the core flow (Section 6).
+Week | Focus | Key Deliverables
+Week 1 | Platform Foundation | Authentication, RBAC, Organization & Technical Head provisioning by the Platform Admin, Ship Manager creation & vessel allocation by the Technical Head, and Captain assignment by the Ship Manager (Section 4.1).
+Week 2 | Equipment/Spare Master & Bulk Import Engine | Equipment category → Spare hierarchy per the VMP structure; Excel template download, validation, preview and commit engine (master-data onboarding); vessel & spare dashboards.
+Week 3 | Troubleshooting & Live Agent Chat | Unified Service Request on the Spare (Captain → Ship Manager operational approval); Automated Troubleshooting Assistant with configurable guided checks and root-cause/temporary-fix logging; Live Agent Chat escalation between Captain and Service Coordinator.
+Week 4 | Invoice Acceptance & Service Execution | Invoice Acceptance workflow (Coordinator raises invoice → Ship Manager accepts → Coordinator assigns Service Engineer); completion reporting chain (Engineer → Coordinator only → Ship Manager); maintenance colour-status engine and alerts.
+Week 5 | Dashboards, Activity Feed, Reports & Hardening | Technical Head fleet dashboard, Platform Admin platform-wide activity feed, and all role dashboards (incl. invoice visibility); reports; notification hardening; role/permission testing; security testing; deployment; documentation.
+
+Deliverable at the end of Week 5: a pilot-ready MVP covering the full Section 6 flow (troubleshooting, live-agent escalation, invoice acceptance gate, and service completion), the Section 4.1 provisioning flow, role dashboards (including the Platform Admin activity feed) and the equipment/spare master — ready for Seastella user acceptance.
+15. Assumptions
+Seastella will provide vessel, equipment and spare master data in the VMP template format (or equivalent) for initial data load.
+The pilot covers the vessel/organization scope agreed at kickoff; additional vessels or client organizations can be onboarded after the pilot without architectural change.
+The Automated Troubleshooting Assistant is rule-based and guided (pre-configured checks per Spare/problem type); the Live Agent Chat escalation is a human-to-human, in-app conversation between Captain and Service Coordinator for the pilot — an AI-driven chatbot is treated as Phase 2 unless separately confirmed.
+Seastella will supply the troubleshooting checklist content (recommended checks per Spare category and problem type) for the Spares covered in the pilot; Talent Trek will configure it into the assistant.
+Per Seastella’s confirmation, payment settlement (an actual payment gateway/transaction processor) is out of scope for this engagement; the invoice module (Section 6.2) is an acceptance-only workflow — raise, review, accept/reject — with settlement handled through Seastella’s existing finance process.
+Spare requisition/RFQ automation described in the reference specification is treated as Phase 2 and is out of scope for this SoW unless separately confirmed.
+Email is available as a notification channel.
+The Platform Admin’s visibility into every update is delivered via a consolidated, real-time activity feed rather than an individual notification per event, to avoid notification overload; per-event alerts to the Platform Admin can be added if specifically required (Section 17).
+Seastella bears all costs of any third-party APIs or services the platform integrates with (Section 16); Talent Trek's estimate covers development and integration effort only.
+Seastella will nominate a single point of contact for requirement clarification and User Acceptance Testing (UAT).
+16. Client Responsibilities
+Provide vessel, equipment and user (Ship Manager, Captain, Service Coordinator, Service Engineer) lists prior to Week 1.
+Confirm the open items listed in Section 17 before scope freeze.
+Participate in weekly review checkpoints and UAT during Week 5.
+Provide timely feedback on the Excel template layout if any vessel-specific fields are required beyond the VMP structure.
+Supply the recommended-checks content (Spare category × problem type) for the Automated Troubleshooting Assistant, for the Spares covered in the pilot.
+Third-Party & API Cost Responsibility
+CONFIRMED — 
+Seastella Maritime bears all costs of any third-party APIs and services the platform integrates with or consumes — including, but not limited to, email/SMS notification gateways, hosting and cloud infrastructure, and any live-chat or AI/LLM service. (Payment-gateway costs don’t apply for this engagement, as payment settlement is confirmed out of scope — Section 15.)
+Talent Trek Technologies’ fees under this SoW cover platform design, development, integration and deployment effort only — not ongoing third-party service subscriptions, usage fees or transaction charges, which are billed directly to Seastella by the respective provider or passed through at cost.
+Where a specific third-party provider must be selected (e.g., email/SMS gateway, hosting), Talent Trek will recommend options and Seastella will confirm the account/billing arrangement before that integration begins.
+17. Items Pending Client Confirmation
+The following should be confirmed by Seastella before scope is finally frozen:
+Roles & Permissions
+Exact number of Ship Managers, vessels per Ship Manager, and Service Engineers for the pilot
+Whether Service Engineers need direct platform login, or receive forwarded requests via notification only
+Whether the Platform Admin’s consolidated activity feed satisfies “know every update,” or individual real-time notifications are also needed for specific event types
+Maintenance & Alerts
+Exact colour-status thresholds (days before due date for Yellow / Orange / Red)
+Alert recipients and escalation rules for unresolved issues or overdue services
+Service Request & Troubleshooting
+Whether Ship Manager approval is required on every Service Request, or only above a certain priority/cost threshold
+Breadth of troubleshooting content to configure at pilot launch — all Spare categories in Section 9.4, or a priority subset
+Whether a temporary fix logged in Phase A/B still requires a follow-up Service Engineer visit to be scheduled, or can close the request outright
+Confirmation of the Equipment Category → Spare (and further nested Spare) breakdown for each equipment type, beyond what the VMP template already specifies
+Live Agent Chat
+Confirm human-to-human chat (Captain ↔ Service Coordinator) is sufficient for the pilot, or an AI-driven chatbot layer is required (Phase 2, Section 7)
+Expected Service Coordinator staffing/availability to answer Live Agent Chat sessions in real time
+Invoice Acceptance
+Currency and invoice-numbering convention Seastella uses today, if any, so platform invoice records match existing accounting practice
+Who besides the Ship Manager (if anyone) should see invoice values — e.g., should the Technical Head see fleet-wide cost totals
+Whether an invoice can be edited/re-raised after Ship Manager rejection, or a rejected invoice requires a fresh one
+Master Data Import
+Maximum file size and any offline-validation requirements before upload
+Deployment
+Cloud/hosting preference and deployment ownership
+Expected number of vessels and users at pilot go-live, and over the following 12 months
+Reporting
+Required PDF report branding/template
+Any statutory/class-society reporting formats that must be matched
+18. Acceptance Criteria
+The pilot MVP will be considered functionally ready when:
+Users can log in securely and access only their assigned organization/vessel(s).
+A Platform Admin can create an Organization and its Technical Head user; a Technical Head can create Ship Manager users and allocate vessels to each; a Ship Manager can assign a Captain to each of their vessels (Section 4.1).
+A Captain can raise a single Service Request directly from a Spare record, with description, priority and attachments.
+The Automated Troubleshooting Assistant engages immediately on a new request, presents Spare/problem-specific guided checks, and logs the outcome (resolved / temporary fix / unresolved).
+If unresolved, a Captain can escalate a request to a Live Agent Chat with the Service Coordinator, and the full transcript is logged against the request.
+A Ship Manager can review, approve, reject or request clarification on the same request record (operational approval) — no separate file.
+An approved request updates the relevant Spare record and is reflected on the Technical Head’s Fleet Dashboard.
+A Service Coordinator can close a request resolved without cost, or raise an invoice against an unresolved request.
+A Ship Manager can accept or reject an invoice; a Service Engineer can be assigned by the Service Coordinator only after invoice acceptance — the system blocks assignment on an unaccepted or rejected invoice. No payment is collected or transferred by the platform.
+A Service Engineer’s completion report reaches the Service Coordinator only; the Ship Manager is updated by the Coordinator, not directly by the Engineer.
+Completed services update the Spare’s service history and invoice record, and recalculate the next-service-due date.
+Maintenance colour-status changes automatically as due dates approach or pass.
+All five role dashboards (Section 8) display correct, role-scoped data — including invoice visibility limited to Ship Manager, Service Coordinator, Technical Head and Platform Admin — and the Platform Admin’s activity feed reflects every request, troubleshooting outcome, live-chat escalation, invoice, approval, escalation and completion across the platform in real time.
+Every approval, rejection, upload, invoice action and service update is present in the audit trail.
+19. Governance & Change Control
+Once reviewed and approved by both parties, this SoW forms the baseline for pilot development. Any requirement introduced after scope freeze will be classified as a Change Request, an MVP Enhancement, or a Post-MVP (Phase 2) Requirement, with impact on effort, timeline and cost assessed before being incorporated into the committed scope.
+20. Approval & Sign-Off
+
+For Seastella Maritime
+(Pucho Consultant Private Limited) | For Talent Trek Technologies
+Name: _______________________ | Name: _______________________
+Designation: _______________________ | Designation: _______________________
+Signature: _______________________ | Signature: _______________________
+Date: _______________________ | Date: _______________________
