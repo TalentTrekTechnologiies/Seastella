@@ -50,29 +50,39 @@ final class TestFixtures {
 
     /** Platform-wide scope. */
     static AccessScope platformScope() {
-        return new AccessScope(ScopeKind.PLATFORM, 1L, Role.PLATFORM_ADMIN, null, Set.of(), Set.of());
+        return AccessScope.ofPlatform(1L, Role.PLATFORM_ADMIN);
     }
 
-    /** Organization scope covering vessels A1 and A2. */
+    /**
+     * Scope covering vessels A1 and A2.
+     *
+     * <p>Expressed as ORGANIZATION_SET for the Coordinator, which is what the
+     * role now resolves to (OI-16), and as ORGANIZATION for client-tenant roles.
+     */
     static AccessScope orgScope(Role role, Long userId) {
-        return new AccessScope(ScopeKind.ORGANIZATION, userId, role, ORG_A,
-                Set.of(VESSEL_A1, VESSEL_A2), Set.of());
+        Set<Long> vessels = Set.of(VESSEL_A1, VESSEL_A2);
+        if (role == Role.SERVICE_COORDINATOR) {
+            return AccessScope.ofOrganizations(userId, role, Set.of(ORG_A), vessels);
+        }
+        return AccessScope.ofOrganization(userId, role, ORG_A, vessels);
     }
 
     /** Vessel-set scope covering exactly the given vessels. */
     static AccessScope vesselScope(Role role, Long userId, Long... vesselIds) {
-        return new AccessScope(ScopeKind.VESSEL_SET, userId, role, ORG_A, Set.of(vesselIds), Set.of());
+        return AccessScope.ofVessels(userId, role, ORG_A, Set.of(vesselIds));
     }
 
     /** A different organization entirely. */
     static AccessScope otherOrgScope(Role role, Long userId) {
-        return new AccessScope(ScopeKind.ORGANIZATION, userId, role, ORG_B, Set.of(VESSEL_B1), Set.of());
+        if (role == Role.SERVICE_COORDINATOR) {
+            return AccessScope.ofOrganizations(userId, role, Set.of(ORG_B), Set.of(VESSEL_B1));
+        }
+        return AccessScope.ofOrganization(userId, role, ORG_B, Set.of(VESSEL_B1));
     }
 
     /** Engineer scope: a job set, never a vessel set. */
     static AccessScope jobScope(Long engineerUserId, Set<Long> jobIds, Set<Long> vesselIds) {
-        return new AccessScope(ScopeKind.JOB_SET, engineerUserId, Role.SERVICE_ENGINEER,
-                ORG_A, vesselIds, jobIds);
+        return AccessScope.ofJobs(engineerUserId, Role.SERVICE_ENGINEER, jobIds, vesselIds);
     }
 
     static void setId(Object entity, Long id) {

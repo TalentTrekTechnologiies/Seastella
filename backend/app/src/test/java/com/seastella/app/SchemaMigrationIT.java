@@ -50,6 +50,8 @@ class SchemaMigrationIT {
         assertThat(tables).contains(
                 // platform-core
                 "audit_entry",
+                // identity-access (V8): Seastella-side organization scope
+                "user_organization_assignment",
                 // fleet
                 "organization", "vessel", "equipment_category", "spare", "replacement_part",
                 // identity-access
@@ -75,7 +77,9 @@ class SchemaMigrationIT {
                 """,
                 String.class);
 
-        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6");
+        // V7 is a PostgreSQL-vendor migration (audit hardening) and is not
+        // applied on H2, so it is absent here by design.
+        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "8");
     }
 
     @Test

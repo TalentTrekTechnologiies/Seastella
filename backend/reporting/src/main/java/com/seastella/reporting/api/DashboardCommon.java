@@ -53,8 +53,23 @@ public final class DashboardCommon {
         }
     }
 
-    /** Envelope every dashboard response carries. */
+    /**
+     * Envelope every dashboard response carries.
+     *
+     * <p>{@code organizationsInScope} and {@code organizationNames} exist for
+     * the Service Coordinator, who may be assigned to several client
+     * organizations (OI-16). They describe what the server already decided -
+     * the UI can say "servicing 2 organizations" without ever being the thing
+     * that decides it.
+     */
     public record Meta(
-            String role, String scopeKind, Long organizationId, String organizationName,
-            int vesselsInScope, Instant generatedAt, boolean financialsVisible) {}
+            String role,
+            String scopeKind,
+            Long organizationId,
+            String organizationName,
+            int organizationsInScope,
+            List<String> organizationNames,
+            int vesselsInScope,
+            Instant generatedAt,
+            boolean financialsVisible) {}
 }

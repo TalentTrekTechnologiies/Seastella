@@ -4,6 +4,9 @@ import com.seastella.core.api.error.ForbiddenException;
 import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
 import com.seastella.identity.api.ScopeResolver;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import com.seastella.maintenance.api.DueStatus;
 import com.seastella.reporting.api.DashboardCommon.Distribution;
 import com.seastella.reporting.api.DashboardCommon.Meta;
@@ -29,9 +32,11 @@ import java.util.Map;
 class DashboardSupport {
 
     private final ScopeResolver scopeResolver;
+    private final NamedParameterJdbcTemplate named;
 
-    DashboardSupport(ScopeResolver scopeResolver) {
+    DashboardSupport(ScopeResolver scopeResolver, JdbcTemplate jdbc) {
         this.scopeResolver = scopeResolver;
+        this.named = new NamedParameterJdbcTemplate(jdbc);
     }
 
     AccessScope scope() {
@@ -48,14 +53,33 @@ class DashboardSupport {
     }
 
     Meta meta(AccessScope scope, String organizationName) {
+        List<String> names = organizationNames(scope);
+
+        // For a Coordinator spanning several clients there is no single
+        // organization name; the list is what the UI shows instead.
+        String primary = organizationName != null ? organizationName
+                : (names.size() == 1 ? names.get(0) : null);
+
         return new Meta(
                 scope.role() == null ? null : scope.role().name(),
                 scope.kind().name(),
                 scope.organizationId(),
-                organizationName,
+                primary,
+                scope.isPlatformWide() ? 0 : scope.organizationIds().size(),
+                names,
                 scope.vesselIds().size(),
                 Instant.now(),
                 scope.canSeeFinancials());
+    }
+
+    /** Names of the organizations in scope, resolved once per dashboard build. */
+    private List<String> organizationNames(AccessScope scope) {
+        if (scope.organizationIds().isEmpty()) {
+            return List.of();
+        }
+        return named.queryForList(
+                "select name from organization where id in (:ids) order by name",
+                new MapSqlParameterSource("ids", scope.organizationIds()), String.class);
     }
 
     /** Colour comes from the engine's own bands, never re-decided here. */

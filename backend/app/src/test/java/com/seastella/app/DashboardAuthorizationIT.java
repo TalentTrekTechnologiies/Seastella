@@ -54,6 +54,7 @@ class DashboardAuthorizationIT {
     private static final String SM_TWO = "k.oyelaran@acme-shipmanagement.example";
     private static final String CAPTAIN_KESTREL = "master.kestrel@acme-shipmanagement.example";
     private static final String COORDINATOR = "coordinator@seastella.example";
+    private static final String COORDINATOR_NORDIC = "coordinator.nordic@seastella.example";
     private static final String ENGINEER_ONE = "t.okafor@marine-electronics.example";
     private static final String ENGINEER_TWO = "s.nakamura@marine-electronics.example";
 
@@ -317,8 +318,112 @@ class DashboardAuthorizationIT {
     }
 
     // =====================================================================
+    //  OI-16: multi-organization Coordinator scope
+    // =====================================================================
+
+    @Nested
+    @DisplayName("coordinator organization scope (OI-16)")
+    class CoordinatorOrganizationScope {
+
+        /**
+         * The case the single-organization model could not express: one
+         * Seastella Coordinator servicing two client organizations.
+         */
+        @Test
+        void aCoordinatorAssignedToTwoOrganizationsSeesBoth() throws Exception {
+            JsonNode body = getJson("/api/v1/dashboards/service-coordinator", login(COORDINATOR));
+
+            assertThat(body.path("meta").path("organizationsInScope").asInt()).isEqualTo(2);
+            assertThat(body.path("meta").path("scopeKind").asText()).isEqualTo("ORGANIZATION_SET");
+
+            // Both fleets are reachable: six vessels across the two clients.
+            assertThat(body.path("meta").path("vesselsInScope").asInt())
+                    .isEqualTo((int) countVessels());
+        }
+
+        /**
+         * The boundary. Asserting that Sofia sees two organizations proves
+         * little unless someone is provably excluded from one - Jonas is
+         * assigned to Nordic only and must not reach Acme at all.
+         */
+        @Test
+        void aCoordinatorAssignedToOneOrganizationCannotReachTheOther() throws Exception {
+            JsonNode body = getJson("/api/v1/dashboards/service-coordinator",
+                    login(COORDINATOR_NORDIC));
+
+            assertThat(body.path("meta").path("organizationsInScope").asInt()).isEqualTo(1);
+
+            // No Acme vessel appears anywhere in the payload.
+            String raw = body.toString();
+            assertThat(raw).doesNotContain("MV Kestrel Trader", "MV Brahmaputra",
+                    "MV Coral Sentinel", "MV Sable Dawn");
+
+            assertThat(body.path("meta").path("vesselsInScope").asInt())
+                    .isLessThan((int) countVessels());
+        }
+
+        /**
+         * Scope comes from assignment rows, never from the request. A caller
+         * supplying an organization id must not widen what they can see.
+         */
+        @Test
+        void aSuppliedOrganizationIdDoesNotWidenScope() throws Exception {
+            Long acmeId = jdbc.queryForObject(
+                    "select id from organization where code = 'ACME'", Long.class);
+
+            JsonNode tampered = getJson(
+                    "/api/v1/dashboards/service-coordinator?organizationId=" + acmeId,
+                    login(COORDINATOR_NORDIC));
+
+            assertThat(tampered.path("meta").path("organizationsInScope").asInt()).isEqualTo(1);
+            assertThat(tampered.toString()).doesNotContain("MV Kestrel Trader");
+        }
+
+        /** Platform-side roles hold no organization_id (the V8 CHECK). */
+        @Test
+        void platformSideUsersCarryNoOrganizationId() {
+            Integer scoped = jdbc.queryForObject("""
+                    select count(*) from app_user
+                    where role in ('PLATFORM_ADMIN','SERVICE_COORDINATOR','SERVICE_ENGINEER')
+                      and organization_id is not null
+                    """, Integer.class);
+
+            assertThat(scoped).isZero();
+        }
+
+        /** Client-tenant roles still must have one - no regression from V8. */
+        @Test
+        void clientTenantUsersStillRequireAnOrganizationId() {
+            Integer unscoped = jdbc.queryForObject("""
+                    select count(*) from app_user
+                    where role in ('TECHNICAL_HEAD','SHIP_MANAGER','CAPTAIN')
+                      and organization_id is null
+                    """, Integer.class);
+
+            assertThat(unscoped).isZero();
+        }
+
+        /** An engineer gets no organization assignment: the job is the boundary. */
+        @Test
+        void engineersHoldNoOrganizationAssignment() {
+            Integer assigned = jdbc.queryForObject("""
+                    select count(*) from user_organization_assignment a
+                    join app_user u on u.id = a.user_id
+                    where u.role = 'SERVICE_ENGINEER'
+                    """, Integer.class);
+
+            assertThat(assigned).isZero();
+        }
+    }
+
+    // =====================================================================
     //  helpers
     // =====================================================================
+
+    private long countVessels() {
+        Long n = jdbc.queryForObject("select count(*) from vessel", Long.class);
+        return n == null ? 0 : n;
+    }
 
     private String login(String email) throws Exception {
         String body = """

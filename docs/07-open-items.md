@@ -243,33 +243,60 @@ S3-compatible object storage + SMTP relay. Nothing provider-specific is built.
 
 ---
 
-## OI-16 — Service Coordinator / Engineer organization scope ⚠️
+## OI-16 — Service Coordinator organization scope ✅ RESOLVED
 
-**Not from A§17 — surfaced during implementation.**
+**Raised during implementation. Re-checked against the controlling SoW and
+implemented.**
 
-SOURCE-A §5 places the Service Coordinator at **Seastella**, serving client
-organizations, and the Service Engineer at an external service provider. But the
-access model gives both a single `organization_id`, and the `app_user` CHECK
-constraint requires every non-admin user to have exactly one.
+**Question:** may a Service Coordinator operate across more than one client
+organization in Phase 1?
 
-So a Coordinator who handles requests for *two* client organizations cannot
-currently be expressed: they would need either two accounts or a scope kind that
-spans organizations.
+**Conclusion: yes — the SoW requires it.** Four independent signals in
+SOURCE-A, all pointing the same way:
 
-**Assumption:** Coordinators and Engineers are provisioned **inside the client
-organization they serve**. The seed data has one Coordinator per organization.
-This is coherent and fully enforced — it simply does not yet model a shared
-Seastella service desk.
+1. **§5 role table** names the role *"Service Coordinator **(Seastella)**"*.
+   It is the **only** role carrying that parenthetical — Technical Head, Ship
+   Manager and Captain have none, because they belong to the client company.
+2. **§5 Access Scope** for the role reads *"Assigned service scope"* — not
+   "own organization" or "assigned vessels" as every client-side role does.
+   The wording is deliberately an assignment set.
+3. **§2 Background:** Seastella *"provides technical and navigational-equipment
+   management support to **ship-management companies**"* — plural clients.
+4. **§4.1:** *"the Organization record — **the client company**"*. Seastella is
+   the platform operator; Organizations are its customers. A Coordinator who is
+   a member of one customer contradicts §5's own labelling.
 
-**Isolated by:** the scope resolver. Supporting a multi-organization Coordinator
-means adding an `ORGANIZATION_SET` scope kind alongside the existing four and a
-`user_organization_assignment` table — the enforcement layers, queries and
-dashboards all consume `AccessScope` and would need no change.
+§8.4 reinforces it, heading the dashboard *"Service Coordinator Dashboard
+(Seastella)"*.
 
-**Impact if wrong:** roughly 2–3 days, and best done before real users are
-provisioned. **Worth confirming early**: how many client organizations one
-Seastella Coordinator is expected to cover is a question only Seastella can
-answer, and §17 already asks them to confirm Coordinator staffing.
+**Implemented (migration V8):**
+
+- New scope kind `ORGANIZATION_SET`, resolved from a new
+  `user_organization_assignment` table. Never from a request parameter.
+- `Role.SERVICE_COORDINATOR` now maps to `ORGANIZATION_SET`; its vessel set is
+  the union of the assigned organizations' fleets, and nothing outside them.
+- The `app_user` CHECK was widened: **platform-side** roles (Platform Admin,
+  Coordinator, Engineer) carry **no** `organization_id`; client-tenant roles
+  (Technical Head, Ship Manager, Captain) still must. Employment and data
+  reach are now separate columns rather than one overloaded one.
+- **The Service Engineer needs no organization assignment at all.** SoW §5 maps
+  it to "Service Provider / Technician" — an external vendor — and the job
+  stays its lowest-level boundary, which is a tighter guarantee than an
+  organization would give.
+- V8 migrates an existing database forward safely: any Coordinator previously
+  pinned to one organization keeps exactly that organization as its first
+  assignment, so no access is gained or lost.
+
+**Verified:** a Coordinator assigned to two organizations sees both fleets; one
+assigned to a single organization is provably excluded from the other, with no
+out-of-scope vessel name anywhere in the payload; a supplied `organizationId`
+query parameter does not widen scope; the other five roles are unchanged
+(132 tests, 0 failures).
+
+**Still worth confirming with Seastella:** how many client organizations one
+Coordinator is expected to cover in practice, and whether a Coordinator should
+be able to see fleet-wide cost totals across clients. §17 already asks them to
+confirm Coordinator staffing.
 
 ---
 
@@ -299,8 +326,7 @@ Ordered by cost of a late answer, not by document order:
 | 3 | **OI-05** troubleshooting content | Client deliverable; needed by Week 3 |
 | 4 | **OI-06** invoice numbering | Cheap now, a migration once invoices exist |
 | 5 | **OI-10** report branding | Week 5 work |
-| 6 | **OI-16** coordinator org scope | Cheap now; a data migration once users exist |
-| 7 | **OI-02** threshold gap | Small, but affects every dashboard |
+| 6 | **OI-02** threshold gap | Small, but affects every dashboard |
 | — | all others | Configuration; safe to settle during UAT |
 
 Also requiring a decision, though not a client TBD: the two scope variances

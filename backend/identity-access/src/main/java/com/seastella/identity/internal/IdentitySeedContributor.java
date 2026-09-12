@@ -29,13 +29,16 @@ public class IdentitySeedContributor implements SeedContributor {
 
     private final AppUserRepository users;
     private final UserVesselAssignmentRepository assignments;
+    private final UserOrganizationAssignmentRepository orgAssignments;
     private final PasswordEncoder passwordEncoder;
 
     IdentitySeedContributor(AppUserRepository users,
                             UserVesselAssignmentRepository assignments,
+                            UserOrganizationAssignmentRepository orgAssignments,
                             PasswordEncoder passwordEncoder) {
         this.users = users;
         this.assignments = assignments;
+        this.orgAssignments = orgAssignments;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -92,24 +95,33 @@ public class IdentitySeedContributor implements SeedContributor {
         assign(capSable, ctx.id("vessel.sable"), sm2);
         assign(capBergen, ctx.id("vessel.bergen"), nordicSm);
 
-        // 5. Seastella's own service operations.
+        // 5. Seastella's own service operations (OI-16).
         //
-        //    OPEN ITEM (OI-16): the SoW places the Service Coordinator and
-        //    Service Engineer at Seastella, serving multiple client
-        //    organizations, but AccessScope gives them a single organization
-        //    and the app_user CHECK requires one. They are seeded inside the
-        //    client organization they serve. A coordinator covering several
-        //    client organizations needs a scope model change - flagged, not
-        //    silently assumed.
-        user(ctx, "user.coordinator", "coordinator@seastella.example",
-                "Sofia Marchetti", Role.SERVICE_COORDINATOR, acme);
-        user(ctx, "user.coordinator.nordic", "coordinator.nordic@seastella.example",
-                "Jonas Bakken", Role.SERVICE_COORDINATOR, nordic);
+        //    Coordinators are platform-side staff, not client-tenant members:
+        //    they carry no organization_id and are scoped by explicit
+        //    assignment to the client organizations they service.
+        //
+        //    Sofia covers BOTH clients - the case the SoW describes, and the
+        //    one the previous single-organization model could not express.
+        //    Jonas covers Nordic only, so the boundary has something to hold
+        //    against: a test asserting Sofia sees two organizations proves
+        //    little unless someone is provably excluded from one.
+        Long sofia = user(ctx, "user.coordinator", "coordinator@seastella.example",
+                "Sofia Marchetti", Role.SERVICE_COORDINATOR, null);
+        assignOrganization(sofia, acme, admin);
+        assignOrganization(sofia, nordic, admin);
 
+        Long jonas = user(ctx, "user.coordinator.nordic", "coordinator.nordic@seastella.example",
+                "Jonas Bakken", Role.SERVICE_COORDINATOR, null);
+        assignOrganization(jonas, nordic, admin);
+
+        //    Engineers are external service providers. They receive no
+        //    organization assignment at all: the job is their only boundary,
+        //    which is a tighter guarantee than an organization would give.
         user(ctx, "user.engineer.one", "t.okafor@marine-electronics.example",
-                "Tobenna Okafor", Role.SERVICE_ENGINEER, acme);
+                "Tobenna Okafor", Role.SERVICE_ENGINEER, null);
         user(ctx, "user.engineer.two", "s.nakamura@marine-electronics.example",
-                "Sho Nakamura", Role.SERVICE_ENGINEER, acme);
+                "Sho Nakamura", Role.SERVICE_ENGINEER, null);
     }
 
     private Long user(SeedContext ctx, String handle, String email, String fullName,
@@ -125,6 +137,12 @@ public class IdentitySeedContributor implements SeedContributor {
                 });
         ctx.put(handle, id);
         return id;
+    }
+
+    private void assignOrganization(Long userId, Long organizationId, Long assignedBy) {
+        if (!orgAssignments.existsByUserIdAndOrganizationId(userId, organizationId)) {
+            orgAssignments.save(new UserOrganizationAssignment(userId, organizationId, assignedBy));
+        }
     }
 
     private void assign(Long userId, Long vesselId, Long assignedBy) {

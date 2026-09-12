@@ -23,10 +23,24 @@ public enum Role {
     /** Exactly one assigned vessel. Raises service requests. */
     CAPTAIN(ScopeKind.VESSEL_SET, true),
 
-    /** Seastella service operations. Triage, invoicing, engineer assignment. */
-    SERVICE_COORDINATOR(ScopeKind.ORGANIZATION, true),
+    /**
+     * Seastella service operations. Triage, invoicing, engineer assignment.
+     *
+     * <p>Platform-side, not a client tenant: SoW section 5 labels the role
+     * "Service Coordinator (Seastella)" and scopes it to an "Assigned
+     * service scope" rather than an organization. Scoped to an explicitly
+     * assigned set of client organizations (OI-16).
+     */
+    SERVICE_COORDINATOR(ScopeKind.ORGANIZATION_SET, true),
 
-    /** Assigned jobs only. Reports completion to the Coordinator alone. */
+    /**
+     * Assigned jobs only. Reports completion to the Coordinator alone.
+     *
+     * <p>Also platform-side - SoW section 5 maps it to "Service Provider /
+     * Technician", an external vendor. The job stays the lowest-level
+     * assignment boundary, so no organization assignment is needed or
+     * granted: an engineer's reach is exactly their own jobs.
+     */
     SERVICE_ENGINEER(ScopeKind.JOB_SET, true),
 
     /** Phase 2 (SoW section 5). Declared, not provisionable. */
@@ -47,6 +61,20 @@ public enum Role {
 
     /** Spring Security authority name. */
     public String authority() { return "ROLE_" + name(); }
+
+    /**
+     * Whether this role belongs to Seastella or a service provider rather than
+     * to a client organization.
+     *
+     * <p>Platform-side users carry no {@code organization_id}: a Platform Admin
+     * has none at all, and a Coordinator or Engineer is scoped by assignment
+     * instead. The database CHECK on {@code app_user} enforces exactly this.
+     */
+    public boolean isPlatformSide() {
+        return this == PLATFORM_ADMIN
+                || this == SERVICE_COORDINATOR
+                || this == SERVICE_ENGINEER;
+    }
 
     /**
      * Whether this role may see monetary values on invoices.
