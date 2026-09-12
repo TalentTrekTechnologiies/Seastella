@@ -243,6 +243,51 @@ S3-compatible object storage + SMTP relay. Nothing provider-specific is built.
 
 ---
 
+## OI-16 — Service Coordinator / Engineer organization scope ⚠️
+
+**Not from A§17 — surfaced during implementation.**
+
+SOURCE-A §5 places the Service Coordinator at **Seastella**, serving client
+organizations, and the Service Engineer at an external service provider. But the
+access model gives both a single `organization_id`, and the `app_user` CHECK
+constraint requires every non-admin user to have exactly one.
+
+So a Coordinator who handles requests for *two* client organizations cannot
+currently be expressed: they would need either two accounts or a scope kind that
+spans organizations.
+
+**Assumption:** Coordinators and Engineers are provisioned **inside the client
+organization they serve**. The seed data has one Coordinator per organization.
+This is coherent and fully enforced — it simply does not yet model a shared
+Seastella service desk.
+
+**Isolated by:** the scope resolver. Supporting a multi-organization Coordinator
+means adding an `ORGANIZATION_SET` scope kind alongside the existing four and a
+`user_organization_assignment` table — the enforcement layers, queries and
+dashboards all consume `AccessScope` and would need no change.
+
+**Impact if wrong:** roughly 2–3 days, and best done before real users are
+provisioned. **Worth confirming early**: how many client organizations one
+Seastella Coordinator is expected to cover is a question only Seastella can
+answer, and §17 already asks them to confirm Coordinator staffing.
+
+---
+
+## OI-17 — Service Engineer job visibility after completion
+
+**Surfaced during implementation.**
+
+An engineer's scope is their assigned job set. It is not stated whether a
+completed job should remain visible to them indefinitely.
+
+**Assumption:** completed jobs stay visible in the engineer's own history
+(SoW §5 gives them a dashboard, and a service engineer needs their own record of
+attendance). They are scoped to their own jobs throughout — this widens nothing.
+
+**Impact if wrong:** one filter change.
+
+---
+
 ## Summary — what to confirm first
 
 Ordered by cost of a late answer, not by document order:
@@ -254,7 +299,8 @@ Ordered by cost of a late answer, not by document order:
 | 3 | **OI-05** troubleshooting content | Client deliverable; needed by Week 3 |
 | 4 | **OI-06** invoice numbering | Cheap now, a migration once invoices exist |
 | 5 | **OI-10** report branding | Week 5 work |
-| 6 | **OI-02** threshold gap | Small, but affects every dashboard |
+| 6 | **OI-16** coordinator org scope | Cheap now; a data migration once users exist |
+| 7 | **OI-02** threshold gap | Small, but affects every dashboard |
 | — | all others | Configuration; safe to settle during UAT |
 
 Also requiring a decision, though not a client TBD: the two scope variances
