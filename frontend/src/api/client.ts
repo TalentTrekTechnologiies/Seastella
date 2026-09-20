@@ -14,6 +14,11 @@ export const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\
 
 const withApiBase = (path: string) => {
   const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (!DEMO_MODE && !API_ORIGIN) {
+    throw new Error(
+      'SeaStella API configuration error: VITE_API_URL is not set. Set it to the backend origin, e.g. https://seastella.onrender.com.',
+    );
+  }
   return API_ORIGIN ? `${API_ORIGIN}${normalized}` : normalized;
 };
 
