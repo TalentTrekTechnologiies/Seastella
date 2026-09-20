@@ -10,6 +10,13 @@
 
 const TOKEN_KEY = 'seastella.token';
 
+export const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
+
+const withApiBase = (path: string) => {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return API_ORIGIN ? `${API_ORIGIN}${normalized}` : normalized;
+};
+
 /**
  * Frontend-only demo build (`VITE_DEMO_MODE=true`): requests are answered in
  * the browser from captured seed data instead of the network. A build-time
@@ -96,6 +103,16 @@ export interface LoginSession {
   user: unknown;
 }
 
+function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(input, {
+    ...init,
+    signal: controller.signal,
+    credentials: init.credentials ?? (API_ORIGIN ? 'include' : 'same-origin'),
+  }).finally(() => window.clearTimeout(timer));
+}
+
 /**
  * Renews the session from the refresh cookie. Concurrent callers share one
  * request, so a burst of expired calls rotates the token once, not ten times.
@@ -103,10 +120,9 @@ export interface LoginSession {
 export function refreshSession(): Promise<LoginSession | null> {
   if (DEMO_MODE) return Promise.resolve(null);
   if (!refreshing) {
-    refreshing = fetch('/api/v1/auth/refresh', {
+    refreshing = fetchWithTimeout(withApiBase('/api/v1/auth/refresh'), {
       method: 'POST',
       headers: { Accept: 'application/json', ...CSRF_HEADER },
-      credentials: 'same-origin',
     })
       .then(async (r) => {
         if (!r.ok) return null;
@@ -127,7 +143,10 @@ export async function endSession(): Promise<void> {
   tokenStore.clear();
   if (DEMO_MODE) return;
   try {
-    await fetch('/api/v1/auth/logout', { method: 'POST', headers: CSRF_HEADER, credentials: 'same-origin' });
+    await fetchWithTimeout(withApiBase('/api/v1/auth/logout'), {
+      method: 'POST',
+      headers: CSRF_HEADER,
+    });
   } catch {
     /* signed out locally either way */
   }
@@ -175,7 +194,7 @@ async function send(path: string, init: RequestInit, token: string | null): Prom
     return demoFetch(path, init, token);
   }
 
-  const response = await fetch(path, init);
+  const response = await fetchWithTimeout(withApiBase(path), init);
   if (response.status === 204) return { status: 204, body: null };
   const text = await response.text();
   return { status: response.status, body: text ? safeParse(text) : null };
@@ -269,7 +288,7 @@ async function authorisedFetch(path: string, init: RequestInit = {}): Promise<Re
     const headers = new Headers(init.headers);
     const token = tokenStore.get();
     if (token) headers.set('Authorization', `Bearer ${token}`);
-    return fetch(path, { ...init, headers });
+    return fetchWithTimeout(withApiBase(path), { ...init, headers });
   };
   const first = await send();
   if (first.status !== 401 || DEMO_MODE) return first;

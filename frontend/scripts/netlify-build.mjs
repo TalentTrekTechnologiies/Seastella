@@ -17,7 +17,7 @@ const run = (cmd) => execSync(cmd, { stdio: 'inherit' });
 
 if (origin) {
   console.log(`Building against the live backend at ${origin}`);
-  run('npm run build');
+  run('npm run build', { env: { ...process.env, VITE_API_URL: origin } });
 } else {
   console.log('SEASTELLA_API_ORIGIN not set: building the frontend-only demo');
   run('npm run build:demo');
