@@ -135,19 +135,33 @@ public class IdentitySeedContributor implements SeedContributor {
     }
 
     private Long user(SeedContext ctx, String handle, String email, String fullName,
-                      Role role, Long organizationId) {
+                  Role role, Long organizationId) {
 
-        Long id = users.findByEmailIgnoreCase(email)
-                .map(AppUser::getId)
-                .orElseGet(() -> {
-                    AppUser u = new AppUser(email, passwordEncoder.encode(demoPassword),
-                            fullName, role, organizationId);
-                    u.markSeed();
-                    return users.save(u).getId();
-                });
-        ctx.put(handle, id);
-        return id;
-    }
+    Long id = users.findByEmailIgnoreCase(email)
+            .map(existing -> {
+                if ("SEED".equals(existing.getSeedMarker())
+                        && !passwordEncoder.matches(demoPassword, existing.getPasswordHash())) {
+                    existing.changePassword(passwordEncoder.encode(demoPassword));
+                    users.save(existing);
+                }
+
+                return existing.getId();
+            })
+            .orElseGet(() -> {
+                AppUser u = new AppUser(
+                        email,
+                        passwordEncoder.encode(demoPassword),
+                        fullName,
+                        role,
+                        organizationId
+                );
+                u.markSeed();
+                return users.save(u).getId();
+            });
+
+    ctx.put(handle, id);
+    return id;
+}
 
     private void assignOrganization(Long userId, Long organizationId, Long assignedBy) {
         if (!orgAssignments.existsByUserIdAndOrganizationId(userId, organizationId)) {
