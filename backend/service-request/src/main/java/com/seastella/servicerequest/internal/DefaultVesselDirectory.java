@@ -69,6 +69,18 @@ class DefaultVesselDirectory implements VesselDirectory, ServiceRequestDirectory
 
     @Override
     @Transactional(readOnly = true)
+    public Long organizationIdForVessel(Long vesselId) {
+        return fleet.organizationIdForVessel(vesselId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean organizationExists(Long organizationId) {
+        return fleet.organizationExists(organizationId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Long vesselIdFor(Long serviceRequestId) {
         if (serviceRequestId == null) return null;
         return requests.findById(serviceRequestId)

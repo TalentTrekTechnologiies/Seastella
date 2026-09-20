@@ -18,4 +18,10 @@ public interface VesselDirectory {
 
     /** Vessels reachable through the given jobs - and only through them. */
     Set<Long> vesselIdsForJobs(Set<Long> jobIds);
+
+    /** The organization owning a vessel; null when the vessel does not exist. */
+    Long organizationIdForVessel(Long vesselId);
+
+    /** Whether a client organization exists, for provisioning its users. */
+    boolean organizationExists(Long organizationId);
 }

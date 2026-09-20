@@ -50,20 +50,25 @@ public class AuthService {
     private final JwtService jwtService;
     private final SecurityProperties properties;
     private final AuditService audit;
+    private final RefreshTokenService refreshTokens;
 
     AuthService(AppUserRepository users, UserVesselAssignmentRepository assignments,
                 PasswordEncoder passwordEncoder, JwtService jwtService,
-                SecurityProperties properties, AuditService audit) {
+                SecurityProperties properties, AuditService audit, RefreshTokenService refreshTokens) {
         this.users = users;
         this.assignments = assignments;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.properties = properties;
         this.audit = audit;
+        this.refreshTokens = refreshTokens;
     }
 
+    /** A successful sign-in: the response body, and the refresh token for the cookie. */
+    public record SignedIn(AuthDtos.LoginResponse response, RefreshTokenService.Issued refresh) {}
+
     @Transactional
-    public AuthDtos.LoginResponse login(AuthDtos.LoginRequest request) {
+    public SignedIn login(AuthDtos.LoginRequest request, String ip, String userAgent) {
         Optional<AppUser> found = users.findByEmailIgnoreCase(request.email());
 
         if (found.isEmpty()) {
@@ -104,6 +109,12 @@ public class AuthService {
         users.save(user);
         audit.record(AuditAction.LOGIN_SUCCEEDED, "AppUser", user.getId(), null, null);
 
+        return new SignedIn(session(user), refreshTokens.issueForNewSession(user, ip, userAgent));
+    }
+
+    /** A fresh access token and profile for a user whose refresh token was just rotated. */
+    @Transactional(readOnly = true)
+    public AuthDtos.LoginResponse session(AppUser user) {
         return new AuthDtos.LoginResponse(
                 jwtService.issueAccessToken(user),
                 "Bearer",

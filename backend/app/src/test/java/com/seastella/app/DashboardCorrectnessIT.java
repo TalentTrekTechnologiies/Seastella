@@ -237,6 +237,38 @@ class DashboardCorrectnessIT {
         }
 
         /**
+         * SoW s8.1 asks the Technical Head for what is pending approval *and*
+         * what was approved this period. The second figure counts the approval
+         * itself, not the current status, so a request approved this month and
+         * since completed still counts.
+         */
+        @Test
+        void approvedThisMonthCountsApprovalsNotOpenRequests() throws Exception {
+            long before = kpi(getJson("/api/v1/dashboards/technical-head", login(TECH_HEAD)),
+                    "approvedThisMonth");
+
+            // Approved today, and already moved on to a later stage.
+            insertRequest("SR-TEST-APPROVED-0001", "INVOICE_RAISED");
+            jdbc.update("update service_request set operational_approved_at = current_timestamp "
+                    + "where request_number = ?", "SR-TEST-APPROVED-0001");
+
+            assertThat(kpi(getJson("/api/v1/dashboards/technical-head", login(TECH_HEAD)),
+                    "approvedThisMonth")).isEqualTo(before + 1);
+
+            // An approval from before this month is not in this period's figure.
+            insertRequest("SR-TEST-APPROVED-0002", "INVOICE_RAISED");
+            jdbc.update("update service_request set operational_approved_at = ? where request_number = ?",
+                    java.sql.Timestamp.from(java.time.Instant.now().minus(java.time.Duration.ofDays(70))),
+                    "SR-TEST-APPROVED-0002");
+
+            assertThat(kpi(getJson("/api/v1/dashboards/technical-head", login(TECH_HEAD)),
+                    "approvedThisMonth")).isEqualTo(before + 1);
+
+            jdbc.update("delete from service_request where request_number in "
+                    + "('SR-TEST-APPROVED-0001', 'SR-TEST-APPROVED-0002')");
+        }
+
+        /**
          * Maintenance status is derived, not stored: moving a due date to the
          * past must move a spare into the overdue count on the next read.
          */

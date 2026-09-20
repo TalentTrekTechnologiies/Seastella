@@ -14,11 +14,21 @@
   <name>SeaStella :: notification</name>
 
   <dependencies>
+    <!-- Consumes the workflow and maintenance events; service-request brings
+         maintenance, fleet and identity-access with it. -->
     <dependency>
       <groupId>com.seastella</groupId>
-      <artifactId>identity-access</artifactId>
+      <artifactId>service-request</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.seastella</groupId>
+      <artifactId>troubleshooting</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>

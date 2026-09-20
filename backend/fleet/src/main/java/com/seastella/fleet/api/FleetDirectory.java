@@ -1,5 +1,8 @@
 package com.seastella.fleet.api;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -31,4 +34,25 @@ public interface FleetDirectory {
 
     /** Resolve an equipment category by its code, e.g. {@code "ECDIS"}. */
     Optional<Long> equipmentCategoryIdByCode(String code);
+
+    /** The SoW s9.4 equipment categories, in display order. */
+    List<CategoryRef> equipmentCategories();
+
+    /** The owning organization's short code, used in request and invoice numbers. */
+    Optional<String> organizationCodeForVessel(Long vesselId);
+
+    boolean organizationExists(Long organizationId);
+
+    /** A spare's identity and hour meter, for labels, alerts and due projections. */
+    Optional<SpareRef> spareRef(Long spareId);
+
+    /** Recorded running-hour readings, most recent first. */
+    List<HourReading> hourReadings(Long spareId, int limit);
+
+    record SpareRef(Long id, String name, String path, Long vesselId, String vesselName,
+                    Long organizationId, boolean tracksRunningHours, BigDecimal runningHours) {}
+
+    record HourReading(LocalDate readingDate, BigDecimal hours) {}
+
+    record CategoryRef(Long id, String code, String name) {}
 }

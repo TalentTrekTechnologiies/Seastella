@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -22,12 +23,27 @@ class DefaultFleetDirectory implements FleetDirectory {
     private final VesselRepository vessels;
     private final SpareRepository spares;
     private final EquipmentCategoryRepository categories;
+    private final OrganizationRepository organizations;
+    private final RunningHourReadingRepository readings;
 
     DefaultFleetDirectory(VesselRepository vessels, SpareRepository spares,
-                          EquipmentCategoryRepository categories) {
+                          EquipmentCategoryRepository categories,
+                          OrganizationRepository organizations,
+                          RunningHourReadingRepository readings) {
         this.vessels = vessels;
         this.spares = spares;
         this.categories = categories;
+        this.organizations = organizations;
+        this.readings = readings;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> organizationCodeForVessel(Long vesselId) {
+        if (vesselId == null) return Optional.empty();
+        return vessels.findById(vesselId)
+                .flatMap(v -> organizations.findById(v.getOrganizationId()))
+                .map(Organization::getCode);
     }
 
     @Override
@@ -77,5 +93,38 @@ class DefaultFleetDirectory implements FleetDirectory {
     @Transactional(readOnly = true)
     public Optional<Long> equipmentCategoryIdByCode(String code) {
         return categories.findByCode(code).map(EquipmentCategory::getId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryRef> equipmentCategories() {
+        return categories.findAll(org.springframework.data.domain.Sort.by("displayOrder")).stream()
+                .map(c -> new CategoryRef(c.getId(), c.getCode(), c.getName()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean organizationExists(Long organizationId) {
+        return organizationId != null && organizations.existsById(organizationId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<SpareRef> spareRef(Long spareId) {
+        if (spareId == null) return Optional.empty();
+        return spares.findById(spareId).flatMap(s -> vessels.findById(s.getVesselId()).map(v ->
+                new SpareRef(s.getId(), s.getName(), s.getPath(), v.getId(), v.getName(),
+                        v.getOrganizationId(), s.isTracksRunningHours(), s.getRunningHours())));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HourReading> hourReadings(Long spareId, int limit) {
+        if (spareId == null) return List.of();
+        return readings.findTop24BySpareIdOrderByReadingDateDescIdDesc(spareId).stream()
+                .limit(Math.max(0, limit))
+                .map(r -> new HourReading(r.getReadingDate(), r.getReadingHours()))
+                .toList();
     }
 }

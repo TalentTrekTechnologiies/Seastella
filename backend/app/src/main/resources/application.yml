@@ -31,7 +31,7 @@ spring:
       write-dates-as-timestamps: false
 
 server:
-  port: 8080
+  port: ${PORT:8080}              # hosts such as Render and Railway inject PORT
   error:
     include-message: never        # SEC-21: no internals in error responses
     include-stacktrace: never
@@ -57,6 +57,9 @@ springdoc:
     path: /swagger-ui.html
 
 seastella:
+  # Where people open the app. Links in emails - alerts, invitations, password
+  # resets - point here, so in production it must be the public HTTPS address.
+  app-base-url: ${APP_BASE_URL:http://localhost:5173}
   security:
     jwt:
       issuer: seastella-platform
@@ -65,8 +68,40 @@ seastella:
     lockout:
       max-failed-attempts: 5      # SEC-03
       lockout-duration: PT15M
+    rate-limit:
+      # SEC-23. Per minute; sensitive is per client address, writes per user.
+      # Counted in this instance's memory: with more than one instance the
+      # limit is per instance until a shared store is added.
+      enabled: true
+      # 20 a minute per address: a shared office NAT signing several people in
+      # stays well under it, a password guesser does not (and SEC-03 locks the
+      # account after 5 failures anyway).
+      sensitive-per-minute: 20
+      writes-per-minute: 120
   upload:
     # OI-09 working assumption. Validated by magic bytes, not extension (SEC-15).
     max-bytes: 26214400
     allowed-types: application/pdf,image/png,image/jpeg,image/webp,video/mp4,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv
     storage-dir: ./data/documents
+  maintenance:
+    # Colour bands roll over at midnight; re-check shortly after (SoW s11).
+    status-scan-cron: "0 5 0 * * *"
+  notification:
+    app-base-url: ${seastella.app-base-url}
+    certificate:
+      # How much notice a fleet wants before a certificate lapses (DOC-03).
+      # One reminder as each is crossed; 0 is the day it expires.
+      warning-days: 90,30,7,0
+      scan-cron: "0 20 0 * * *"
+    email:
+      # Email is sent only when spring.mail.host is configured; otherwise each
+      # delivery is recorded as SKIPPED. SMS is pending client confirmation.
+      # The sending address must be on a domain whose SPF/DKIM records name
+      # the mail server, or the message is filtered. Replies go to a mailbox a
+      # person actually reads, because an alert often needs an answer.
+      from: ${MAIL_FROM:SeaStella Maritime Ops <no-reply@seastella.in>}
+      reply-to: ${MAIL_REPLY_TO:team@seastella.in}
+      # Shown in email footers and on report letterheads.
+      brand: ${BRAND_NAME:Seastella}
+      brand-site: ${BRAND_SITE:seastella.in}
+      dispatch-interval-ms: 10000

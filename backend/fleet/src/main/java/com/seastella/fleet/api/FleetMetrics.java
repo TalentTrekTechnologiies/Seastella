@@ -42,6 +42,9 @@ public interface FleetMetrics {
 
     long partShortageCount(Set<Long> vesselIds);
 
+    /** Every replacement part held on these vessels, for the inventory report (RPT-07). */
+    List<PartShortage> parts(Set<Long> vesselIds, int limit);
+
     /** One vessel's spare tree, ordered by VMP path so nesting reads naturally. */
     List<SpareNode> spareTree(Long vesselId);
 

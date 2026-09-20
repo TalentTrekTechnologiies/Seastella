@@ -61,7 +61,20 @@ class SchemaMigrationIT {
                 // service-request
                 "problem_type", "service_request", "service_request_transition", "completion_report",
                 // invoice
-                "invoice");
+                "invoice",
+                // fleet (V9), maintenance (V10)
+                "running_hour_reading", "spare_due_state",
+                // notification (V11)
+                "notification", "notification_delivery", "notification_rule",
+                // troubleshooting (V13, V15)
+                "troubleshooting_flow", "troubleshooting_step", "troubleshooting_session",
+                "troubleshooting_response", "conversation", "conversation_message", "conversation_read",
+                // identity-access (V16, V17)
+                "refresh_token", "user_token",
+                // masterdata-import (V21)
+                "import_batch", "import_row",
+                // fleet (V22), notification (V23)
+                "document", "certificate_alert_state");
     }
 
     @Test
@@ -79,7 +92,26 @@ class SchemaMigrationIT {
 
         // V7 is a PostgreSQL-vendor migration (audit hardening) and is not
         // applied on H2, so it is absent here by design.
-        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "8");
+        assertThat(versions).containsExactly(
+                "1", "2", "3", "4", "5", "6", "8",
+                "9",    // fleet: running-hour readings
+                "10",   // maintenance: last observed colour status
+                "11",   // notification: alerts, deliveries, rules
+                "12",   // fleet: equipment categories as reference data
+                "13",   // troubleshooting: guided checks
+                "14",   // notification: troubleshooting-completed rule
+                "15",   // troubleshooting: live agent chat
+                "16",   // identity-access: refresh tokens
+                "17",   // identity-access: invitation and password-reset links
+                "18",   // service-request: problem types can be retired
+                "19",   // troubleshooting: draft / published / retired checks
+                        // (V20 is PostgreSQL-only: partial unique indexes)
+                "21",   // masterdata-import: staged VMP uploads
+                "22",   // fleet: documents and certificates
+                "23",   // notification: certificate expiry reminders
+                "24",   // notification: part shortage alerts
+                "25",   // identity-access: sessions end when a sign-in address changes
+                "26");  // troubleshooting: one thread, read state and attachments
     }
 
     @Test

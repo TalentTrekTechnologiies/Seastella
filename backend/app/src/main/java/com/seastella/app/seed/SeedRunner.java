@@ -64,7 +64,8 @@ public class SeedRunner implements ApplicationRunner {
         }
 
         log.info("Seed complete: {} handles registered.", context.all().size());
-        log.info("Demo sign-in (password for every demo account: SeaStella#Demo2026):");
+        // The password itself is never logged: on a hosted demo it is a secret.
+        log.info("Demo sign-in (every demo account shares seastella.seed.demo-password):");
         log.info("  admin@seastella.example                       Platform Admin");
         log.info("  tech.head@acme-shipmanagement.example         Technical Head");
         log.info("  d.fernandes@acme-shipmanagement.example       Ship Manager (2 vessels)");

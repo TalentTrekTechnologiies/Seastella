@@ -18,7 +18,31 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     List<AppUser> findByOrganizationId(Long organizationId);
 
+    List<AppUser> findByRoleOrderByFullNameAsc(Role role);
+
     long countByRole(Role role);
+
+    /** Active holders of a role who are assigned to the vessel (Ship Manager, Captain). */
+    @Query("""
+            select u from AppUser u
+            where u.role = :role and u.status = 'ACTIVE'
+              and u.id in (select a.userId from UserVesselAssignment a where a.vesselId = :vesselId)
+            order by u.fullName
+            """)
+    List<AppUser> findActiveByRoleOnVessel(@Param("role") Role role, @Param("vesselId") Long vesselId);
+
+    /**
+     * Active holders of a role who belong to the organization (Technical Head)
+     * or are assigned to serve it (Service Coordinator, OI-16).
+     */
+    @Query("""
+            select u from AppUser u
+            where u.role = :role and u.status = 'ACTIVE'
+              and (u.organizationId = :orgId
+                   or u.id in (select a.userId from UserOrganizationAssignment a where a.organizationId = :orgId))
+            order by u.fullName
+            """)
+    List<AppUser> findActiveByRoleForOrganization(@Param("role") Role role, @Param("orgId") Long organizationId);
 
     @Query("select u.role, count(u) from AppUser u where u.status = 'ACTIVE' group by u.role")
     List<Object[]> countActiveByRole();

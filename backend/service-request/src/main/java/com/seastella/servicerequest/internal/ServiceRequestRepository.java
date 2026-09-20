@@ -14,6 +14,8 @@ import java.util.Set;
 
 public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long> {
 
+    long countByRequestNumberStartingWith(String prefix);
+
     @Query("select r from ServiceRequest r where r.vesselId in :ids order by r.createdAt desc")
     Page<ServiceRequest> findByVessels(@Param("ids") Set<Long> vesselIds, Pageable pageable);
 

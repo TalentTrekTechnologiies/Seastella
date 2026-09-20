@@ -1,0 +1,12 @@
+# Hosted demonstration / UAT environment: layered on prod, as
+# SPRING_PROFILES_ACTIVE=prod,demo.
+#
+# Same PostgreSQL, secrets, email and session rules as production. The only
+# difference is data: the demo dataset is seeded into an empty database, with
+# every row marked SEED, so the platform can be shown before client data exists.
+seastella:
+  seed:
+    enabled: true
+    # Required: the site is public, so the seeded accounts must not share the
+    # password written in the repository.
+    demo-password: ${DEMO_PASSWORD}

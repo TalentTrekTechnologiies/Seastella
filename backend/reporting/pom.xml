@@ -30,6 +30,10 @@
       <groupId>com.seastella</groupId>
       <artifactId>invoice</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.seastella</groupId>
+      <artifactId>troubleshooting</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.github.librepdf</groupId>

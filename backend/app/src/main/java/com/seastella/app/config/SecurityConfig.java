@@ -1,6 +1,7 @@
 package com.seastella.app.config;
 
-import com.seastella.identity.internal.JwtAuthenticationFilter;
+import com.seastella.identity.api.AuthenticationFilter;
+import com.seastella.identity.api.CurrentUser;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtAuthenticationFilter jwtFilter) throws Exception {
+                                           AuthenticationFilter jwtFilter,
+                                           RateLimitProperties rateLimits,
+                                           CurrentUser currentUser) throws Exception {
         http
                 // Stateless bearer-token API: there is no session to fixate and
                 // no cookie to forge, so CSRF protection is not applicable here.
@@ -47,7 +50,11 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                        // Refresh and logout authenticate by the refresh cookie, not the
+                        // access token, which may already have expired.
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                        // Invitation and reset links: the single-use link is the credential.
+                        .requestMatchers("/api/v1/account/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
@@ -78,7 +85,16 @@ public class SecurityConfig {
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(31536000)))
 
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // After authentication, so a signed-in user's writes are counted
+                // against their account rather than a shared office address
+                // (SEC-23). Anchored on UsernamePasswordAuthenticationFilter
+                // rather than on the token filter's own class: that arrives
+                // here as an interface, and a proxy's class is not a class the
+                // chain knows, so ordering against it silently misplaces this
+                // filter instead of failing.
+                .addFilterAfter(new RateLimitFilter(rateLimits, currentUser),
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

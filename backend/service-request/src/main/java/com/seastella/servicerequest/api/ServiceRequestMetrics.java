@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -35,6 +36,14 @@ public interface ServiceRequestMetrics {
 
     long openCount(Set<Long> vesselIds);
 
+    /**
+     * Requests the Ship Manager operationally approved on or after {@code since}
+     * - the "requests approved this period" figure of SoW s8.1, which sits
+     * beside the pending count so a Technical Head can see whether approvals
+     * are keeping up with what is being raised.
+     */
+    long approvedSince(Set<Long> vesselIds, java.time.Instant since);
+
     /** Per-vessel open request counts, for the fleet table. */
     Map<Long, Long> openCountPerVessel(Set<Long> vesselIds);
 
@@ -56,6 +65,15 @@ public interface ServiceRequestMetrics {
 
     /** One request's full transition history, for the timeline. */
     List<ActivityItem> history(Long serviceRequestId);
+
+    /** One request, with vessel, spare and people resolved. */
+    Optional<RequestSummary> summary(Long serviceRequestId);
+
+    /** Most recent requests on the given vessels, newest first. */
+    List<RequestSummary> recent(Set<Long> vesselIds, int limit);
+
+    /** Most recent requests across the platform, newest first. */
+    List<RequestSummary> recentPlatformWide(int limit);
 
     /** The completion report, visible to the Coordinator and above. */
     CompletionSummary completionReport(Long serviceRequestId);

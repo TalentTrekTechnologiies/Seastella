@@ -1,0 +1,4 @@
+**/target
+data
+test_output.log
+package-lock.json

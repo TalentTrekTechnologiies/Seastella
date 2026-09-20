@@ -142,6 +142,8 @@ public class Spare extends BaseEntity implements VesselScoped {
     public String getSeedMarker() { return seedMarker; }
 
     public void setParentSpareId(Long id) { this.parentSpareId = id; }
+    /** Only master-data correction moves a spare between categories (SoW s10 import). */
+    public void setEquipmentCategoryId(Long id) { this.equipmentCategoryId = id; }
     public void setMake(String v) { this.make = v; }
     public void setModel(String v) { this.model = v; }
     public void setSerialNumber(String v) { this.serialNumber = v; }

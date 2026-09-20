@@ -2,6 +2,7 @@ package com.seastella.reporting.internal;
 
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.fleet.api.Criticality;
+import com.seastella.fleet.api.FleetDirectory;
 import com.seastella.fleet.api.FleetMetrics;
 import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
@@ -36,13 +37,16 @@ class CaptainDashboardService {
     private final FleetMetrics fleet;
     private final MaintenanceMetrics maintenance;
     private final ServiceRequestMetrics requests;
+    private final FleetDirectory directory;
 
     CaptainDashboardService(DashboardSupport support, FleetMetrics fleet,
-                            MaintenanceMetrics maintenance, ServiceRequestMetrics requests) {
+                            MaintenanceMetrics maintenance, ServiceRequestMetrics requests,
+                            FleetDirectory directory) {
         this.support = support;
         this.fleet = fleet;
         this.maintenance = maintenance;
         this.requests = requests;
+        this.directory = directory;
     }
 
     @Transactional(readOnly = true)
@@ -131,8 +135,11 @@ class CaptainDashboardService {
         List<CaptainDashboard.RunningHourEntry> out = new ArrayList<>();
         for (FleetMetrics.SpareNode s : fleet.spareTree(vesselId)) {
             if (s.tracksRunningHours()) {
+                // Date of the last reading taken aboard; null until the first one.
+                java.time.LocalDate lastReading = directory.hourReadings(s.id(), 1).stream()
+                        .map(FleetDirectory.HourReading::readingDate).findFirst().orElse(null);
                 out.add(new CaptainDashboard.RunningHourEntry(
-                        s.id(), s.name(), s.path(), s.categoryCode(), s.runningHours(), null));
+                        s.id(), s.name(), s.path(), s.categoryCode(), s.runningHours(), lastReading));
             }
         }
         return out;

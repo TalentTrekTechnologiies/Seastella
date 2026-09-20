@@ -33,8 +33,11 @@ public final class ServiceRequestEvents {
 
         @Override
         public String summary() {
-            return requestNumber + ": " + action.label()
-                    + " (" + fromStatus.label() + " to " + toStatus.label() + ")";
+            // Creation has no source state.
+            return fromStatus == null
+                    ? requestNumber + ": " + action.label()
+                    : requestNumber + ": " + action.label()
+                            + " (" + fromStatus.label() + " to " + toStatus.label() + ")";
         }
     }
 }

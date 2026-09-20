@@ -54,6 +54,12 @@ public class MaintenanceThreshold extends BaseEntity {
     public Integer getMaxDays() { return maxDays; }
     public boolean isActive() { return active; }
 
+    /** The Platform Admin moved a band's boundaries (SoW s11 configurable bands). */
+    public void redefine(Integer minDays, Integer maxDays) {
+        this.minDays = minDays;
+        this.maxDays = maxDays;
+    }
+
     public boolean matches(int daysRemaining) {
         if (minDays != null && daysRemaining < minDays) return false;
         if (maxDays != null && daysRemaining > maxDays) return false;

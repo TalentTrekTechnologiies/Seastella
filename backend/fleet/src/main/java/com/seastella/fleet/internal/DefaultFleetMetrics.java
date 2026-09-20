@@ -167,6 +167,28 @@ class DefaultFleetMetrics implements FleetMetrics {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PartShortage> parts(Set<Long> vesselIds, int limit) {
+        if (vesselIds.isEmpty()) return List.of();
+
+        // The whole inventory, short or not; the report marks what is below minimum.
+        return named.query("""
+                select p.id, p.vessel_id, v.name as vessel_name, p.name, p.part_number,
+                       p.quantity_on_hand, p.minimum_quantity, p.location
+                from replacement_part p
+                join vessel v on v.id = p.vessel_id
+                where p.vessel_id in (:ids)
+                order by v.name, p.name
+                limit :lim
+                """, new MapSqlParameterSource("ids", vesselIds).addValue("lim", limit),
+                (rs, i) -> new PartShortage(
+                        rs.getLong("id"), rs.getLong("vessel_id"), rs.getString("vessel_name"),
+                        rs.getString("name"), rs.getString("part_number"),
+                        rs.getInt("quantity_on_hand"), rs.getInt("minimum_quantity"),
+                        rs.getString("location")));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long partShortageCount(Set<Long> vesselIds) {
         if (vesselIds.isEmpty()) return 0;
         Long n = named.queryForObject("""

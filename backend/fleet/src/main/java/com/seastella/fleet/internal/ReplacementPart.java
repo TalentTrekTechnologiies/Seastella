@@ -88,5 +88,11 @@ public class ReplacementPart extends BaseEntity implements VesselScoped {
     public void setManufacturer(String v) { this.manufacturer = v; }
     public void setLocation(String v) { this.location = v; }
     public void setExpiryDate(LocalDate d) { this.expiryDate = d; }
+
+    /** A stock count: what is on the shelf now, recorded by whoever counted it. */
+    public void setQuantityOnHand(int quantity) { this.quantityOnHand = quantity; }
+
+    /** What the vessel must always hold; shortage is derived from it, never stored. */
+    public void setMinimumQuantity(int minimum) { this.minimumQuantity = minimum; }
     public void markSeed() { this.seedMarker = "SEED"; }
 }

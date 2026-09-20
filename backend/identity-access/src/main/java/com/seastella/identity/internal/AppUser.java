@@ -85,6 +85,15 @@ public class AppUser extends BaseEntity {
 
     public void setFullName(String fullName) { this.fullName = fullName; }
 
+    /** A correction to how the person is named (IAM-08). */
+    public void rename(String fullName) { this.fullName = fullName; }
+
+    /**
+     * Changes the address this person signs in with (IAM-08). The caller ends
+     * their sessions and any link already sent to the old address.
+     */
+    public void changeEmail(String email) { this.email = email; }
+
     public void setStatus(String status) { this.status = status; }
 
     public void changePassword(String newHash) {

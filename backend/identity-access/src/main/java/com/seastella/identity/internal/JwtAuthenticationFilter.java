@@ -1,5 +1,6 @@
 package com.seastella.identity.internal;
 
+import com.seastella.identity.api.AuthenticationFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +23,7 @@ import java.io.IOException;
  * token was wrong.
  */
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationFilter extends OncePerRequestFilter implements AuthenticationFilter {
 
     private static final String HEADER = "Authorization";
     private static final String PREFIX = "Bearer ";

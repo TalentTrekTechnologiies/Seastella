@@ -5,12 +5,16 @@ import com.seastella.core.api.error.ValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -117,6 +121,56 @@ public class GlobalExceptionHandler {
 
         ProblemDetail pd = base(HttpStatus.BAD_REQUEST, "MALFORMED_REQUEST", ref, request);
         pd.setDetail("The request body could not be read.");
+        return pd;
+    }
+
+    /** An unmapped path is a caller mistake, not a server fault. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoRoute(NoResourceFoundException ex, HttpServletRequest request) {
+        String ref = correlationId();
+        log.info("no-route ref={} path={} method={}", ref, request.getRequestURI(), request.getMethod());
+
+        ProblemDetail pd = base(HttpStatus.NOT_FOUND, "NOT_FOUND", ref, request);
+        pd.setDetail("No such resource.");
+        return pd;
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ProblemDetail handleMethod(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        String ref = correlationId();
+        log.info("method-not-allowed ref={} path={} method={}", ref, request.getRequestURI(), request.getMethod());
+
+        ProblemDetail pd = base(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", ref, request);
+        pd.setDetail("This method is not supported here.");
+        return pd;
+    }
+
+    /**
+     * Two people changed the same record at once and this one lost the race.
+     * Expected under concurrent use, and the fix is the caller's: reload.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleConcurrentUpdate(OptimisticLockingFailureException ex, HttpServletRequest request) {
+        String ref = correlationId();
+        log.info("concurrent-update ref={} path={} method={}", ref, request.getRequestURI(), request.getMethod());
+
+        ProblemDetail pd = base(HttpStatus.CONFLICT, "CONCURRENT_UPDATE", ref, request);
+        pd.setDetail("Someone else changed this at the same time. Reload to see the latest, then try again.");
+        return pd;
+    }
+
+    /**
+     * A database constraint refused the write - normally a race the service's own
+     * checks could not see (two identical saves at the same moment). The
+     * constraint name and SQL stay in the log.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleConstraint(DataIntegrityViolationException ex, HttpServletRequest request) {
+        String ref = correlationId();
+        log.warn("constraint-violation ref={} path={} method={}", ref, request.getRequestURI(), request.getMethod(), ex);
+
+        ProblemDetail pd = base(HttpStatus.CONFLICT, "CONFLICT", ref, request);
+        pd.setDetail("This change conflicts with data saved at the same time. Reload and try again.");
         return pd;
     }
 

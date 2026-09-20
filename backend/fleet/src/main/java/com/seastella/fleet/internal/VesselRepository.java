@@ -26,4 +26,7 @@ public interface VesselRepository extends JpaRepository<Vessel, Long> {
     long countByOrganizationId(Long organizationId);
 
     boolean existsByImoNumber(String imoNumber);
+
+    /** The VMP import's record key for a vessel (IMP-04). */
+    java.util.Optional<Vessel> findByImoNumber(String imoNumber);
 }

@@ -70,6 +70,13 @@ class TechnicalHeadDashboardService {
         long openRequests = requests.openCount(vesselIds);
         long awaitingApproval = requests.countByStatuses(vesselIds,
                 List.of(ServiceRequestStatus.PENDING_OPERATIONAL_APPROVAL));
+        // SoW s8.1 asks for what is pending approval *and* what was approved
+        // this period: one number alone says nothing about whether the office
+        // is keeping up. The period is the calendar month, which is how a
+        // fleet reviews itself.
+        long approvedThisMonth = requests.approvedSince(vesselIds,
+                java.time.YearMonth.now(java.time.ZoneOffset.UTC)
+                        .atDay(1).atStartOfDay().toInstant(java.time.ZoneOffset.UTC));
         long shortages = fleet.partShortageCount(vesselIds);
 
         List<Kpi> kpis = List.of(
@@ -80,6 +87,7 @@ class TechnicalHeadDashboardService {
                 Kpi.of("dueSoon", "Due within 15 days", dueSoon),
                 Kpi.of("openRequests", "Open requests", openRequests),
                 Kpi.of("awaitingApproval", "Awaiting Ship Manager approval", awaitingApproval),
+                Kpi.of("approvedThisMonth", "Approved this month", approvedThisMonth),
                 Kpi.of("partShortages", "Parts below minimum", shortages));
 
         InvoiceMetrics.Aggregate pending = invoices.summary(vesselIds).getOrDefault(

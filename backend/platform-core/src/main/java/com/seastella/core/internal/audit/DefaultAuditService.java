@@ -1,7 +1,9 @@
 package com.seastella.core.internal.audit;
 
 import com.seastella.core.api.audit.AuditEntry;
+import com.seastella.core.api.audit.AuditEvents;
 import com.seastella.core.api.audit.AuditService;
+import com.seastella.core.api.event.DomainEventPublisher;
 import com.seastella.core.api.security.ActorProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -15,10 +17,13 @@ class DefaultAuditService implements AuditService {
 
     private final AuditEntryRepository repository;
     private final ActorProvider actorProvider;
+    private final DomainEventPublisher events;
 
-    DefaultAuditService(AuditEntryRepository repository, ActorProvider actorProvider) {
+    DefaultAuditService(AuditEntryRepository repository, ActorProvider actorProvider,
+                        DomainEventPublisher events) {
         this.repository = repository;
         this.actorProvider = actorProvider;
+        this.events = events;
     }
 
     /**
@@ -29,7 +34,17 @@ class DefaultAuditService implements AuditService {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void record(AuditEntry entry) {
-        repository.save(entry);
+        announce(repository.save(entry));
+    }
+
+    /**
+     * Tells the activity feed an entry exists, after the transaction commits
+     * (FEE-04). Nothing depends on the announcement: the trail is the record,
+     * and a feed that misses a push finds the entry on its next read.
+     */
+    private void announce(AuditEntry saved) {
+        events.publish(new AuditEvents.Recorded(saved.getId(), saved.getAction(),
+                saved.getOrganizationId(), saved.getVesselId(), saved.getOccurredAt()));
     }
 
     @Override
@@ -47,7 +62,7 @@ class DefaultAuditService implements AuditService {
         currentRequest().ifPresent(r ->
                 b.request(clientIp(r), truncate(r.getHeader("User-Agent"))));
 
-        repository.save(b.build());
+        announce(repository.save(b.build()));
     }
 
     private static java.util.Optional<HttpServletRequest> currentRequest() {

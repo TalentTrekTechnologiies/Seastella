@@ -14,6 +14,9 @@ public interface SpareMaintenanceRuleRepository extends JpaRepository<SpareMaint
 
     List<SpareMaintenanceRule> findByVesselIdInAndActiveTrue(Set<Long> vesselIds);
 
+    @Query("select distinct r.spareId from SpareMaintenanceRule r where r.active = true")
+    List<Long> findActiveSpareIds();
+
     @Query("""
             select r from SpareMaintenanceRule r
             where r.active = true and r.vesselId in :ids

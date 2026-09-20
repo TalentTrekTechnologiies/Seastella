@@ -3,6 +3,7 @@ package com.seastella.identity.internal;
 import com.seastella.core.api.seed.SeedContext;
 import com.seastella.core.api.seed.SeedContributor;
 import com.seastella.identity.api.Role;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -24,22 +25,31 @@ import java.util.List;
 @Component
 public class IdentitySeedContributor implements SeedContributor {
 
-    /** Deliberately obvious: these accounts must never be mistaken for real ones. */
-    private static final String DEMO_PASSWORD = "SeaStella#Demo2026";
-
     private final AppUserRepository users;
     private final UserVesselAssignmentRepository assignments;
     private final UserOrganizationAssignmentRepository orgAssignments;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Shared by every seeded account. Deliberately obvious for a laptop; a
+     * hosted demo sets its own through {@code DEMO_PASSWORD}, since that site is
+     * reachable by anyone with the address.
+     */
+    private final String demoPassword;
+
     IdentitySeedContributor(AppUserRepository users,
                             UserVesselAssignmentRepository assignments,
                             UserOrganizationAssignmentRepository orgAssignments,
-                            PasswordEncoder passwordEncoder) {
+                            PasswordEncoder passwordEncoder,
+                            @Value("${seastella.seed.demo-password:SeaStella#Demo2026}") String demoPassword) {
         this.users = users;
         this.assignments = assignments;
         this.orgAssignments = orgAssignments;
         this.passwordEncoder = passwordEncoder;
+        if (demoPassword == null || demoPassword.length() < 12) {
+            throw new IllegalStateException("seastella.seed.demo-password must be at least 12 characters");
+        }
+        this.demoPassword = demoPassword;
     }
 
     @Override public int order() { return 20; }
@@ -130,7 +140,7 @@ public class IdentitySeedContributor implements SeedContributor {
         Long id = users.findByEmailIgnoreCase(email)
                 .map(AppUser::getId)
                 .orElseGet(() -> {
-                    AppUser u = new AppUser(email, passwordEncoder.encode(DEMO_PASSWORD),
+                    AppUser u = new AppUser(email, passwordEncoder.encode(demoPassword),
                             fullName, role, organizationId);
                     u.markSeed();
                     return users.save(u).getId();

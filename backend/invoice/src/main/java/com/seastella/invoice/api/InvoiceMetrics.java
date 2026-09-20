@@ -40,6 +40,9 @@ public interface InvoiceMetrics {
 
     List<InvoiceSummary> forServiceRequest(Long serviceRequestId);
 
+    /** Every invoice raised for these vessels, newest first, for the cost report (RPT-04). */
+    List<InvoiceSummary> forVessels(Set<Long> vesselIds, int limit);
+
     record Aggregate(long count, BigDecimal total) {}
 
     record InvoiceSummary(

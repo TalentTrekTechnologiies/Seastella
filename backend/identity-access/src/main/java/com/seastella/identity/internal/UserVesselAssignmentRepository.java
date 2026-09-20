@@ -16,6 +16,8 @@ public interface UserVesselAssignmentRepository extends JpaRepository<UserVessel
 
     List<UserVesselAssignment> findByUserId(Long userId);
 
+    List<UserVesselAssignment> findByUserIdIn(java.util.Collection<Long> userIds);
+
     void deleteByUserIdAndVesselId(Long userId, Long vesselId);
 
     boolean existsByUserIdAndVesselId(Long userId, Long vesselId);

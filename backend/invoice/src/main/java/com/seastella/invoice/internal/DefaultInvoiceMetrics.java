@@ -65,6 +65,19 @@ class DefaultInvoiceMetrics implements InvoiceMetrics {
 
     @Override
     @Transactional(readOnly = true)
+    public List<InvoiceSummary> forVessels(Set<Long> vesselIds, int limit) {
+        if (vesselIds.isEmpty()) return List.of();
+
+        return named.query(INVOICE_SELECT + """
+                where i.vessel_id in (:ids)
+                order by i.created_at desc
+                limit :lim
+                """, new MapSqlParameterSource("ids", vesselIds).addValue("lim", limit),
+                (rs, n) -> map(rs));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<InvoiceSummary> pendingAcceptance(Set<Long> vesselIds, int limit) {
         if (vesselIds.isEmpty()) return List.of();
 

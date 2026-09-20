@@ -34,4 +34,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     long countByStatus(@Param("ids") Set<Long> vesselIds, @Param("status") InvoiceStatus status);
 
     boolean existsByInvoiceNumber(String invoiceNumber);
+
+    long countByInvoiceNumberStartingWith(String prefix);
 }

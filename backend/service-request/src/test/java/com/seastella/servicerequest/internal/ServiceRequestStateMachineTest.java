@@ -57,7 +57,8 @@ class ServiceRequestStateMachineTest {
                 .thenAnswer(inv -> inv.getArgument(0));
 
         machine = new ServiceRequestStateMachine(
-                requests, transitionLog, scopeResolver, invoiceGate, events);
+                requests, transitionLog, scopeResolver, invoiceGate, events,
+                mock(com.seastella.core.api.audit.AuditService.class));
     }
 
     private void scope(AccessScope scope) {

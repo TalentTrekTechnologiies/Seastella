@@ -101,5 +101,27 @@ public class SpareMaintenanceRule extends BaseEntity implements VesselScoped {
         }
     }
 
+    /**
+     * Projects a running-hour rule onto the calendar, so it can be compared
+     * with a calendar rule and the nearer one wins (MNT-03).
+     *
+     * <p>Rounds down: a magnetron with 10 hours left at 24 hours a day is due
+     * today, not tomorrow. Past the limit, the date lands on the day it was
+     * crossed, which reads as overdue.
+     *
+     * @param currentHours the meter's latest reading
+     * @param asOf         the date that reading was taken
+     * @param hoursPerDay  expected consumption; must be positive
+     */
+    public void projectDueDate(BigDecimal currentHours, LocalDate asOf, BigDecimal hoursPerDay) {
+        if (isCalendar() || nextDueHours == null || currentHours == null || asOf == null
+                || hoursPerDay == null || hoursPerDay.signum() <= 0) {
+            return;
+        }
+        BigDecimal remaining = nextDueHours.subtract(currentHours);
+        long days = remaining.divide(hoursPerDay, 0, java.math.RoundingMode.FLOOR).longValue();
+        this.nextDueDate = asOf.plusDays(days);
+    }
+
     public void setActive(boolean active) { this.active = active; }
 }

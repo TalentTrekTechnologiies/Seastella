@@ -20,6 +20,10 @@ seastella:
   security:
     jwt:
       secret: "test-only-secret-value-at-least-32-bytes-long-0123456789"
+    rate-limit:
+      # Off for tests, which sign in far faster than a person; RateLimitIT turns
+      # it back on with its own low limits.
+      enabled: false
 
 logging:
   level:

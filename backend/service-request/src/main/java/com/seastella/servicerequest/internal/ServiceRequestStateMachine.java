@@ -1,5 +1,9 @@
 package com.seastella.servicerequest.internal;
 
+import com.seastella.core.api.audit.AuditAction;
+import com.seastella.core.api.audit.AuditEntry;
+import com.seastella.core.api.audit.AuditJson;
+import com.seastella.core.api.audit.AuditService;
 import com.seastella.core.api.error.ForbiddenException;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.core.api.error.ValidationException;
@@ -52,17 +56,20 @@ public class ServiceRequestStateMachine {
     private final ScopeResolver scopeResolver;
     private final InvoiceGateQuery invoiceGate;
     private final DomainEventPublisher events;
+    private final AuditService audit;
 
     ServiceRequestStateMachine(ServiceRequestRepository requests,
                                ServiceRequestTransitionLogRepository transitionLog,
                                ScopeResolver scopeResolver,
                                InvoiceGateQuery invoiceGate,
-                               DomainEventPublisher events) {
+                               DomainEventPublisher events,
+                               AuditService audit) {
         this.requests = requests;
         this.transitionLog = transitionLog;
         this.scopeResolver = scopeResolver;
         this.invoiceGate = invoiceGate;
         this.events = events;
+        this.audit = audit;
     }
 
     /**
@@ -155,6 +162,17 @@ public class ServiceRequestStateMachine {
                 entity.getId(), entity.getVesselId(), from, to, definition.action(),
                 request.actorUserId(), roleName(request.actorRole()), request.reason(), now));
 
+        audit.record(AuditEntry.builder()
+                .actor(request.actorUserId(), roleName(request.actorRole()))
+                .action(auditActionFor(definition.action()))
+                .entity("ServiceRequest", entity.getId())
+                .scope(entity.getOrganizationId(), entity.getVesselId())
+                .before(AuditJson.of("status", from.name()))
+                .after(AuditJson.of("status", to.name(), "action", definition.action().name(),
+                        "reason", request.reason(), "engineerUserId", request.engineerUserId()))
+                .occurredAt(now)
+                .build());
+
         events.publish(new ServiceRequestEvents.Transitioned(
                 entity.getId(), entity.getRequestNumber(), from, to, definition.action(),
                 request.actorUserId(), roleName(request.actorRole()), request.reason(),
@@ -171,6 +189,17 @@ public class ServiceRequestStateMachine {
         transitionLog.save(new ServiceRequestTransitionLog(
                 entity.getId(), entity.getVesselId(), null, ServiceRequestStatus.REPORTED,
                 ServiceRequestAction.RAISE, actorUserId, roleName(actorRole), null, now));
+
+        audit.record(AuditEntry.builder()
+                .actor(actorUserId, roleName(actorRole))
+                .action(AuditAction.REQUEST_RAISED)
+                .entity("ServiceRequest", entity.getId())
+                .scope(entity.getOrganizationId(), entity.getVesselId())
+                .after(AuditJson.of("requestNumber", entity.getRequestNumber(), "status",
+                        ServiceRequestStatus.REPORTED.name(), "spareId", entity.getSpareId(),
+                        "priority", entity.getPriority(), "title", entity.getTitle()))
+                .occurredAt(now)
+                .build());
 
         events.publish(new ServiceRequestEvents.Transitioned(
                 entity.getId(), entity.getRequestNumber(), null, ServiceRequestStatus.REPORTED,
@@ -191,6 +220,26 @@ public class ServiceRequestStateMachine {
         if (!scope.permitsVessel(entity.getVesselId())) {
             throw NotFoundException.ofResource("ServiceRequest", entity.getId());
         }
+    }
+
+    /**
+     * The audit vocabulary for each edge. Invoice edges are recorded as plain
+     * transitions here, because the invoice module audits the invoice record
+     * itself - amount and decision - under the INVOICE_* actions.
+     */
+    private static String auditActionFor(ServiceRequestAction action) {
+        return switch (action) {
+            case RAISE -> AuditAction.REQUEST_RAISED;
+            case APPROVE_OPERATIONAL -> AuditAction.REQUEST_APPROVED;
+            case REJECT -> AuditAction.REQUEST_REJECTED;
+            case REQUEST_CLARIFICATION -> AuditAction.CLARIFICATION_REQUESTED;
+            case ESCALATE_TO_LIVE_AGENT -> AuditAction.ESCALATED_TO_LIVE_AGENT;
+            case CLOSE_NO_COST -> AuditAction.REQUEST_CLOSED_NO_COST;
+            case ASSIGN_ENGINEER -> AuditAction.ENGINEER_ASSIGNED;
+            case SUBMIT_COMPLETION -> AuditAction.COMPLETION_REPORTED;
+            case COMPLETE -> AuditAction.REQUEST_COMPLETED;
+            default -> AuditAction.REQUEST_TRANSITIONED;
+        };
     }
 
     private static String roleName(Role role) {

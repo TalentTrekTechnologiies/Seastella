@@ -1,4 +1,13 @@
-# Production: PostgreSQL. All credentials come from the environment.
+# Production: PostgreSQL. All credentials come from the environment, and the
+# ones without a safe default are required - the app refuses to start without
+# them rather than running on a development value.
+#
+# Required:  DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET (32+ bytes)
+# Optional:  APP_BASE_URL, MAIL_FROM, PORT
+# Email:     SPRING_MAIL_HOST, SPRING_MAIL_PORT, SPRING_MAIL_USERNAME,
+#            SPRING_MAIL_PASSWORD. With no SPRING_MAIL_HOST no mail sender is
+#            created and alert emails are recorded as SKIPPED, not sent.
+# See docs/09-deployment.md.
 spring:
   datasource:
     url: ${DB_URL}
@@ -6,22 +15,30 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      # Sized for a small managed database's connection limit.
+      maximum-pool-size: 10
+      minimum-idle: 2
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   h2:
     console:
       enabled: false
   mail:
-    host: ${SMTP_HOST}
-    port: ${SMTP_PORT:587}
-    username: ${SMTP_USERNAME}
-    password: ${SMTP_PASSWORD}
     properties:
+      mail.smtp.auth: true
       mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+server:
+  # Behind the host's TLS-terminating proxy.
+  forward-headers-strategy: framework
 
 seastella:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
   seed:
     enabled: false                # never seed demo data into production
   upload:

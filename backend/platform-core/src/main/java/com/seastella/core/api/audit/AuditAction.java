@@ -18,9 +18,17 @@ public final class AuditAction {
     public static final String ROLE_ASSIGNED = "ROLE_ASSIGNED";
     public static final String VESSEL_ASSIGNED = "VESSEL_ASSIGNED";
     public static final String VESSEL_UNASSIGNED = "VESSEL_UNASSIGNED";
+    public static final String ORGANIZATION_ASSIGNED = "ORGANIZATION_ASSIGNED";
+    public static final String PASSWORD_RESET = "PASSWORD_RESET";
     public static final String LOGIN_SUCCEEDED = "LOGIN_SUCCEEDED";
     public static final String LOGIN_FAILED = "LOGIN_FAILED";
     public static final String ACCOUNT_LOCKED = "ACCOUNT_LOCKED";
+    public static final String SIGNED_OUT = "SIGNED_OUT";
+    public static final String INVITATION_SENT = "INVITATION_SENT";
+    public static final String INVITATION_ACCEPTED = "INVITATION_ACCEPTED";
+    public static final String PASSWORD_CHANGED = "PASSWORD_CHANGED";
+    /** A rotated refresh token was presented again: the sign-in was copied and is revoked. */
+    public static final String REFRESH_TOKEN_REUSED = "REFRESH_TOKEN_REUSED";
 
     // Fleet and master data (AUD-05, AUD-06)
     public static final String ORGANIZATION_CREATED = "ORGANIZATION_CREATED";
@@ -35,6 +43,8 @@ public final class AuditAction {
 
     // Maintenance (AUD-13, AUD-14)
     public static final String SERVICE_DATE_CHANGED = "SERVICE_DATE_CHANGED";
+    /** Recorded by the platform itself when spares move into a more urgent band. */
+    public static final String MAINTENANCE_STATUS_CHANGED = "MAINTENANCE_STATUS_CHANGED";
     public static final String MAINTENANCE_RULE_CHANGED = "MAINTENANCE_RULE_CHANGED";
     public static final String THRESHOLD_CHANGED = "THRESHOLD_CHANGED";
     public static final String CONFIGURATION_CHANGED = "CONFIGURATION_CHANGED";
@@ -49,8 +59,18 @@ public final class AuditAction {
     public static final String COMPLETION_REPORTED = "COMPLETION_REPORTED";
     public static final String REQUEST_COMPLETED = "REQUEST_COMPLETED";
     public static final String REQUEST_CLOSED_NO_COST = "REQUEST_CLOSED_NO_COST";
+    public static final String TROUBLESHOOTING_STARTED = "TROUBLESHOOTING_STARTED";
     public static final String TROUBLESHOOTING_STEP_ANSWERED = "TROUBLESHOOTING_STEP_ANSWERED";
+    public static final String TROUBLESHOOTING_COMPLETED = "TROUBLESHOOTING_COMPLETED";
     public static final String ESCALATED_TO_LIVE_AGENT = "ESCALATED_TO_LIVE_AGENT";
+
+    // Troubleshooting content, authored by the Platform Admin (SoW s13)
+    public static final String PROBLEM_TYPE_CREATED = "PROBLEM_TYPE_CREATED";
+    public static final String PROBLEM_TYPE_UPDATED = "PROBLEM_TYPE_UPDATED";
+    public static final String CHECKS_DRAFT_SAVED = "CHECKS_DRAFT_SAVED";
+    public static final String CHECKS_DRAFT_DISCARDED = "CHECKS_DRAFT_DISCARDED";
+    public static final String CHECKS_PUBLISHED = "CHECKS_PUBLISHED";
+    public static final String CHECKS_RETIRED = "CHECKS_RETIRED";
 
     // Invoice (AUD-09)
     public static final String INVOICE_RAISED = "INVOICE_RAISED";

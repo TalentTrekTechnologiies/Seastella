@@ -20,6 +20,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -169,6 +170,21 @@ class DefaultServiceRequestMetrics implements ServiceRequestMetrics {
 
     @Override
     @Transactional(readOnly = true)
+    public long approvedSince(Set<Long> vesselIds, java.time.Instant since) {
+        if (vesselIds.isEmpty() || since == null) return 0;
+        // The approval timestamp, not the current status: a request approved
+        // this month and since completed still counts as approved this month.
+        Long count = named.queryForObject(
+                "select count(*) from service_request "
+                        + "where vessel_id in (:ids) and operational_approved_at >= :since",
+                new MapSqlParameterSource("ids", vesselIds)
+                        .addValue("since", java.sql.Timestamp.from(since)),
+                Long.class);
+        return count == null ? 0 : count;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ResolutionSplit resolutionSplit(Set<Long> vesselIds) {
         if (vesselIds.isEmpty()) return new ResolutionSplit(0, 0, 0);
 
@@ -307,6 +323,37 @@ class DefaultServiceRequestMetrics implements ServiceRequestMetrics {
             join vessel v on v.id = t.vessel_id
             left join app_user au on au.id = t.actor_user_id
             """;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RequestSummary> summary(Long serviceRequestId) {
+        if (serviceRequestId == null) return Optional.empty();
+        return named.query(REQUEST_SELECT + " where r.id = :id",
+                new MapSqlParameterSource("id", serviceRequestId),
+                (rs, i) -> mapRequest(rs)).stream().findFirst();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RequestSummary> recent(Set<Long> vesselIds, int limit) {
+        if (vesselIds.isEmpty()) return List.of();
+        return named.query(REQUEST_SELECT + """
+                where r.vessel_id in (:ids)
+                order by r.created_at desc
+                limit :lim
+                """, new MapSqlParameterSource("ids", vesselIds).addValue("lim", limit),
+                (rs, i) -> mapRequest(rs));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RequestSummary> recentPlatformWide(int limit) {
+        return named.query(REQUEST_SELECT + """
+                order by r.created_at desc
+                limit :lim
+                """, new MapSqlParameterSource("lim", limit),
+                (rs, i) -> mapRequest(rs));
+    }
 
     private static RequestSummary mapRequest(ResultSet rs) throws SQLException {
         ServiceRequestStatus status = ServiceRequestStatus.valueOf(rs.getString("status"));

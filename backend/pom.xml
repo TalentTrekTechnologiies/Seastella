@@ -130,6 +130,16 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <!--
+            An integration test boots a Spring context and an in-memory schema.
+            Left to itself the JVM sizes its heap from the machine's RAM, which
+            on a developer laptop already running an IDE is enough to make the
+            fork fail to start. A stated ceiling is both smaller and the same
+            everywhere, so a green run on one machine means something on another.
+          -->
+          <argLine>-Xmx768m -XX:MaxMetaspaceSize=320m</argLine>
+        </configuration>
         <executions>
           <execution>
             <goals>
