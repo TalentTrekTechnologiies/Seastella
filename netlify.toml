@@ -1,0 +1,20 @@
+# Netlify build settings for the SeaStella frontend.
+#
+# The React app lives in frontend/, so Netlify is pointed at it here; `publish`
+# is relative to `base`.
+#
+# Two modes, chosen by one site environment variable:
+#   SEASTELLA_API_ORIGIN=https://<backend host>  -> live build; /api/* proxied
+#                                                   to the backend
+#   (unset)                                      -> frontend-only demo build
+#                                                   answered from seed data
+# See frontend/scripts/netlify-build.mjs and docs/09-deployment.md.
+
+[build]
+  base = "frontend"
+  command = "npm ci && node scripts/netlify-build.mjs"
+  publish = "dist"
+
+[build.environment]
+  # Vite 5 needs Node 18 or later.
+  NODE_VERSION = "20"

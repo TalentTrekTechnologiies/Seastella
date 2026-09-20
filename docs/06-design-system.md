@@ -24,80 +24,79 @@ the default answer to every panel, and card-with-accent-rail stamped across
 every block. Density here is a feature; whitespace is spent where scanning needs
 it, not evenly.
 
+**As built.** The first implementation followed this brief to the letter —
+dark, dense, uppercase micro-labels, shape glyphs on a compressed time axis —
+and was rejected in review: the type was too small, the charts needed decoding,
+and it read as a generic dark dashboard. The system was rebuilt around three
+corrections that keep both rules above intact:
+
+- **Readable first.** 15px body, a 13px floor for secondary text, sentence-case
+  titles. Nothing a person has to read is set below 12px.
+- **Nothing to decode.** Charts are labelled columns and bars with their counts
+  written on them and every colour named in a legend. Shape glyphs stay on
+  status *badges*, always next to the status written out.
+- **Marine where it identifies, calm where it informs.** The navigation rail,
+  the Captain's vessel card, the Ship Manager's decision strip and the
+  Coordinator's workflow strip are deep ocean with swell lines; the working
+  cards stay light (or a dark console in dark mode) so data is the loudest thing
+  on screen. Light theme is the everyday default users pick; dark is kept.
+
 ## 2. Colour
 
-Neutrals are biased cold (a blue-slate cast), so they sit with the accent rather
-than looking like unconsidered grey.
+Implemented in `frontend/src/design-system/tokens.css`; the values below are
+that file. Neutrals carry a sea-grey cast so they sit with the accent.
 
 ```css
-:root {
-  /* Ground & surface — light theme */
-  --c-bg:            #F4F6F8;   /* slate-tinted paper */
-  --c-surface:       #FFFFFF;
-  --c-surface-sunk:  #EDF1F4;   /* table stripes, inset wells */
-  --c-border:        #D6DEE5;
-  --c-border-strong: #B4C1CC;
+:root {                       /* light */
+  --sbs-ground:      #f1f5f7; /* pale sea-grey page */
+  --sbs-plate:       #ffffff; /* cards */
+  --sbs-plate-sunk:  #f3f7f9; /* tracks, wells, table heads */
+  --sbs-line:        #dde6eb;
+  --sbs-line-strong: #bfcfd8;
 
-  /* Text */
-  --c-text:          #16232C;   /* near-black, blue cast */
-  --c-text-muted:    #5A6B78;
-  --c-text-faint:    #8095A3;
-  --c-text-invert:   #F4F6F8;
+  --sbs-ink:   #0f1f2a;
+  --sbs-ink-2: #465e6b;
+  --sbs-ink-3: #5a7280;       /* 5:1 on white — the secondary-text floor */
 
-  /* Accent — "beacon teal". Instrument backlight; clear of all four statuses */
-  --c-accent:        #0B6E7F;
-  --c-accent-hover:  #095868;
-  --c-accent-weak:   #E2F0F3;
-  --c-accent-ring:   #0B6E7F59;
+  --sbs-signal:      #0a6478; /* sea cyan: selected / interactive only */
+  --sbs-signal-weak: #dcebef;
 
-  /* Status — RESERVED. Spec-mandated (SOURCE-A §7). Never decorative. */
-  --c-normal:        #1B7F4B;   /* green  — > 15 days   */
-  --c-normal-weak:   #E3F3EA;
-  --c-approaching:   #B8860B;   /* yellow — 10–15 days  */
-  --c-approaching-weak: #FBF2DC;
-  --c-urgent:        #C2610C;   /* orange — 1–9 days    */
-  --c-urgent-weak:   #FCEDE0;
-  --c-overdue:       #B3261E;   /* red    — due/overdue */
-  --c-overdue-weak:  #FBE6E4;
+  /* Ordinal ramp for stage bars. One hue, light→dark, validated for
+     monotone lightness and step separation. Never used for status. */
+  --sbs-step-1: #4fbcd6; --sbs-step-2: #2596b5; --sbs-step-3: #15738f;
+  --sbs-step-4: #0d5470; --sbs-step-5: #0a3a52;
 
-  /* Criticality (distinct from due-status; never reuses the four) */
-  --c-critical:      #6B2D5C;   /* deep plum */
-  --c-critical-weak: #F3E8F0;
+  /* Status — RESERVED (SOURCE-A §7). Never decorative. */
+  --c-normal:      #17764a;   /* green  — > 15 days   */
+  --c-approaching: #8f6708;   /* yellow — 10–15 days  */
+  --c-urgent:      #b85a09;   /* orange — 1–9 days    */
+  --c-overdue:     #a92019;   /* red    — due/overdue */
+  --c-critical:    #63295a;   /* criticality: its own hue */
+}
+
+:root[data-theme='dark'] {    /* the console at night */
+  --sbs-ground: #0a141c; --sbs-plate: #101e28; --sbs-plate-sunk: #0c1821;
+  --sbs-line: #1c3240;   --sbs-line-strong: #2c4c5e;
+  --sbs-ink: #e8f1f5;    --sbs-ink-2: #a3b8c3; --sbs-ink-3: #8199a6;
+  --sbs-signal: #56cde2;
+  --c-normal: #35c07c; --c-approaching: #e0ae2c; --c-urgent: #f08840; --c-overdue: #f2594d;
 }
 ```
 
-Dark theme redefines only the tokens. The accent lifts and the status hues
-brighten to hold contrast on a dark ground — they are not naively inverted:
+The **ocean surfaces** (rail, Captain vessel card, Ship Manager decision strip,
+Coordinator workflow strip) use one fixed gradient in both themes —
+`#0e4460 → #0b3249 → #082538 → #051a28` — with light text and a `#62d6ea`
+accent, plus faint swell lines drawn as an inline SVG.
 
-```css
-:root[data-theme="dark"], 
-:root:not([data-theme="light"]) { /* under prefers-color-scheme: dark */
-  --c-bg:            #0C1418;
-  --c-surface:       #131F26;
-  --c-surface-sunk:  #0F1A20;
-  --c-border:        #223038;
-  --c-border-strong: #33454F;
-  --c-text:          #E4ECF1;
-  --c-text-muted:    #9BAFBB;
-  --c-text-faint:    #6D8492;
-  --c-accent:        #2FA8BC;
-  --c-accent-weak:   #10333B;
-  --c-normal:        #3BAE71;
-  --c-approaching:   #D9A625;
-  --c-urgent:        #E8823C;
-  --c-overdue:       #E5584D;
-  --c-critical:      #B57FA6;
-}
-```
+**Due and Overdue share the spec's red.** In a bar chart that would be two
+identical red blocks, so Due is drawn *striped* (same colour, visibly different
+fill) and the legend repeats the stripe.
 
-Yellow at sufficient contrast on white is the hard case — `#B8860B` is used for
-text and borders; the raw yellow appears only as a fill behind dark text. Every
-status pill is verified at ≥ 4.5:1 in both themes.
-
-**Colour is never the only signal.** Every status carries a shape as well: a
-filled dot for Normal, a half dot for Approaching, a triangle for Urgent, a
-filled square for Due/Overdue — so the statuses survive greyscale printing and
-colour-vision deficiency, which matters when these reports go to class surveyors.
+**Colour is never the only signal.** Every status in a chart is named in its
+legend and every bar carries its count; status badges also keep the shape — a
+dot for Normal, a half dot for Approaching, a triangle for Urgent, a square for
+Due/Overdue — so statuses survive greyscale printing and colour-vision
+deficiency, which matters when these reports reach class surveyors.
 
 ## 3. Typography
 
@@ -107,23 +106,23 @@ here: IMO numbers, MMSI, call signs, serial numbers, VMP refs (`13.1.2`) and
 running hours all align and compare in tables.
 
 ```css
---font-ui:   'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
---font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-
---t-display: 600 28px/1.2  var(--font-ui);
---t-h1:      600 22px/1.3  var(--font-ui);
---t-h2:      600 17px/1.35 var(--font-ui);
---t-h3:      600 14px/1.4  var(--font-ui);
---t-body:    400 14px/1.55 var(--font-ui);
---t-small:   400 13px/1.5  var(--font-ui);
---t-label:   500 11px/1.4  var(--font-ui);  /* +0.07em, uppercase */
---t-data:    450 13px/1.45 var(--font-mono);
---t-metric:  500 30px/1.05 var(--font-mono); /* KPI figures — mono, tabular */
+--font-display: 'Archivo', 'IBM Plex Sans', sans-serif;   /* titles, figures */
+--font-ui:      'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+--font-mono:    'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 ```
 
-`font-variant-numeric: tabular-nums` on every table cell, KPI and countdown.
-KPI figures are set in **mono**, not sans — these are instrument readings, and
-they should read as measured values.
+| Role | Size | Face |
+|---|---|---|
+| Page title | 28–34px, 700 | Archivo |
+| Headline figure (tiles, readings) | 40px, 700 | Archivo, tabular |
+| Card title | 17px, 600, sentence case | Plex Sans |
+| Body | 15px / 1.55 | Plex Sans |
+| Secondary text, captions | 13–14px | Plex Sans |
+| Identifiers (IMO, SR numbers, VMP paths, serials) | 13px | Plex Mono |
+
+`font-variant-numeric: tabular-nums` on every figure and count. Mono is kept for
+identifiers that must align and compare; figures are set in Archivo because
+at 40px a display face reads faster than a monospace one.
 
 ## 4. Layout & spacing
 
@@ -154,6 +153,14 @@ shell defaults, and it does so on instruction.
 Radius is spent by role, not stamped uniformly: `2px` on inputs and table
 chrome, `4px` on pills, `6px` on panels, `10px` only on modals and drawers —
 the things that genuinely float. Shadows appear only on floating surfaces.
+
+**As built.** A fixed 244px navigation rail (deep ocean, pinned to the
+viewport so it never scrolls with the page), a 58px translucent station bar
+showing role and scope with the UTC watch, and a content area padded 24–28px.
+Dashboard rows are two-column grids that **stretch**: a shorter column fills its
+row instead of leaving a hole beside the taller one. Cards are 14px radius with
+a soft layered shadow; below 1180px rows stack to one column, and below 1024px
+the rail becomes a drawer.
 
 ## 5. Components
 
@@ -205,6 +212,27 @@ prevent, so the component takes `status` and `daysRemaining` is display-only.
 Genuinely different compositions, not one layout with cards hidden by role.
 Every figure below is served by a role-scoped API endpoint — none is hard-coded
 (brief §25).
+
+**As built (shared).** Every role renders from the same primitives in
+`frontend/src/design-system/` — `ConsoleHeader` (scope path, title, snapshot
+time), `Plate`, `StatTile`, `StageBars`, `ActivityList`, `VesselCard`,
+`HealthBar` / `DueTimeline` / `CategoryHealth`, `DueAttention` — but each role
+has its own composition. Actions a role holds but that are not built yet appear
+as disabled controls with the reason in the tooltip, and only on the role the
+permission matrix (doc 04 §3) grants them to.
+
+| Role | Composition as built |
+|---|---|
+| Platform Admin — *Global maritime control* | Platform-scale figures and invoice totals; organization cards that filter the platform-wide activity feed; vessels by status, requests by stage and users by role beside the feed. |
+| Technical Head — *Fleet technical command* | Maintenance health bar + gauge and four headline tiles; the fleet as vessel cards with drawer drill-down; "when maintenance falls due" columns beside the request pipeline and invoice values; equipment health by category that filters the Needs-attention list beside it. |
+| Ship Manager — *Vessel management* | A decision strip stating what is waiting and what it blocks; approval and invoice queues; vessels beside the pipeline; in-progress requests beside Needs attention. |
+| Captain — *Onboard operations* | Ocean vessel card with the Raise service request control; clarification notice; request cards with a five-step progress tracker; maintenance due, running hours and low stock. No amounts. |
+| Service Coordinator — *Service control room* | A clickable REQUEST → TROUBLESHOOT → APPROVE → INVOICE → ASSIGN → SERVICE → REPORT strip with the invoice gate marked and "Waiting on Ship Manager" stated; the chosen stage opens as a queue; troubleshooting effectiveness and turnaround beside it. |
+| Service Engineer — *Engineer workboard* | Own-work counts; job tabs and job cards; a job sheet with authorisation status, reported problem, equipment and assignment facts and the completion-report control; completed reports with work performed and outcome. No amounts, no feed. |
+
+The lists below are the original plan per role; items not in the table above
+(live chat, inline approvals, SSE feed, running-hour entry) are still to come.
+
 
 ### 6.1 Platform Admin — *platform operations*
 `GET /api/v1/dashboards/platform-admin`
@@ -271,6 +299,27 @@ column, large targets, one obvious primary action.
 **No invoice values anywhere on this screen** — SOURCE-A §12. The Captain sees
 that an invoice was accepted, never what it cost.
 
+**Design review, 19 Sep 2026 (NFR-04).** Built and checked against the
+instruction that this workflow be deliberately simple. What a Captain can do
+from the first screen, without learning a structure: raise a request, record an
+hour meter, count a part, open the equipment tree, answer whatever is waiting
+on them. Four things carry that:
+
+- **One vessel, one page.** No vessel picker, no filters to set, no view to
+  choose. The scope is the ship they are on.
+- **The two actions are controls, not menu items.** Raise a service request is
+  the page's primary button; each hour meter has Record beside the reading.
+  Neither is behind navigation.
+- **Waiting-on-you is the first thing on the page**, not a status to work out
+  from a list.
+- **The equipment tree raises the request from the item.** A fault is noticed
+  at a piece of equipment, so the request starts there rather than at a
+  drop-down of ninety names.
+
+Deliberately *not* on this screen: money (§12), fleet comparisons, anything
+about other vessels, and any control whose outcome the Captain cannot see the
+result of on the same page.
+
 ### 6.5 Service Coordinator — *service operations*
 `GET /api/v1/dashboards/service-coordinator`
 
@@ -308,6 +357,17 @@ Absent by design: other engineers' jobs, any unassigned vessel, **invoice
 amounts**, organization-wide data, the activity feed, administration.
 
 ## 7. Accessibility
+
+> **Status, 19 Sep 2026 (NFR-06).** The list below is the standard this build
+> is written to, and most of it is in the code: accessible names on every
+> control, live regions on the chat thread and the alert list, `aria-expanded`
+> on the tree, focus-visible defined once in the token layer, dialogs that trap
+> focus and close on Escape, and status never told by colour alone. Three
+> things are **not** done and are why `NFR-06` is `IN_PROGRESS` rather than
+> built: a measured contrast audit of every token pair in both themes, a full
+> keyboard traversal of each of the six dashboards, and a screen-reader pass.
+> Until those are done this section describes the target, not a conformance
+> claim.
 
 - WCAG 2.1 AA contrast throughout, both themes; status pills verified at ≥ 4.5:1
 - Status never carried by colour alone (§2)

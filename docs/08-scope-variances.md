@@ -178,6 +178,14 @@ the editing workflow (goods-in, adjustments, stock takes) is deferred, since wit
 V-01's requisition flow there is no approved process for it to feed. Quantities
 arrive via the VMP master-data import, which **is** in scope.
 
+**Amended 19 Sep 2026 — stock takes are now in.** A shortage alert that can only
+ever be triggered by an import is not an alert; the quantity has to be able to
+change on board for `SPR-14` to mean anything. The Captain therefore records a
+**count** (what is on the shelf now), and the Technical Head sets the minimum to
+hold. That is the whole of it. Goods-in, issue-against-a-job and requisition
+remain deferred with V-01: they are the parts of stock management that need an
+approved process behind them, and nothing here creates one.
+
 ---
 
 ## Summary
@@ -193,7 +201,7 @@ arrive via the VMP master-data import, which **is** in scope.
 | V-07 | AI troubleshooting | unspecified | rule-based | ✓ rule engine |
 | V-08 | AI chat | not asked | Phase 2 | ✓ human-to-human |
 | V-09 | Six dashboards | required | 5 + 1 view | ✓ six |
-| V-10 | Stock management | required | view-only | ◐ view + alerts |
+| V-10 | Stock management | required | view-only | ◐ counts + alerts |
 
 **V-01 and V-02 are the two that remove committed brief scope.** They are the items
 to confirm before scope freeze: either accept the SoW's Phase-2 classification, or

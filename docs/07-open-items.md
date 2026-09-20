@@ -54,7 +54,16 @@ or overdue services.
 **Assumption:** maintenance alerts → Captain (own vessel), Ship Manager
 (assigned), Technical Head (fleet). No time-based escalation in the pilot.
 
-**Isolated by:** `notification_preference` rows keyed on event type × role.
+**Isolated by:** `notification_rule` rows keyed on event type × recipient role,
+each switchable for in-app and email (V11). The Platform Admin reads and changes
+them at `GET/PUT /api/v1/notifications/rules`; every change is audited. The
+people within a role are always resolved from scope, so a rule can never reach
+outside anyone's vessels or organization.
+
+**As built:** alerts fire when a spare moves into a *more severe* band
+(approaching → urgent → due → overdue), grouped per vessel, and not again while
+it stays there. The first scan after go-live announces every spare already in
+an attention band once, as one grouped alert per vessel.
 
 **Impact if wrong:** configuration. Time-based escalation would be new work
 (~2 days) since nothing schedules re-notification today.
@@ -86,6 +95,13 @@ as seed data (NFR-11).
 
 **Impact if late:** the assistant runs on seed content. No code impact; authoring
 is a data task the Platform Admin can do in-app.
+
+**As built (17 Sep 2026):** in-app authoring exists (Platform Admin → Problem
+types, Guided checks). Note for go-live: the demo seed's problem types and
+sample checks are **not** loaded into a production database. Until Seastella
+enters its problem types and publishes checks, Captains in production can only
+choose "Something else" and go straight to their Ship Manager without checks.
+Entering the pilot content is therefore a go-live task, not a nice-to-have.
 
 ---
 
@@ -159,6 +175,16 @@ No statutory format assumed.
 
 **Impact if wrong:** template work (~2–3 days). A class-society format would be
 more, so worth confirming before Week 5.
+
+**Applied 19 Sep 2026 — a basic mark, not a guess at artwork.** Every report
+now carries a typeset letterhead: the wordmark **SEASTELLA**, "Maritime Ops"
+and `seastella.in`, with the same line repeated in the page footer beside the
+page number. Name and site come from `BRAND_NAME` and `BRAND_SITE`, so a real
+logo or a different legal name is a settings change rather than code. Chosen
+over inventing a graphic: a report is read a year later out of a folder and
+must say whose platform produced it, and a wrong logo is worse than a plain
+one. This does not close the item — a class-society format, if one applies,
+still needs Seastella's answer.
 
 ---
 
@@ -315,6 +341,121 @@ attendance). They are scoped to their own jobs throughout — this widens nothin
 
 ---
 
+## OI-18 — SMS as an alert channel
+
+**Raised by Seastella (15 Sep 2026); answer expected next day.** SoW §7 names
+in-app and email alerts only; SMS was mentioned as a possible addition.
+
+**Assumption:** in-app and email only until confirmed.
+
+**Isolated by:** each off-app send is a `notification_delivery` row with a
+channel, so SMS is a new channel value, a phone number on the user, a
+`sms` flag on `notification_rule`, and one sender class for the chosen gateway.
+
+**Impact if confirmed:** ~1 day plus gateway account setup. Per SoW §16 the
+gateway's cost is Seastella's, and §17 has Seastella confirm the provider first.
+If added after scope freeze it is a Change Request (§19).
+
+**Parked by instruction, 19 Sep 2026.** Not built for the pilot. The delivery
+model already has room for it, so adding SMS later touches a channel value, a
+phone column and one sender class — no rework of what exists.
+
+---
+
+## OI-19 — Projecting running hours onto the calendar
+
+**Surfaced during implementation.** A running-hour limit (e.g. magnetron due at
+6,800 h) becomes a due date only with a consumption rate, and the sources give
+none.
+
+**Assumption:** the observed average between the spare's readings over the last
+180 days. With fewer than two readings on different days, 24 hours a day — the
+most a meter can physically run — which gives the earliest possible due date.
+Early is the safe side for bridge equipment, and the date moves later as monthly
+readings accumulate.
+
+**Impact if wrong:** one method (`RunningHourProjection.hoursPerDay`).
+
+---
+
+## OI-20 — One responsible Ship Manager per vessel?
+
+**Surfaced during implementation.** SoW §4.1 has the Technical Head decide
+"how many — and which — vessels each Ship Manager is responsible for", and §11
+alerts "the responsible Ship Manager". Neither says whether two Ship Managers
+may share a vessel.
+
+**Assumption:** one. Allocating a vessel to a Ship Manager moves it from
+whoever held it, and the move is audited on both sides. Shared vessels would
+mean two people each able to approve the same request and invoice.
+
+**Impact if wrong:** remove the hand-over step in
+`ProvisioningService.applyAllocation`; notification already handles several
+Ship Managers per vessel.
+
+---
+
+## OI-21 — How new users receive their first password
+
+**Surfaced during implementation.** The sources say who creates each account
+(§4.1) but not how the person gets in.
+
+**Resolved in build (17 Sep 2026):** nobody but the account holder ever
+chooses or sees a password. Creating an account makes it `INVITED` with no
+usable password and emails an invitation link; the person sets their own
+password (12+ characters, not a common one, not containing their email name)
+and is signed in. Links are 256 random bits, single-use, stored only as a
+SHA-256 hash, and expire after 72 hours (invitation) or 1 hour (reset). A new
+link replaces the previous one. The same mechanism serves "forgot password"
+(same answer whether or not the address has an account, at most three emails
+an hour per account), administrator-sent resets down the §4.1 chain, and
+changing one's own password; every password change ends all other sessions.
+
+**Fallback when email is not delivered** (no mail server configured, or it
+refuses): the administrator who created the account is shown the link once to
+pass on by another channel. Once an email has gone, the link is never shown.
+
+**Sender identity, 19 Sep 2026.** Mail goes out as
+`SeaStella Maritime Ops <no-reply@seastella.in>` with `Reply-To: team@seastella.in`
+— the address published on seastella.in, so a reply reaches a person rather
+than a mailbox nobody reads. Both are environment variables (`MAIL_FROM`,
+`MAIL_REPLY_TO`).
+
+**What is still needed to send at all: SMTP credentials, not an address.** A
+publicly listed contact address cannot be used as the sending address — mail
+from a server the `seastella.in` SPF/DKIM records do not name is filtered or
+rejected outright, wherever the From line says it came from. So Seastella needs
+to supply host, port, username and password for a mailbox on their own domain
+(`SPRING_MAIL_*`). Until they do, nothing is lost: with no mail server the
+invitation link is shown once to the administrator who created the account, to
+pass on by another channel, and every delivery is recorded as `SKIPPED` in the
+log rather than silently dropped.
+
+**To confirm with Seastella:** the invitation and reset lifetimes (72 h / 1 h)
+and the password rule. Both are single constants.
+
+---
+## OI-24 — ORM-level scope filter, after the pilot
+
+**Not a client question; an engineering item recorded here so it is not lost.**
+
+`docs/02-architecture.md` described the query-scoping layer as a Hibernate
+`@Filter` activated per request. It was never built, and the description was
+corrected on 19 Sep 2026. What the platform does instead is narrow every scoped
+query by the vessel set it resolved for that request, and re-check on every
+by-id read and every write through `ScopeGuard`.
+
+**Why this matters:** an ORM filter would catch a query that someone forgets to
+narrow. Explicit narrowing does not — it relies on the author of each query and
+on the tests that cover it. The guarantee holds today and is proven endpoint by
+endpoint, but the failure mode is a future query written without the `WHERE`,
+not anything currently shipped.
+
+**Working assumption:** ship the pilot as it is, and add the filter as a
+hardening step afterwards, when it can be introduced against a full test suite
+rather than three days before a demo.
+
+---
 ## Summary — what to confirm first
 
 Ordered by cost of a late answer, not by document order:

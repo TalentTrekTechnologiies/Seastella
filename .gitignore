@@ -15,3 +15,11 @@ data/
 *.trace.db
 uploads/
 .mvn/wrapper/maven-wrapper.jar
+
+# Local database snapshots taken before a reset; never part of the source.
+data-backup-*/
+# TypeScript's incremental build cache.
+*.tsbuildinfo
+# A JVM that runs out of memory or disk leaves these behind.
+hs_err_pid*.log
+replay_pid*.log

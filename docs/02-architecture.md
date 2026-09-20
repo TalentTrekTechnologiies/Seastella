@@ -100,10 +100,12 @@ public record AccessScope(
 Enforcement is layered, and the layers are deliberately redundant:
 
 1. **Route guard** — method security (`@PreAuthorize`) on every endpoint for the coarse role check.
-2. **Query scoping** — a Hibernate `@Filter` activated per request from `AccessScope`, so *every* query against a vessel-owned table is narrowed in SQL. A developer who forgets a `WHERE` clause still cannot leak another vessel's rows.
+2. **Query scoping** — the scope is resolved **once per request** from the principal's own assignment rows, never from a request parameter, and every query against a vessel-owned table takes that resolved vessel set as a bound parameter. A read is narrowed in SQL, by the set the platform worked out, not by anything the caller sent.
 3. **Aggregate guard** — `ScopeGuard.assertVessel(id)` on every write path and every by-id read, producing `404` (not `403`) for out-of-scope resources so IDs cannot be probed for existence.
 
-Layer 2 is what makes the guarantee structural. Layers 1 and 3 are defence in depth. SOURCE-A §12 requires that "a Ship Manager or Captain cannot see vessels outside their assignment"; this is the mechanism, and `docs/04-rbac-and-scope.md` lists the tests that prove it.
+Layer 2 is what makes the guarantee structural. Layers 1 and 3 are defence in depth.
+
+> **Corrected 19 Sep 2026.** Layer 2 was previously described here as a Hibernate `@Filter` activated per request. That was never built: scoping is the explicit narrowing described above. The difference matters to a reviewer — an ORM filter would catch a query someone forgot to narrow, and explicit narrowing does not — so layer 3 (`ScopeGuard`, on every by-id read and every write) is load-bearing rather than belt-and-braces, and each module's scoped reads are covered by their own integration tests. An ORM-level filter is the right hardening to add after the pilot; it is tracked in `docs/07-open-items.md`. SOURCE-A §12 requires that "a Ship Manager or Captain cannot see vessels outside their assignment"; this is the mechanism, and `docs/04-rbac-and-scope.md` lists the tests that prove it.
 
 The Service Engineer is the deliberate exception: their scope is a **job set**, not a vessel set. They reach a vessel only transitively through an assigned job, and only the fields that job needs. Modelled as `ScopeKind.JOB_SET` so it can never accidentally widen into a vessel scope.
 

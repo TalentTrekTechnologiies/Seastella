@@ -84,8 +84,22 @@ Partial unique index enforces the Captain rule: a vessel has at most one active
 captain, and a captain has at most one vessel (SOURCE-A §5, "Assigned vessel only").
 
 ### `refresh_token`
-`token_hash` (never the raw token), `user_id`, `expires_at`, `revoked_at`,
-`replaced_by`. Rotation on use; reuse of a revoked token revokes the whole chain.
+As built (V16): `token_hash` (SHA-256; never the raw token), `user_id`,
+`family_id` and `family_started_at` (one sign-in and its rotations),
+`issued_at`, `expires_at` (the earlier of 7 idle days and 30 days from
+sign-in), `revoked_at`, `revoked_reason` (`ROTATED` / `SIGNED_OUT` /
+`REUSE_DETECTED` / `ACCOUNT_SUSPENDED` / `PASSWORD_RESET`),
+`replaced_by_id`, `created_by_ip`, `user_agent`. Rotation on use; reuse of a
+rotated token outside a 20-second grace revokes the whole family. Expired rows
+are purged 30 days after expiry.
+
+### `user_token`
+As built (V17): invitation and password-reset links. `user_id`, `purpose`
+(`INVITATION` / `PASSWORD_RESET`), `token_hash` (SHA-256, unique; never the raw
+link), `expires_at` (72 h / 1 h), `used_at`, `revoked_at`,
+`created_by_user_id` (the administrator who sent it; null for a self-service
+"forgot password"). Issuing a link revokes the user's earlier open links of the
+same purpose. `app_user.status` is `INVITED` until the invitation is accepted.
 
 ## 3. Fleet (`fleet`)
 
@@ -205,8 +219,11 @@ Append-only audit of the machine itself: `service_request_id`, `from_status`,
 the Captain's "approval history" (§8.3) and the status timeline render from.
 
 ### `problem_type`
-`equipment_category_id`, `code`, `label`, `display_order`. The Captain picks one;
-it selects the troubleshooting flow.
+`equipment_category_id`, `code`, `label`, `display_order`, `active` (V18). The
+Captain picks one; it selects the troubleshooting flow. Maintained by the
+Platform Admin in the app: the code is generated once and never changes, the
+label can be renamed, and a problem type is retired (`active = false`) rather
+than deleted, because requests refer to it.
 
 ### `completion_report`
 `service_request_id` (unique), `engineer_user_id`, `work_performed`,
@@ -219,6 +236,25 @@ not by hiding a field in the UI.
 ## 5. Troubleshooting & chat (`troubleshooting`)
 
 ### `troubleshooting_flow` / `troubleshooting_step` / `troubleshooting_branch`
+
+> **As built (V13):** steps are yes/no only for now, so each step carries its two
+> branches as columns — `yes_next_key` / `yes_outcome` and `no_next_key` /
+> `no_outcome`, exactly one of each pair set (CHECK) — instead of a separate
+> branch table. A flow with no problem type applies to any problem on its
+> category; one with neither is the general fallback. `content_source` is
+> `SAMPLE` or `SEASTELLA`. Sessions copy each prompt into
+> `troubleshooting_response`, so later edits never rewrite a record. One
+> session per request (unique).
+>
+> **As built (V19, V20):** `published` is replaced by `status`
+> (`DRAFT` / `PUBLISHED` / `RETIRED`) with `published_at`,
+> `published_by_user_id` and `retired_at`. Versions of one flow share `code`
+> and differ in `flow_version`. Only a draft is edited (its steps are replaced
+> as a whole) or deleted; publishing a draft retires the previous published
+> version, and a session keeps the `flow_id` it started on. One set of checks
+> per target: at most one draft and one published version per `code`, and one
+> published flow per `(equipment_category_id, problem_type_id)`, checked by the
+> service and, on PostgreSQL, by partial unique indexes (V20).
 Authorable content, versioned (`version`, `published`), keyed on
 `(equipment_category_id, problem_type_id)`. A step holds `prompt`,
 `input_kind` (`YES_NO` / `CHOICE` / `TEXT` / `NUMBER` / `PHOTO`), `display_order`.
@@ -318,14 +354,60 @@ that mutates an entry. Verified by a test asserting that an update attempt fails
 Stored outside the web root; served only through an authorizing controller. Content
 type is validated by magic bytes, not by the client-supplied header or extension.
 
+> **As built (V22, in `fleet` rather than `platform-core`):** a document belongs
+> to a vessel - `organization_id` and `vessel_id`, with a composite foreign key
+> to `vessel (id, organization_id)` so the two can never disagree - and
+> `owner_type` (`VESSEL` / `SPARE` / `SERVICE_REQUEST`, the last reserved) plus
+> `owner_id` says what on it. It lives in `fleet` because that is where the
+> vessel scope guard is; `platform-core` sits below `identity-access` and cannot
+> see it.
+>
+> Columns: `document_type` (`CERTIFICATE` / `MANUAL` / `PHOTO` / `REPORT` /
+> `OTHER`), `title`, the certificate fields (`certificate_number`,
+> `issuing_authority`, `issued_date`, `expiry_date`), the file's own
+> (`file_name` as a label only, `content_type`, `size_bytes`, `storage_key`
+> unique, `sha256`), `uploaded_by_user_id` / `uploaded_at`, `superseded_by_id`,
+> and `removed_at` / `removed_by_user_id`. A CHECK makes `expiry_date` mandatory
+> for a certificate, which is what makes the reminders possible.
+>
+> Nothing is ever deleted: replacing points the old row at the new one, removing
+> marks the row. `storage_key` is `yyyy/MM/<32 hex>` under the configured
+> directory - no caller-supplied text reaches a path.
+
+### `certificate_alert_state` (`notification` module)
+As built (V23): `document_id` (unique), `last_threshold_days`, `expiry_date`,
+`alerted_at`. The nightly scan announces a certificate once per threshold it
+crosses (90 / 30 / 7 / 0 by default, configurable), exactly as `spare_due_state`
+remembers the last colour band announced. A renewed expiry date starts the
+thresholds again.
+
 ### `platform_setting`
 `key`, `value`, `value_type`, `organization_id` (null = global), `description`.
 Anything the SoW calls configurable lives here.
 
-### `notification` / `notification_preference` (`notification` module)
-`recipient_user_id`, `type`, `subject`, `body`, `channel` (`IN_APP` / `EMAIL`),
-`entity_type`, `entity_id`, `read_at`, `sent_at`, `delivery_status`.
-Recipients are configurable (SOURCE-B §35).
+### `notification` / `notification_delivery` / `notification_rule` (`notification` module)
+As built (V11), split in three so an alert is written once and delivered on any
+number of channels:
+
+- `notification` — one alert for one person: `recipient_user_id`, `event_type`,
+  `category` (`ACTION` / `UPDATE` / `MAINTENANCE`), `title`, `body`,
+  `entity_type`, `entity_id`, `organization_id`, `vessel_id`, `due_status`
+  (maintenance alerts only), `in_app`, `read_at`.
+- `notification_delivery` — an off-app send: `notification_id`, `channel`
+  (`EMAIL`; SMS pending OI-18), `address`, `status`
+  (`PENDING` / `SENT` / `FAILED` / `SKIPPED` when no mail server is configured),
+  `attempts`, `last_error`, `sent_at`.
+- `notification_rule` — who hears about what: `event_type` × `recipient_role`,
+  `in_app`, `email`, `active`, `source_ref`. Seeded with the SoW §11 matrix.
+  Recipients are configurable (SOURCE-B §35, OI-03).
+
+No alert text carries an invoice amount (SoW §12): emails can be forwarded.
+
+### `spare_due_state` (`maintenance` module)
+The colour status last observed per spare (V10): `spare_id` (unique),
+`vessel_id`, `status`, `next_due_date`, `basis`, `evaluated_at`. Used only to
+tell "became overdue" from "is still overdue", so a status change alerts once.
+Status shown anywhere else is still derived on read.
 
 ### `activity_event` (`activity-feed` module)
 The Platform Admin's platform-wide feed (§8.5). `event_type`, `organization_id`,
@@ -346,6 +428,21 @@ Staging rows are the mechanism behind "no import is committed without explicit
 user confirmation after preview" (SOURCE-A §10). Nothing touches `vessel` or
 `spare` until commit.
 
+> **As built (V21):** `import_batch` holds `file_name`, `file_size`, `status`
+> (`PREVIEW` / `COMMITTED` / `DISCARDED`), `uploaded_by_user_id` and
+> `uploaded_at`, `previewed_by_user_id` / `previewed_at`,
+> `committed_by_user_id` / `committed_at`, `discarded_at`, the five row counts
+> as columns, `applied_count` and `vessels_summary`. The preview columns are
+> what gate G8 reads: a commit is refused unless the same person has fetched
+> the preview (S-37).
+>
+> `import_row` holds `row_number` (the sheet's own, so a message points at what
+> the person sees), `imo_number`, `vmp_ref`, `spare_name`, the resolved
+> `vessel_id` and `spare_id`, `outcome`, `messages`, `values_json` (what the row
+> said) and `changes_json` (field, before, after), and `applied`. Rows are kept
+> after the commit as the record of what the import did. Values are plain JSON
+> text rather than `jsonb`, so the same column works on H2 and PostgreSQL.
+
 ## 9. Cross-module foreign keys
 
 Permitted inside the monolith, but enumerated here because they are the seams to
@@ -364,3 +461,22 @@ cut if a module is ever extracted (architecture §2.1 rule 4):
 
 On extraction each becomes an ID reference plus an `api` lookup. None of them
 carries a cross-module join in application code today.
+
+---
+
+## Addendum — tables added after the first cut (19 Sep 2026)
+
+| Table / column | Migration | Why |
+|---|---|---|
+| `conversation.opened_at`, `conversation.escalated_at` | V26 | The thread now begins with the guided checks, not with escalation. `escalated_at` is null for a conversation that never needed a live agent, and the status check allows `ASSISTANT`, `LIVE`, `CLOSED` (CHT-04, CHT-10). |
+| `conversation_message.sender_kind = 'ASSISTANT'` | V26 | The guided checks write their questions into the same transcript as the people (CHT-04). |
+| `conversation_message.document_id` | V26 | A chat attachment is a row in `document`, not a second file store: same byte check, same vessel scope, same audit entry (CHT-08). |
+| `conversation_read` | V26 | How far each person has read one conversation, as a message id rather than a timestamp, so a read marker can never disagree with the order of the transcript (CHT-07). |
+| `refresh_token` reason `EMAIL_CHANGED` | V25 | Changing a sign-in address ends that person's sessions; the reason column says why (IAM-08). |
+| `document.owner_type = 'SERVICE_REQUEST'` | V22 (reserved), used from V26 | Reserved when documents were built; in use now that a chat can carry a file. |
+
+`document` also now accepts `video/mp4` and `video/quicktime` uploads. Nothing
+in the schema changed for that — the type is stored as it was — but the
+allow-list in `seastella.upload.allowed-types` did, so a restored backup taken
+before today will accept fewer types than the code now offers until the
+configuration is applied with it.
