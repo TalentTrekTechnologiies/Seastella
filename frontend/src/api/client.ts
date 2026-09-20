@@ -12,9 +12,15 @@ const TOKEN_KEY = 'seastella.token';
 
 export const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
 
+const isLocalDevHost = () => {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+};
+
 const withApiBase = (path: string) => {
   const normalized = path.startsWith('/') ? path : `/${path}`;
-  if (!DEMO_MODE && !API_ORIGIN) {
+  if (!DEMO_MODE && !API_ORIGIN && !isLocalDevHost()) {
     throw new Error(
       'SeaStella API configuration error: VITE_API_URL is not set. Set it to the backend origin, e.g. https://seastella.onrender.com.',
     );

@@ -13,7 +13,11 @@ if (origin && !/^https:\/\/[^/\s]+$/.test(origin)) {
   process.exit(1);
 }
 
-const run = (cmd) => execSync(cmd, { stdio: 'inherit' });
+const run = (cmd, options = {}) =>
+  execSync(cmd, {
+    stdio: 'inherit',
+    ...options,
+  });
 
 if (origin) {
   console.log(`Building against the live backend at ${origin}`);
