@@ -1,0 +1,8 @@
+# Netlify routing, for a local `vite build` deployed by hand.
+#
+# Netlify's own builds replace this file: scripts/netlify-build.mjs writes
+# dist/_redirects, adding the /api proxy when SEASTELLA_API_ORIGIN is set.
+
+# Single-page app fallback. Routes like /fleet or /vessels exist only in
+# React Router, so every path serves index.html and the app renders it.
+/*  /index.html  200

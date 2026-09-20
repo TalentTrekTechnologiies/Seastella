@@ -1,4 +1,5 @@
 import type { DueStatus } from '@/api/types';
+import { DUE_LABEL, DUE_SHAPE, DUE_TONE, formatDays } from './status';
 import './status.css';
 
 /**
@@ -23,50 +24,17 @@ export function DueStatusBadge({
   daysRemaining?: number | null;
   size?: 'sm' | 'md';
 }) {
-  const label = LABELS[status];
+  const label = DUE_LABEL[status];
 
   return (
-    <span className={`badge badge--${TONE[status]} badge--${size}`}>
-      <span className={`glyph glyph--${SHAPE[status]}`} aria-hidden="true" />
+    <span className={`badge badge--${DUE_TONE[status]} badge--${size}`}>
+      <span className={`glyph glyph--${DUE_SHAPE[status]}`} aria-hidden="true" />
       <span>{label}</span>
       {daysRemaining !== null && daysRemaining !== undefined && status !== 'NOT_TRACKED' && (
         <span className="badge__detail mono">{formatDays(daysRemaining)}</span>
       )}
     </span>
   );
-}
-
-const LABELS: Record<DueStatus, string> = {
-  NORMAL: 'Normal',
-  APPROACHING: 'Approaching',
-  URGENT: 'Urgent',
-  DUE: 'Due',
-  OVERDUE: 'Overdue',
-  NOT_TRACKED: 'Not tracked',
-};
-
-const TONE: Record<DueStatus, string> = {
-  NORMAL: 'normal',
-  APPROACHING: 'approaching',
-  URGENT: 'urgent',
-  DUE: 'overdue',
-  OVERDUE: 'overdue',
-  NOT_TRACKED: 'neutral',
-};
-
-const SHAPE: Record<DueStatus, string> = {
-  NORMAL: 'dot',
-  APPROACHING: 'half',
-  URGENT: 'triangle',
-  DUE: 'square',
-  OVERDUE: 'square',
-  NOT_TRACKED: 'none',
-};
-
-function formatDays(days: number) {
-  if (days === 0) return 'today';
-  if (days < 0) return `${Math.abs(days)}d over`;
-  return `${days}d`;
 }
 
 /** Generic pill for non-maintenance state: request status, invoice status. */

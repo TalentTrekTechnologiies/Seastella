@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ApiError } from '@/api/client';
-import { Button } from './Panel';
+import { Button } from './Console';
 import './states.css';
 
 /**
@@ -41,20 +41,6 @@ export function LoadingState({ rows = 4, label = 'Loading' }: { rows?: number; l
       <span className="sr-only">{label}</span>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="skeleton" style={{ width: `${100 - i * 9}%` }} />
-      ))}
-    </div>
-  );
-}
-
-export function KpiSkeleton({ count = 6 }: { count?: number }) {
-  return (
-    <div className="kpi-row" role="status" aria-live="polite">
-      <span className="sr-only">Loading figures</span>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="kpi">
-          <div className="skeleton skeleton--sm" style={{ width: '70%' }} />
-          <div className="skeleton skeleton--lg" style={{ width: '45%' }} />
-        </div>
       ))}
     </div>
   );

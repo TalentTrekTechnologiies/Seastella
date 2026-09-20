@@ -1,0 +1,63 @@
+/* VMP master-data import: template, upload, preview (SoW §10). */
+
+.imp-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.imp-row .ffield { flex: 1 1 320px; }
+.imp-row input[type='file'] { padding: 9px 12px; }
+.imp-busy { font-size: 14px; color: var(--sbs-ink-3); }
+.imp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.imp-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.imp-filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 14px; }
+
+.imp-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.imp-row-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--sbs-line);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: var(--sbs-plate);
+}
+.imp-row-item--new { border-left-color: var(--sbs-signal); }
+.imp-row-item--modified { border-left-color: var(--sbs-signal); }
+.imp-row-item--invalid,
+.imp-row-item--duplicate { border-left-color: var(--sbs-ink-3); background: var(--sbs-plate-sunk); }
+.imp-row-item--unchanged { opacity: 0.75; }
+
+.imp-row-item__n {
+  flex: none;
+  min-width: 26px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--sbs-ink-3);
+  background: var(--sbs-plate-sunk);
+}
+.imp-row-item__main { min-width: 0; display: grid; gap: 3px; }
+.imp-row-item__title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.imp-row-item__title b { font-family: var(--font-mono, monospace); font-weight: 700; }
+.imp-row-item__meta { font-size: 13px; color: var(--sbs-ink-3); }
+.imp-row-item__msg { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--sbs-ink-2); }
+
+.imp-changes { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.imp-changes li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.imp-changes__field { min-width: 150px; font-size: 13px; color: var(--sbs-ink-3); }
+.imp-changes s { color: var(--sbs-ink-3); }
+.imp-changes i { color: var(--sbs-ink-3); font-style: italic; }
+.imp-changes b { font-weight: 600; }
+.imp-changes svg { color: var(--sbs-signal); }
+
+@media (max-width: 640px) {
+  .imp-changes__field { min-width: 0; }
+}

@@ -1,0 +1,73 @@
+/* The Spare tree (SoW §9.1, SPR-11). */
+
+.tree { display: grid; }
+.tree__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 14px;
+  flex-wrap: wrap;
+}
+.tree__bar .input--search { flex: 1 1 240px; max-width: 340px; }
+.tree__found { font-size: 13.5px; color: var(--sbs-ink-3); }
+
+.tree__list { list-style: none; margin: 0; padding: 0; }
+.tree__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px 9px 16px;
+  border-top: 1px solid var(--sbs-line);
+}
+.tree__row:hover { background: var(--sbs-plate-sunk); }
+/* Arrived from a dashboard: say which row was meant (DSH-13). */
+.tree__row--focus { background: var(--sbs-plate-sunk); box-shadow: inset 3px 0 0 var(--sbs-signal); }
+.tree__empty { padding: 4px 20px 20px; }
+
+.tree__twist {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--sbs-ink-3);
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0;
+  transition: transform 120ms ease;
+}
+.tree__twist:hover { color: var(--sbs-ink); background: var(--sbs-plate); }
+.tree__twist--open { transform: rotate(90deg); }
+.tree__twist--leaf { cursor: default; }
+.tree__twist--leaf::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--sbs-line);
+}
+
+.tree__main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.tree__title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tree__path { color: var(--sbs-ink-3); font-size: 13px; min-width: 46px; }
+.tree__name { font-size: 15px; font-weight: 600; }
+.tree__count {
+  border: 1px solid var(--sbs-line);
+  border-radius: 999px;
+  background: none;
+  color: var(--sbs-ink-3);
+  font: inherit;
+  font-size: 12px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.tree__count:hover { color: var(--sbs-signal); border-color: var(--sbs-signal); }
+.tree__meta { font-size: 13.5px; color: var(--sbs-ink-3); display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; }
+.tree__actions { display: flex; gap: 4px; flex: none; }
+
+@media (max-width: 720px) {
+  .tree__row { flex-wrap: wrap; }
+  .tree__actions { width: 100%; padding-left: 32px; }
+}

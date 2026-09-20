@@ -1,0 +1,37 @@
+/* Documents and certificates (SoW §7). */
+
+.docs { display: grid; gap: 12px; }
+.docs__bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.docs__history { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sbs-ink-2); }
+.docs__history input { width: 15px; height: 15px; accent-color: var(--sbs-signal); }
+
+.docs__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.docs__item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--sbs-line);
+  border-radius: 10px;
+  background: var(--sbs-plate);
+}
+.docs__item--past { opacity: 0.68; }
+.docs__icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--sbs-ink-2);
+  background: var(--sbs-plate-sunk);
+}
+.docs__main { min-width: 0; display: grid; gap: 3px; flex: 1; }
+.docs__title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.docs__meta { font-size: 13px; color: var(--sbs-ink-3); overflow-wrap: anywhere; }
+.docs__actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 620px) {
+  .docs__item { flex-wrap: wrap; }
+  .docs__actions { width: 100%; justify-content: flex-start; }
+}

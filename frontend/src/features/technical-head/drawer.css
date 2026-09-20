@@ -1,9 +1,13 @@
+/* Vessel drill-down. A panel that slides off the console edge, not a modal
+   floating in the middle of the screen — the fleet stays visible behind it. */
+
 .drawer-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: var(--z-drawer);
+  background: rgba(2, 10, 15, 0.55);
   border: none;
+  z-index: var(--z-drawer);
+  cursor: default;
 }
 
 .drawer {
@@ -11,100 +15,185 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(460px, 100vw);
-  background: var(--c-surface);
-  border-left: 1px solid var(--c-border);
+  width: min(560px, 100vw);
+  background: var(--sbs-plate);
+  border-left: 1px solid var(--sbs-line-strong);
   box-shadow: var(--shadow-float);
   z-index: calc(var(--z-drawer) + 1);
   display: flex;
   flex-direction: column;
+  animation: drawer-in 0.16s ease-out;
+}
+@keyframes drawer-in {
+  from { transform: translateX(14px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer { animation: none; }
 }
 
 .drawer__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--s-3);
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--c-border);
+  gap: var(--s-4);
+  padding: 16px;
+  border-bottom: 1px solid var(--sbs-line);
   flex: none;
 }
+.drawer__ident { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.drawer__ident svg { flex: none; color: var(--sbs-ink-2); }
 .drawer__title {
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
-.drawer__sub {
-  font-size: 11.5px;
-  color: var(--c-text-faint);
-  margin-top: 3px;
-}
+.drawer__sub { font-size: 14px; color: var(--sbs-ink-3); margin-top: 2px; }
 .drawer__close {
-  color: var(--c-text-muted);
-  font-size: 15px;
-  width: 28px;
-  height: 28px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  color: var(--sbs-ink-2);
+  border: 1px solid var(--sbs-line);
   border-radius: var(--r-input);
 }
-.drawer__close:hover {
-  background: var(--c-surface-sunk);
-  color: var(--c-text);
+.drawer__close:hover { color: var(--sbs-ink); background: var(--sbs-plate-sunk); }
+
+/* The vessel's readings, in the same gauge language as the console. */
+.drawer__readings {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--sbs-line);
+  border-bottom: 1px solid var(--sbs-line);
+  flex: none;
 }
+.drawer__reading {
+  background: var(--sbs-plate);
+  padding: 11px 8px;
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  text-align: center;
+}
+.drawer__reading b {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+}
+.drawer__reading span {
+  font-size: 12.5px;
+  color: var(--sbs-ink-3);
+  white-space: nowrap;
+}
+.drawer__reading--alert b { color: var(--c-overdue); }
+.drawer__reading--warn b { color: var(--c-urgent); }
 
 .drawer__body {
+  padding: 16px;
   overflow-y: auto;
-  padding: 18px;
   display: grid;
   gap: 22px;
+  align-content: start;
 }
 
-.drawer__section h3 {
-  font-size: 11px;
+.drawer__h3 {
+  font-family: var(--font-ui);
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--c-text-faint);
-  margin-bottom: 10px;
+  color: var(--sbs-ink);
+  padding-bottom: 7px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--sbs-line);
+  display: flex;
+  justify-content: space-between;
 }
+.drawer__h3 span { color: var(--sbs-signal); }
 
-.drawer__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* Equipment fit: every category this hull carries. */
+.fitlist { list-style: none; margin: 0; padding: 0; display: grid; }
+.fitlist li { border-bottom: 1px solid var(--sbs-hairline); }
+/* A category narrows what is below it — the middle of the drill-down (DSH-13). */
+.fitlist__pick {
   display: grid;
-  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) auto 44px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 6px;
+  margin: 0 -6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.drawer__list li {
+.fitlist__pick:hover { background: var(--sbs-plate-sunk); }
+.fitlist__pick--on { background: var(--sbs-plate-sunk); box-shadow: inset 2px 0 0 var(--sbs-signal); }
+.fitlist li:last-child { border-bottom: none; }
+.fitlist__code { font-size: 14px; color: var(--sbs-ink); }
+.fitlist__state {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  padding: 9px 11px;
-  background: var(--c-surface-sunk);
-  border-radius: var(--r-input);
+  gap: 7px;
+  color: var(--sbs-ink-2);
+  font-size: 14px;
+  white-space: nowrap;
 }
-.drawer__spare {
-  font-size: 13px;
-  font-weight: 500;
-  display: block;
+.fitlist__count { text-align: right; color: var(--sbs-ink-3); font-size: 14px; }
+
+.drawer__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.drawer__list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--sbs-hairline);
+}
+.drawer__list li:last-child { border-bottom: none; }
+.drawer__list li > a { text-decoration: none; color: inherit; min-width: 0; }
+.drawer__list li > a:hover .drawer__spare { color: var(--sbs-signal); }
+.drawer__spare { font-size: 15px; font-weight: 500; display: block; }
+.drawer__spare-meta { font-size: 13px; color: var(--sbs-ink-3); display: block; margin-top: 2px; }
+.drawer__due { display: flex; align-items: center; gap: 7px; font-size: 14px; white-space: nowrap; }
+
+.drawer__log { list-style: none; margin: 0; padding: 0; display: grid; }
+.drawer__log li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sbs-hairline);
+  font-size: 15px;
+}
+.drawer__log li:last-child { border-bottom: none; }
+.drawer__log li > a { text-decoration: none; color: inherit; min-width: 0; }
+.drawer__log li > a:hover .drawer__log-what { color: var(--sbs-signal); }
+.drawer__log-what { display: block; }
+.drawer__log-ref { display: block; font-size: 13px; color: var(--sbs-ink-3); margin-top: 2px; }
+.drawer__log time { font-size: 13px; color: var(--sbs-ink-3); font-family: var(--font-mono); white-space: nowrap; }
+
+.drawer__filter { margin: 0 0 6px; font-size: 13.5px; color: var(--sbs-ink-2); }
+.drawer__filter b { text-transform: capitalize; }
+.drawer__clear {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--sbs-signal);
+  cursor: pointer;
+  text-decoration: underline;
 }
 
-.drawer__activity {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.drawer__activity li {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 10px;
-  font-size: 12.5px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--c-border);
-}
-.drawer__activity time {
-  font-size: 11px;
-  color: var(--c-text-faint);
-  grid-row: span 2;
-  align-self: center;
+@media (max-width: 560px) {
+  .drawer__readings { grid-template-columns: repeat(3, 1fr); }
 }

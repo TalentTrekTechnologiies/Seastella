@@ -1,24 +1,22 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchPlatformAdmin } from '@/api/dashboards';
-import type { ActivityItem, OrganizationSummary } from '@/api/types';
+import type { OrganizationSummary, PlatformAdminDashboard } from '@/api/types';
 import { useDashboard } from '@/lib/useDashboard';
-import { formatMoney, relativeTime } from '@/lib/format';
-import { KpiRow } from '@/design-system/Kpi';
-import { Button, PageHeader, Panel } from '@/design-system/Panel';
-import { DataTable, type Column } from '@/design-system/DataTable';
-import { StackedBar, BarList } from '@/design-system/Charts';
-import { ErrorState, KpiSkeleton, LoadingState, EmptyState } from '@/design-system/States';
+import { formatMoney } from '@/lib/format';
+import { ActivityList, Chip, ConsoleHeader, Plate, StageBars, StatTile, roleName } from '@/design-system/Console';
+import { Money, RefreshButton } from '@/design-system/ConsoleParts';
+import { ErrorState, LoadingState } from '@/design-system/States';
 import { Pill } from '@/design-system/StatusBadge';
-import '../shared/dashboard.css';
-import './platform.css';
 
 /**
- * Platform Administrator (SoW §8.5).
+ * GLOBAL MARITIME CONTROL — Platform Administrator (SoW §8.5).
  *
- * <p>The activity feed is the primary column rather than a footnote: §8.5 makes
- * consolidated real-time visibility this role's instrument, on the reasoning
- * that a Platform Admin must know every update without being paged on each one.
- * Metrics sit in a supporting rail.
+ * <p>Scope: the entire platform. This is the only role granted the
+ * platform-wide activity feed and the full audit count (RBAC matrix), so the
+ * feed is the widest column on the page. Organizations double as the feed's
+ * filter — picking one narrows what is already on screen and never requests a
+ * wider set, because narrowing is a view preference, not an access decision.
  */
 export function PlatformAdminPage() {
   const { data, isLoading, isError, error, refetch, isFetching } = useDashboard(
@@ -30,235 +28,187 @@ export function PlatformAdminPage() {
   if (isError) return <ErrorState error={error} onRetry={() => refetch()} />;
 
   const feed = data?.activityFeed ?? [];
-  // Filters the already-scoped feed the server returned. It never requests a
-  // wider set: a Platform Admin sees everything, and narrowing is a view
-  // preference rather than an access decision.
   const visibleFeed = orgFilter ? feed.filter((a) => a.organizationId === orgFilter) : feed;
+  const selectedOrg = data?.organizations.find((o) => o.id === orgFilter) ?? null;
 
   return (
-    <div className="page">
-      <PageHeader
-        eyebrow="Platform administration"
-        title="Platform overview"
-        meta={
-          data && (
-            <>
-              <span>
-                {data.systemStatus.organizations} organizations &middot;{' '}
-                {data.systemStatus.vessels} vessels &middot; {data.systemStatus.users} users
-              </span>
-              <span>Updated {relativeTime(data.meta.generatedAt)}</span>
-              {data.systemStatus.seedDataPresent && (
-                <Pill tone="approaching" size="sm">
-                  Demo data present
-                </Pill>
-              )}
-            </>
-          )
+    <div className="console">
+      <ConsoleHeader
+        scope={[
+          { label: 'Platform administration' },
+          { label: 'All organizations', strong: true },
+          { label: `${data?.systemStatus.organizations ?? 0} organizations` },
+        ]}
+        badge={
+          data?.systemStatus.seedDataPresent ? (
+            <Pill tone="approaching" size="sm">
+              Demo data present
+            </Pill>
+          ) : undefined
         }
-        actions={
-          <Button onClick={() => refetch()} disabled={isFetching}>
-            {isFetching ? 'Refreshing…' : 'Refresh'}
-          </Button>
-        }
+        title="Global maritime control"
+        subtitle="Client organizations, fleet scale, users and every service event across the platform."
+        generatedAt={data?.meta.generatedAt}
+        actions={<RefreshButton onClick={() => refetch()} busy={isFetching} />}
       />
 
-      {isLoading || !data ? <KpiSkeleton count={6} /> : <KpiRow items={data.kpis} />}
+      {isLoading || !data ? (
+        <LoadingState rows={6} label="Loading platform" />
+      ) : (
+        <>
+          <Summary data={data} />
 
-      <div className="pa-grid">
-        {/* The feed leads. It is the widest column on the page for a reason. */}
-        <Panel
-          title="Platform activity"
-          subtitle="Every request, approval, invoice and completion across all organizations"
-          count={visibleFeed.length}
-          padded={false}
-          action={
-            data && data.organizations.length > 1 ? (
-              <select
-                id="pa-org-filter"
-                className="select"
-                value={orgFilter ?? ''}
-                onChange={(e) => setOrgFilter(e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">All organizations</option>
-                {data.organizations.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            ) : undefined
-          }
-        >
-          {isLoading ? (
-            <LoadingState rows={8} />
-          ) : visibleFeed.length === 0 ? (
-            <EmptyState
-              title="No activity recorded"
-              body="Service request events across the platform will appear here as they happen."
-              icon="inbox"
-            />
-          ) : (
-            <ol className="feed">
-              {visibleFeed.map((a, i) => (
-                <li key={`${a.serviceRequestId}-${a.occurredAt}-${i}`} className="feed__item">
-                  <span className={`feed__rail feed__rail--${toneFor(a)}`} aria-hidden="true" />
-                  <div className="feed__body">
-                    <p className="feed__line">
-                      <span className="feed__action">{a.actionLabel}</span>
-                      <span className="feed__sep">·</span>
-                      <span className="mono feed__ref">{a.requestNumber}</span>
-                    </p>
-                    <p className="feed__meta">
-                      {a.vesselName}
-                      {a.actorName && (
-                        <>
-                          <span className="feed__sep">·</span>
-                          {a.actorName}
-                          {a.actorRole && (
-                            <span className="feed__role">{roleLabel(a.actorRole)}</span>
-                          )}
-                        </>
-                      )}
-                    </p>
-                    {a.reason && <p className="feed__reason">“{a.reason}”</p>}
-                  </div>
-                  <time className="feed__time" dateTime={a.occurredAt}>
-                    {relativeTime(a.occurredAt)}
-                  </time>
-                </li>
+          <Plate
+            title="Organizations"
+            count={data.organizations.length}
+            subtitle="Select an organization to filter the platform activity"
+          >
+            <div className="orgs">
+              {data.organizations.map((o) => (
+                <OrgCard
+                  key={o.id}
+                  org={o}
+                  totalVessels={data.systemStatus.vessels}
+                  totalUsers={data.systemStatus.users}
+                  selected={orgFilter === o.id}
+                  onSelect={() => setOrgFilter((cur) => (cur === o.id ? null : o.id))}
+                />
               ))}
-            </ol>
-          )}
-        </Panel>
+            </div>
+          </Plate>
 
-        <div className="pa-rail">
-          <Panel title="Vessels by status">
-            {isLoading || !data ? <LoadingState rows={3} /> : <StackedBar data={data.vesselStatus} />}
-          </Panel>
+          <div className="row-main-side">
+            <Plate
+              title="Platform activity"
+              count={visibleFeed.length}
+              subtitle="Every request, approval, invoice and completion across the platform"
+              action={
+                selectedOrg ? (
+                  <Chip on onClick={() => setOrgFilter(null)}>
+                    {selectedOrg.name} <span aria-hidden="true">✕</span>
+                    <span className="sr-only">Show all organizations</span>
+                  </Chip>
+                ) : (
+                  <Link to="/platform/activity" className="cbtn cbtn--secondary cbtn--md">
+                    Full activity feed
+                  </Link>
+                )
+              }
+              flush
+              fill
+            >
+              <ActivityList items={visibleFeed} showReason />
+            </Plate>
 
-          <Panel title="Service requests by stage">
-            {isLoading || !data ? (
-              <LoadingState rows={4} />
-            ) : (
-              <StackedBar data={data.requestStatus} />
-            )}
-          </Panel>
+            <div className="stack-col">
+              <Plate title="Vessels by status" subtitle={`All ${data.systemStatus.vessels} registered vessels`}>
+                <StageBars rows={data.vesselStatus.slices} hideZero={false} />
+              </Plate>
 
-          <Panel title="Users by role">
-            {isLoading || !data ? (
-              <LoadingState rows={5} />
-            ) : (
-              <BarList
-                data={data.usersByRole.map((u) => ({
-                  key: u.role,
-                  label: roleLabel(u.role),
-                  value: u.count,
-                  colour: 'accent',
-                }))}
-              />
-            )}
-          </Panel>
+              <Plate title="Service requests by stage" subtitle="Every request on the platform">
+                <StageBars rows={data.requestStatus.slices} />
+              </Plate>
 
-          <Panel title="Invoice totals" subtitle="Acceptance workflow only — no settlement">
-            {isLoading || !data ? (
-              <LoadingState rows={2} />
-            ) : (
-              <div className="pa-money">
-                <div>
-                  <span className="pa-money__label">Awaiting acceptance</span>
-                  <span className="pa-money__value mono">
-                    {formatMoney(data.invoiceTotals.raisedValue, data.invoiceTotals.currency)}
-                  </span>
-                  <span className="pa-money__count">{data.invoiceTotals.raised} invoices</span>
-                </div>
-                <div>
-                  <span className="pa-money__label">Accepted</span>
-                  <span className="pa-money__value mono">
-                    {formatMoney(data.invoiceTotals.acceptedValue, data.invoiceTotals.currency)}
-                  </span>
-                  <span className="pa-money__count">{data.invoiceTotals.accepted} invoices</span>
-                </div>
-              </div>
-            )}
-          </Panel>
-        </div>
-      </div>
-
-      <Panel
-        title="Organizations"
-        subtitle="Client companies on the platform"
-        count={data?.organizations.length}
-        padded={false}
-      >
-        {isLoading || !data ? (
-          <LoadingState rows={4} />
-        ) : (
-          <DataTable<OrganizationSummary>
-            columns={ORG_COLUMNS}
-            rows={data.organizations}
-            rowKey={(o) => o.id}
-            emptyTitle="No organizations"
-            emptyBody="A Platform Administrator creates each client organization and its Technical Head."
-          />
-        )}
-      </Panel>
+              <Plate title="Users by role" subtitle={`${data.systemStatus.users} users`}>
+                <StageBars
+                  rows={data.usersByRole.map((u) => ({ key: u.role, label: roleName(u.role), value: u.count }))}
+                />
+              </Plate>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-const ORG_COLUMNS: Column<OrganizationSummary>[] = [
-  {
-    key: 'name',
-    header: 'Organization',
-    sortValue: (o) => o.name,
-    render: (o) => (
-      <>
-        <span className="cell-strong">{o.name}</span>
-        <span className="cell-sub mono">{o.code}</span>
-      </>
-    ),
-  },
-  {
-    key: 'vessels',
-    header: 'Vessels',
-    align: 'right',
-    width: '110px',
-    sortValue: (o) => o.vesselCount,
-    render: (o) => <span className="mono">{o.vesselCount}</span>,
-  },
-  {
-    key: 'users',
-    header: 'Users',
-    align: 'right',
-    width: '110px',
-    sortValue: (o) => o.userCount,
-    render: (o) => <span className="mono">{o.userCount}</span>,
-  },
-];
+function Summary({ data }: { data: PlatformAdminDashboard }) {
+  const s = data.systemStatus;
+  const inv = data.invoiceTotals;
 
-/** Colour the feed rail by what kind of event it was. */
-function toneFor(a: ActivityItem): string {
-  switch (a.toStatus) {
-    case 'REJECTED':
-    case 'INVOICE_REJECTED':
-      return 'overdue';
-    case 'PENDING_OPERATIONAL_APPROVAL':
-    case 'INVOICE_RAISED':
-    case 'INVOICE_QUERIED':
-    case 'CLARIFICATION_REQUESTED':
-      return 'approaching';
-    case 'COMPLETED':
-    case 'CLOSED_NO_COST':
-      return 'normal';
-    default:
-      return 'accent';
-  }
+  return (
+    <div className="summary">
+      <Plate title="Platform at a glance" subtitle="Everything registered on SeaStella today">
+        <div className="scale4">
+          <Figure value={s.organizations} label="Organizations" />
+          <Figure value={s.vessels} label="Vessels" />
+          <Figure value={s.users} label="Users" />
+          <Figure value={s.spares} label="Spares tracked" />
+        </div>
+        <div className="money">
+          <Money label="Invoices awaiting acceptance" value={formatMoney(inv.raisedValue, inv.currency)} count={inv.raised} />
+          <Money label="Invoices accepted" value={formatMoney(inv.acceptedValue, inv.currency)} count={inv.accepted} />
+        </div>
+      </Plate>
+
+      <div className="tiles tiles--stack">
+        <StatTile
+          icon="wrench"
+          label="Open service requests"
+          value={s.openRequests}
+          caption="Across every organization, not yet closed"
+        />
+        <StatTile icon="audit" label="Audit entries" value={s.auditEntries} caption="Recorded platform events" />
+      </div>
+    </div>
+  );
 }
 
-function roleLabel(role: string) {
-  return role
-    .split('_')
-    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
-    .join(' ');
+function Figure({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="figure">
+      <b>{value}</b>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function OrgCard({
+  org,
+  totalVessels,
+  totalUsers,
+  selected,
+  onSelect,
+}: {
+  org: OrganizationSummary;
+  totalVessels: number;
+  totalUsers: number;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`orgcard${selected ? ' orgcard--on' : ''}`}
+      onClick={onSelect}
+      aria-pressed={selected}
+    >
+      <div className="orgcard__top">
+        <span className="orgcard__mark" aria-hidden="true">
+          {org.code.slice(0, 2)}
+        </span>
+        <div>
+          <div className="orgcard__name">{org.name}</div>
+          <div className="orgcard__code">{org.code}</div>
+        </div>
+      </div>
+      <Share label="Vessels" value={org.vesselCount} of={totalVessels} />
+      <Share label="Users" value={org.userCount} of={totalUsers} />
+    </button>
+  );
+}
+
+/** A count with its share of the platform total drawn beside it. */
+function Share({ label, value, of }: { label: string; value: number; of: number }) {
+  return (
+    <div className="share">
+      <span className="share__label">{label}</span>
+      <span className="share__track" aria-hidden="true">
+        <i style={{ width: `${of === 0 ? 0 : (value / of) * 100}%` }} />
+      </span>
+      <span className="share__value">
+        {value} <small>of {of}</small>
+      </span>
+    </div>
+  );
 }

@@ -1,0 +1,83 @@
+/* Platform Admin activity feed. Category icons use neutral and signal hues only;
+   the four due-status colours stay reserved. */
+
+.feed { list-style: none; margin: 0; padding: 0 0 8px; }
+.feed__day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sbs-ink-3);
+  background: var(--sbs-plate);
+  border-top: 1px solid var(--sbs-line);
+  border-bottom: 1px solid var(--sbs-line);
+}
+.feed__item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 20px;
+}
+.feed__item + .feed__item { border-top: 1px solid var(--sbs-line); }
+.feed__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--sbs-plate-sunk);
+  color: var(--sbs-ink-2);
+}
+.feed__icon--requests,
+.feed__icon--invoices { background: var(--sbs-signal-weak); color: var(--sbs-signal); }
+.feed__main { min-width: 0; display: grid; gap: 3px; }
+.feed__line { margin: 0; font-size: 15px; line-height: 1.45; }
+.feed__role {
+  display: inline-block;
+  margin: 0 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+  color: var(--sbs-ink-2);
+  background: var(--sbs-plate-sunk);
+}
+.feed__meta { margin: 0; font-size: 13px; color: var(--sbs-ink-3); }
+.feed__meta a { color: var(--sbs-signal); font-weight: 600; text-decoration: none; }
+.feed__meta a:hover { text-decoration: underline; }
+.feed__time { font-size: 13px; color: var(--sbs-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.feed__more { display: flex; justify-content: center; padding: 12px 20px 20px; }
+.feed__org { width: min(260px, 60vw); }
+.feed__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sbs-signal);
+}
+.feed__live::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sbs-signal);
+  box-shadow: 0 0 0 4px var(--sbs-signal-weak);
+}
+
+/* The push channel is down: say so rather than claiming to be live (FEE-04). */
+.feed__live--polling { color: var(--sbs-ink-3); }
+.feed__live--polling::before { background: var(--sbs-ink-3); box-shadow: none; }
+
+@media (max-width: 640px) {
+  .feed__item { grid-template-columns: 28px minmax(0, 1fr); }
+  .feed__time { grid-column: 2; }
+}

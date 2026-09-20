@@ -1,0 +1,69 @@
+/* The §11 alert matrix and the delivery log (SoW §8.5). */
+
+.rules { display: grid; }
+.rules__head,
+.rules__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px 68px 68px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 20px;
+}
+.rules__head {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sbs-ink-3);
+  border-bottom: 1px solid var(--sbs-line);
+}
+.rules__head span:not(:first-child) { text-align: center; }
+.rules__group { border-bottom: 1px solid var(--sbs-line); padding: 6px 0 8px; }
+.rules__group:last-child { border-bottom: none; }
+.rules__event {
+  padding: 8px 20px 2px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.rules__row--off { opacity: 0.5; }
+.rules__who { display: flex; align-items: baseline; gap: 8px; font-size: 14px; color: var(--sbs-ink-2); }
+.rules__source { font-size: 12px; color: var(--sbs-ink-3); }
+
+/* A switch, not a checkbox: these are settings, not a form to submit. */
+.swtch {
+  justify-self: center;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--sbs-line);
+  background: var(--sbs-plate-sunk);
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.swtch:disabled { cursor: progress; opacity: 0.6; }
+.swtch__dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sbs-ink-3);
+  transition: transform 120ms ease, background 120ms ease;
+}
+.swtch--on { background: var(--sbs-signal); border-color: var(--sbs-signal); }
+.swtch--on .swtch__dot { transform: translateX(16px); background: var(--sbs-on-signal); }
+
+.deliveries { list-style: none; margin: 0; padding: 0; }
+.deliveries__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 20px;
+  border-top: 1px solid var(--sbs-line);
+}
+.deliveries__main { flex: 1; min-width: 0; }
+.deliveries__title { font-size: 14.5px; font-weight: 600; }
+.deliveries__meta { font-size: 13px; color: var(--sbs-ink-3); margin-top: 2px; overflow-wrap: anywhere; }
+.deliveries__error { color: var(--c-overdue); }
+.deliveries__side { display: grid; justify-items: end; gap: 3px; flex: none; }
+.deliveries__side time { font-size: 12.5px; color: var(--sbs-ink-3); }

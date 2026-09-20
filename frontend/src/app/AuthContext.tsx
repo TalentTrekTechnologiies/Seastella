@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, AUTH_EXPIRED_EVENT, tokenStore } from '@/api/client';
+import { api, AUTH_EXPIRED_EVENT, DEMO_MODE, endSession, refreshSession, tokenStore } from '@/api/client';
 import type { LoginResponse, UserProfile } from '@/api/types';
 
 /**
@@ -24,6 +24,8 @@ interface AuthState {
   user: UserProfile | null;
   status: 'checking' | 'authenticated' | 'anonymous';
   signIn: (email: string, password: string) => Promise<void>;
+  /** Takes over a session the server has already started, e.g. by accepting an invitation. */
+  adoptSession: (session: LoginResponse) => void;
   signOut: () => void;
 }
 
@@ -36,6 +38,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Restore a session on boot, verifying it against the server.
   useEffect(() => {
     let cancelled = false;
+
+    if (!DEMO_MODE) {
+      // The access token is never persisted; the refresh cookie brings the
+      // session back after a reload, or the user signs in again.
+      refreshSession().then((session) => {
+        if (cancelled) return;
+        if (session) {
+          setUser(session.user as UserProfile);
+          setStatus('authenticated');
+        } else {
+          // Unless a session was adopted meanwhile (an invitation accepted
+          // while this check was still in flight).
+          setStatus((s) => (s === 'checking' ? 'anonymous' : s));
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
 
     if (!tokenStore.get()) {
       setStatus('anonymous');
@@ -70,22 +91,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const result = await api.post<LoginResponse>('/api/v1/auth/login', { email, password });
-    tokenStore.set(result.accessToken);
-    setUser(result.user);
+  const adoptSession = useCallback((session: LoginResponse) => {
+    tokenStore.set(session.accessToken);
+    setUser(session.user);
     setStatus('authenticated');
   }, []);
 
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      adoptSession(await api.post<LoginResponse>('/api/v1/auth/login', { email, password }));
+    },
+    [adoptSession],
+  );
+
   const signOut = useCallback(() => {
-    tokenStore.clear();
+    void endSession();
     setUser(null);
     setStatus('anonymous');
   }, []);
 
   const value = useMemo(
-    () => ({ user, status, signIn, signOut }),
-    [user, status, signIn, signOut],
+    () => ({ user, status, signIn, adoptSession, signOut }),
+    [user, status, signIn, adoptSession, signOut],
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

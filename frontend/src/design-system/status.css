@@ -11,13 +11,13 @@
 }
 
 .badge--md {
-  font-size: 11px;
-  padding: 4px 9px;
+  font-size: 13px;
+  padding: 5px 10px;
 }
 .badge--sm {
-  font-size: 10px;
-  padding: 3px 7px;
-  letter-spacing: 0.05em;
+  font-size: 12px;
+  padding: 4px 8px;
+  letter-spacing: 0.03em;
 }
 
 .badge__detail {
@@ -68,8 +68,8 @@
 /* Shape carries the status as well as colour: greyscale and colour-vision safe. */
 .glyph {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background: currentColor;
 }
 .glyph--dot {

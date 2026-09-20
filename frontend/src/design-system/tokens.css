@@ -1,47 +1,65 @@
 /* =====================================================================
-   SeaStella design tokens — "Night Bridge".
+   SEASTELLA — design tokens.
 
-   The identity is drawn from the thing this software is about: a ship's
-   bridge at night. Deep, low-glare grounds; phosphor-cyan instrument
-   light; hairline rules and corner ticks borrowed from instrument
-   bezels; numerals set like gauge readings.
+   The product manages the GMDSS and navigational fit of merchant vessels:
+   radars, gyros, EPIRBs, ECDIS, VDR. The dashboards exist to answer one
+   question fast — which equipment on which vessel needs service next — so
+   the tokens optimise for reading, not for atmosphere:
 
-   Two rules govern colour, and everything else follows:
+     READABLE   15px body, 13px floor for secondary text, 5:1 contrast on
+                secondary ink. Nothing a person must read is set smaller.
+     CALM       white cards on a pale sea-grey ground (a deep console at
+                night in dark mode), soft elevation, generous radius.
+     SIGNAL     one sea cyan for what is selected or interactive. It never
+                stands in for a status.
+
+   Two colour rules, and everything follows:
 
    1. The four maintenance status colours are SPEC-MANDATED (SoW §7) and
-      therefore RESERVED. Nothing decorative may use them, so a green pill
-      always means "normal" and never "primary action".
-   2. The brand accent must not collide with any of the four — which rules
-      out green, amber, orange and red, and lands the accent on cold
-      phosphor cyan. That is also, not coincidentally, the colour of every
-      radar and ECDIS display on a real bridge.
+      RESERVED. Nothing decorative may use them, so a green mark always
+      means "normal" and never "primary action". A status is always
+      written out in text beside its colour; badges also keep the status
+      shape, because these reports reach class surveyors on paper.
+   2. The signal cyan must not collide with any of the four, which lands
+      it in the cold half of the wheel.
    ===================================================================== */
 
 :root {
-  /* ---- Ground & surface (light: "chart table") ---- */
-  --c-bg: #eaeef1;
-  --c-surface: #ffffff;
-  --c-surface-sunk: #e3e9ed;
-  --c-surface-raised: #ffffff;
-  --c-border: #cbd6de;
-  --c-border-strong: #a6b6c2;
-  --c-hairline: rgba(22, 45, 58, 0.08);
+  /* ---- Console (light: the chart table under deck lights) ---- */
+  --sbs-ground: #f1f5f7;
+  --sbs-ground-deep: #e8eef2;
+  --sbs-plate: #ffffff;
+  --sbs-plate-raised: #ffffff;
+  --sbs-plate-sunk: #f3f7f9;
+  --sbs-line: #dde6eb;
+  --sbs-line-strong: #bfcfd8;
+  --sbs-hairline: rgba(16, 48, 64, 0.06);
 
-  /* ---- Text ---- */
-  --c-text: #0f2028;
-  --c-text-muted: #4e6472;
-  --c-text-faint: #78909e;
-  --c-text-invert: #eaeef1;
+  --sbs-ink: #0f1f2a;
+  --sbs-ink-2: #465e6b;
+  /* Darkest "faint" that still reads as secondary: 5:1 on white, 4.6:1 on
+     the ground. The previous value failed small-text contrast. */
+  --sbs-ink-3: #5a7280;
 
-  /* ---- Accent: instrument cyan ---- */
-  --c-accent: #0a6d7e;
-  --c-accent-hover: #085462;
-  --c-accent-weak: #dcecef;
-  --c-accent-ring: rgba(10, 109, 126, 0.32);
-  --c-accent-glow: rgba(10, 109, 126, 0.14);
-  --c-on-accent: #ffffff;
+  /* Text that sits on a filled status segment. */
+  --on-status: #ffffff;
 
-  /* ---- Status: RESERVED. Spec-mandated, never decorative. ---- */
+  --sbs-signal: #0a6478;
+  --sbs-signal-hover: #084f5f;
+  --sbs-signal-weak: #dcebef;
+  --sbs-signal-line: rgba(10, 100, 120, 0.34);
+  --sbs-on-signal: #ffffff;
+
+  /* Ordinal ramp for stage/sequence encodings. One hue, light→dark,
+     validated for monotone lightness and step separation. Never used for
+     status, which owns its own four. */
+  --sbs-step-1: #4fbcd6;
+  --sbs-step-2: #2596b5;
+  --sbs-step-3: #15738f;
+  --sbs-step-4: #0d5470;
+  --sbs-step-5: #0a3a52;
+
+  /* ---- Status: RESERVED (SoW §7). Never decorative. ---- */
   --c-normal: #17764a;
   --c-normal-weak: #dcefe4;
   --c-approaching: #8f6708;
@@ -50,10 +68,9 @@
   --c-urgent-weak: #fae8da;
   --c-overdue: #a92019;
   --c-overdue-weak: #f9e1df;
-  --c-neutral: #4e6472;
-  --c-neutral-weak: #e3e9ed;
+  --c-neutral: #47616e;
+  --c-neutral-weak: #e5ecef;
 
-  /* ---- Criticality: its own hue, never the reserved four ---- */
   --c-critical: #63295a;
   --c-critical-weak: #f0e4ef;
 
@@ -74,68 +91,119 @@
   --s-12: 48px;
   --s-16: 64px;
 
-  /* ---- Radius: instruments are square. Spend it sparingly. ---- */
-  --r-input: 2px;
-  --r-pill: 2px;
-  --r-panel: 3px;
-  --r-float: 4px;
+  /* ---- Radius ----
+     Modern instrumentation is glass, not a bezel with sharp corners: the
+     plates are softened, and controls are softened further so they read as
+     touchable. Data cells stay tight so columns still line up. */
+  --r-input: 8px;
+  --r-pill: 999px;
+  --r-panel: 12px;
+  --r-float: 14px;
+  --r-cell: 4px;
 
-  /* ---- Elevation ---- */
-  --shadow-panel: 0 1px 2px rgba(15, 32, 40, 0.05);
-  --shadow-float: 0 18px 48px rgba(15, 32, 40, 0.18), 0 2px 8px rgba(15, 32, 40, 0.1);
+  /* Elevation is layered, not a single drop shadow: a tight contact shadow
+     plus a wide ambient one is what reads as a surface above a surface. */
+  --shadow-panel: 0 1px 2px rgba(13, 31, 41, 0.05), 0 8px 24px -12px rgba(13, 31, 41, 0.14);
+  --shadow-raised: 0 2px 4px rgba(13, 31, 41, 0.06), 0 14px 34px -14px rgba(13, 31, 41, 0.2);
+  --shadow-float: 0 20px 50px rgba(13, 31, 41, 0.22), 0 2px 8px rgba(13, 31, 41, 0.1);
+
+  /* A plate is lit from its top edge. */
+  --plate-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 120px);
+  --signal-wash: linear-gradient(135deg, rgba(10, 100, 120, 0.1), rgba(10, 100, 120, 0) 60%);
 
   /* ---- Layout ---- */
-  --sidebar-w: 232px;
-  --topbar-h: 54px;
-  --content-max: 1760px;
+  --rail-w: 244px;
+  --rail-w-collapsed: 64px;
+  --topbar-h: 58px;
+  --content-max: 1880px;
 
   --z-drawer: 40;
   --z-modal: 50;
   --z-toast: 60;
 
   color-scheme: light;
+
+  /* ---- Legacy aliases -------------------------------------------------
+     The other five dashboards still render on the previous primitives.
+     Mapping the old names onto the new console keeps them working, and
+     correct, until each one is rebuilt on the Bridge System. */
+  --c-bg: var(--sbs-ground);
+  --c-surface: var(--sbs-plate);
+  --c-surface-sunk: var(--sbs-plate-sunk);
+  --c-surface-raised: var(--sbs-plate-raised);
+  --c-border: var(--sbs-line);
+  --c-border-strong: var(--sbs-line-strong);
+  --c-hairline: var(--sbs-hairline);
+  --c-text: var(--sbs-ink);
+  --c-text-muted: var(--sbs-ink-2);
+  --c-text-faint: var(--sbs-ink-3);
+  --c-text-invert: var(--sbs-ground);
+  --c-accent: var(--sbs-signal);
+  --c-accent-hover: var(--sbs-signal-hover);
+  --c-accent-weak: var(--sbs-signal-weak);
+  --c-accent-ring: var(--sbs-signal-line);
+  --c-accent-glow: rgba(10, 100, 120, 0.12);
+  --c-on-accent: var(--sbs-on-signal);
+  --sidebar-w: var(--rail-w);
+  --c-depth-1: var(--sbs-step-1);
+  --c-depth-2: var(--sbs-step-2);
+  --c-depth-3: var(--sbs-step-3);
+  --c-depth-4: var(--sbs-step-4);
+  --c-depth-5: var(--sbs-step-5);
 }
 
-/* ---- Dark: the bridge at night. The primary theme. ---- */
+/* ---- Dark: the console at night. The primary theme. ---- */
 :root[data-theme='dark'] {
-  --c-bg: #050c11;
-  --c-surface: #0b161d;
-  --c-surface-sunk: #081218;
-  --c-surface-raised: #10222b;
-  --c-border: #162933;
-  --c-border-strong: #27414e;
-  --c-hairline: rgba(120, 200, 220, 0.055);
+  --sbs-ground: #0a141c;
+  --sbs-ground-deep: #060d13;
+  --sbs-plate: #101e28;
+  --sbs-plate-raised: #162834;
+  --sbs-plate-sunk: #0c1821;
+  --sbs-line: #1c3240;
+  --sbs-line-strong: #2c4c5e;
+  --sbs-hairline: rgba(122, 196, 216, 0.07);
 
-  --c-text: #dfeaf0;
-  --c-text-muted: #8fa8b6;
-  --c-text-faint: #5f7a8a;
-  --c-text-invert: #050c11;
+  --sbs-ink: #e8f1f5;
+  --sbs-ink-2: #a3b8c3;
+  --sbs-ink-3: #8199a6;
 
-  /* Phosphor cyan — the colour of the displays this replaces. */
-  --c-accent: #38c8dd;
-  --c-accent-hover: #5ad9eb;
-  --c-accent-weak: #0a2b34;
-  --c-accent-ring: rgba(56, 200, 221, 0.38);
-  --c-accent-glow: rgba(56, 200, 221, 0.16);
-  --c-on-accent: #03161b;
+  --on-status: #06141b;
 
-  /* Brightened to hold contrast on a dark ground, not inverted. */
+  --sbs-signal: #56cde2;
+  --sbs-signal-hover: #7adcec;
+  --sbs-signal-weak: #0d2e3a;
+  --sbs-signal-line: rgba(86, 205, 226, 0.36);
+  --sbs-on-signal: #04181f;
+
+  --sbs-step-1: #a8ecf7;
+  --sbs-step-2: #5fcfe6;
+  --sbs-step-3: #39a8ca;
+  --sbs-step-4: #2b83a8;
+  --sbs-step-5: #246a8c;
+
+  /* Brightened to hold contrast on a dark plate, not inverted. */
   --c-normal: #35c07c;
-  --c-normal-weak: #0c2a1d;
+  --c-normal-weak: #0d2a1e;
   --c-approaching: #e0ae2c;
   --c-approaching-weak: #2c2410;
   --c-urgent: #f08840;
   --c-urgent-weak: #301c0e;
   --c-overdue: #f2594d;
   --c-overdue-weak: #2f1211;
-  --c-neutral: #8fa8b6;
-  --c-neutral-weak: #14242c;
+  --c-neutral: #97aeba;
+  --c-neutral-weak: #16262f;
 
   --c-critical: #c98cba;
   --c-critical-weak: #261729;
 
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.02);
-  --shadow-float: 0 24px 60px rgba(0, 0, 0, 0.6), 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-panel: 0 1px 0 rgba(150, 225, 240, 0.04), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
+  --shadow-raised: 0 1px 0 rgba(150, 225, 240, 0.06), 0 22px 48px -18px rgba(0, 0, 0, 0.9);
+  --shadow-float: 0 24px 60px rgba(0, 6, 10, 0.66), 0 2px 10px rgba(0, 6, 10, 0.44);
+
+  --plate-sheen: linear-gradient(180deg, rgba(122, 200, 220, 0.045), rgba(122, 200, 220, 0) 130px);
+  --signal-wash: linear-gradient(135deg, rgba(86, 205, 226, 0.09), rgba(86, 205, 226, 0) 58%);
+
+  --c-accent-glow: rgba(86, 205, 226, 0.16);
 
   color-scheme: dark;
 }
@@ -155,19 +223,11 @@ body,
 
 body {
   margin: 0;
-  color: var(--c-text);
-  font: 400 14px/1.55 var(--font-ui);
+  color: var(--sbs-ink);
+  font: 400 15px/1.55 var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* A chart grid, at the threshold of visibility. It gives the ground a
-     material rather than a colour — the same reason chart paper is ruled. */
-  background-color: var(--c-bg);
-  background-image:
-    linear-gradient(var(--c-hairline) 1px, transparent 1px),
-    linear-gradient(90deg, var(--c-hairline) 1px, transparent 1px);
-  background-size: 48px 48px, 48px 48px;
-  background-position: -1px -1px;
+  background-color: var(--sbs-ground);
 }
 
 h1,
@@ -178,7 +238,7 @@ h4 {
   text-wrap: balance;
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
 }
 
 p {
@@ -222,37 +282,37 @@ th {
   font-variant-numeric: tabular-nums;
 }
 
-/* Uppercase micro-label. Used for every field label and section eyebrow. */
+/* Uppercase micro-label: every field label, section eyebrow and unit. */
 .label-micro {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--c-text-faint);
+  color: var(--sbs-ink-3);
 }
 
 :focus-visible {
-  outline: 2px solid var(--c-accent);
+  outline: 2px solid var(--sbs-signal);
   outline-offset: 2px;
   border-radius: 1px;
 }
 
 ::selection {
-  background: var(--c-accent-weak);
-  color: var(--c-text);
+  background: var(--sbs-signal-weak);
+  color: var(--sbs-ink);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--c-border-strong) transparent;
+  scrollbar-color: var(--sbs-line-strong) transparent;
 }
 *::-webkit-scrollbar {
   width: 9px;
   height: 9px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--c-border-strong);
+  background: var(--sbs-line-strong);
   border: 3px solid transparent;
   background-clip: content-box;
 }

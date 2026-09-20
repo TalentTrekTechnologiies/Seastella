@@ -27,6 +27,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Apply the viewer's saved theme before the first paint, so the sign-in page
+// matches the theme they last chose rather than flashing the default.
+try {
+  const saved = localStorage.getItem('seastella.theme');
+  if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+} catch {
+  /* storage blocked: keep the default theme */
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>

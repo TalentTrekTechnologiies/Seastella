@@ -55,8 +55,9 @@ export function formatMoney(amount: string | null | undefined, currency = 'USD')
   }).format(n);
 }
 
-export function formatHours(hours: string | null | undefined): string {
-  if (!hours) return '\u2014';
+export function formatHours(hours: string | number | null | undefined): string {
+  // A meter reading of zero is a reading, not a missing one.
+  if (hours === null || hours === undefined || hours === '') return '\u2014';
   const n = Number(hours);
   if (Number.isNaN(n)) return String(hours);
   return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} h`;

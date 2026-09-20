@@ -1,0 +1,65 @@
+/* Reports (SoW §7): a chooser beside the report itself. */
+
+.reports { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
+.reports__list {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--sbs-line);
+  border-radius: 14px;
+  background: var(--sbs-plate);
+  position: sticky;
+  top: 16px;
+}
+.reports__choice {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: left;
+}
+.reports__choice b { font-size: 14.5px; font-weight: 600; color: var(--sbs-ink); }
+.reports__choice span { font-size: 13px; line-height: 1.4; color: var(--sbs-ink-3); }
+.reports__choice:hover { background: var(--sbs-plate-sunk); }
+.reports__choice--on { background: var(--sbs-signal-weak); }
+.reports__choice--on b { color: var(--sbs-signal); }
+
+.reports__scroll { overflow-x: auto; }
+.reports__table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.reports__table th,
+.reports__table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--sbs-line);
+  white-space: nowrap;
+}
+.reports__table th {
+  position: sticky;
+  top: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sbs-ink-3);
+  background: var(--sbs-plate);
+}
+.reports__table tbody tr:hover { background: var(--sbs-plate-sunk); }
+.reports__num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.reports__totals {
+  list-style: none;
+  margin: 0;
+  padding: 14px 20px;
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--sbs-line);
+}
+.reports__totals li { display: grid; gap: 2px; }
+.reports__totals span { font-size: 12.5px; color: var(--sbs-ink-3); }
+.reports__totals b { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 900px) {
+  .reports { grid-template-columns: 1fr; }
+  .reports__list { position: static; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}

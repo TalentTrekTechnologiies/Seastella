@@ -1,0 +1,32 @@
+/* Replacement parts on board (SoW §9.5). */
+
+.parts { display: grid; gap: 10px; }
+.parts__summary { margin: 0; font-size: 14px; color: var(--sbs-ink-2); }
+.parts__summary b { color: var(--sbs-ink); }
+
+.parts__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.parts__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border: 1px solid var(--sbs-line);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: var(--sbs-plate);
+}
+.parts__item--short { border-left-color: var(--sbs-signal); background: var(--sbs-plate-sunk); }
+.parts__main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.parts__title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.parts__title .mono { font-size: 12.5px; color: var(--sbs-ink-3); }
+.parts__meta { font-size: 13px; color: var(--sbs-ink-3); }
+.parts__count { display: grid; justify-items: end; gap: 1px; min-width: 110px; }
+.parts__count b { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.parts__count span { font-size: 12.5px; color: var(--sbs-ink-3); }
+.parts__actions { display: flex; gap: 4px; }
+
+@media (max-width: 620px) {
+  .parts__item { flex-wrap: wrap; }
+  .parts__count { justify-items: start; min-width: 0; }
+  .parts__actions { width: 100%; }
+}
