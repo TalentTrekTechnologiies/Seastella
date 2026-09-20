@@ -1,6 +1,7 @@
 package com.seastella.identity.internal;
 
 import com.seastella.core.api.audit.AuditAction;
+import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditService;
 import com.seastella.identity.api.AuthDtos;
 import com.seastella.identity.api.Role;
@@ -107,7 +108,16 @@ public class AuthService {
 
         user.recordSuccessfulLogin();
         users.save(user);
-        audit.record(AuditAction.LOGIN_SUCCEEDED, "AppUser", user.getId(), null, null);
+        // Named explicitly: at this moment nothing has populated the security
+        // context, so the usual "whoever is signed in" actor would be nobody —
+        // and an audit trail whose sign-ins do not say who signed in is not one.
+        audit.record(AuditEntry.builder()
+                .actor(user.getId(), user.getRole().name())
+                .action(AuditAction.LOGIN_SUCCEEDED)
+                .entity("AppUser", user.getId())
+                .scope(user.getOrganizationId(), null)
+                .request(ip, userAgent)
+                .build());
 
         return new SignedIn(session(user), refreshTokens.issueForNewSession(user, ip, userAgent));
     }

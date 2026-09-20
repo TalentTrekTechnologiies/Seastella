@@ -37,10 +37,7 @@ export function dashboardPathFor(role: Role) {
 
 /** Phase-2 and later modules, shown as planned so the roadmap is honest. */
 const PLANNED: Record<Role, NavItem[]> = {
-  PLATFORM_ADMIN: [
-    { label: 'Users & roles', icon: 'users', planned: true },
-    { label: 'Audit trail', icon: 'audit', planned: true },
-  ],
+  PLATFORM_ADMIN: [],
   // Equipment is browsed inside a vessel, from Vessels & managers.
   TECHNICAL_HEAD: [],
   SHIP_MANAGER: [{ label: 'Invoices', icon: 'invoice', planned: true }],
@@ -62,6 +59,8 @@ const SETUP: Partial<Record<Role, NavItem[]>> = {
     { label: 'Problem types', to: '/platform/problem-types', icon: 'board' },
     { label: 'Maintenance bands', to: '/platform/bands', icon: 'cog' },
     { label: 'Alerts', to: '/platform/alerts', icon: 'bell' },
+    { label: 'Users & roles', to: '/platform/users', icon: 'users' },
+    { label: 'Audit trail', to: '/platform/audit', icon: 'audit' },
     { label: 'Data import', to: '/fleet/import', icon: 'report' },
   ],
   TECHNICAL_HEAD: [

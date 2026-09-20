@@ -457,6 +457,39 @@ show until Seastella supplies SMTP credentials.
 After that change the count is **92 of 92**: no backend endpoint is unreachable
 from the app, and no screen calls an endpoint that does not exist.
 
+**The two screens the nav still called "Planned" (20 Sep 2026)**
+
+Found by a tester's question — why is Users & roles still planned? — and the
+answer was worse than "not started".
+
+**Seastella's own staff could not be created at all.** The grant policy has
+always allowed a Platform Admin to create a Service Coordinator or a Service
+Engineer; no screen ever offered it. Client accounts are created where §4.1
+puts them — a Technical Head with its organization, a Captain with its vessel —
+but a Coordinator belongs to no client, so there was nowhere. They existed in
+the demo only because the seed makes them, which is exactly the kind of gap
+seed data hides. **Users & roles** now lists everyone on the platform, grouped
+by role and showing what each is scoped to, and is where a Coordinator (with
+the organizations they serve, OI-16) or an Engineer (scoped by their jobs
+alone) is created.
+
+**`AUD-15` was `BUILT` against a test that does not exist.** SoW §8.5 asks for
+"full audit-trail access (not limited to configuration actions)" and the only
+window onto the audit table was the activity feed, which deliberately drops
+sign-ins and individual guided-check answers so they do not bury the events a
+Platform Admin watches for. Right for a feed, wrong for an audit trail, and
+between them the requirement was unmet. **Audit trail** now serves the table
+unfiltered, newest first, filterable by action, with before/after values and
+keyset paging — read-only, because nothing in the platform can edit an audit
+row.
+
+Building it immediately exposed a real defect: **sign-in entries did not record
+who signed in.** The actor was resolved from the security context, which at
+that moment in a login is still empty. An audit trail whose sign-ins are
+anonymous is not one. Now written with the signing-in user as the actor, with
+their role and address. Covered by `AuditTrailIT` (3 cases: the trail holds
+what the feed omits and names the actor; Platform Admin only; filter and paging).
+
 Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 **C** = Software Requirements Document, **M** = master development brief.
 
@@ -725,7 +758,7 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | AUD-12 | User, role and vessel-assignment changes audited | B§32 | platform-core | `AuditCoverageIT` | BUILT |
 | AUD-13 | Threshold and configuration changes audited | B§32 | platform-core | `ConfigurationIT` | VERIFIED |
 | AUD-14 | Service-date changes audited | M§19 | platform-core | `AuditCoverageIT` | BUILT |
-| AUD-15 | Platform Admin has full audit access | A§8.5 | platform-core | `AuditScopeIT` | BUILT |
+| AUD-15 | Platform Admin has full audit access | A§8.5 | platform-core | `AuditTrailIT` | VERIFIED |
 
 ## RPT — Reporting
 

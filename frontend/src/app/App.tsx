@@ -16,6 +16,8 @@ import { OrganizationsPage } from '@/features/admin/OrganizationsPage';
 import { ActivityFeedPage } from '@/features/platform-admin/ActivityFeedPage';
 import { MaintenanceBandsPage } from '@/features/platform-admin/MaintenanceBandsPage';
 import { AlertRulesPage } from '@/features/platform-admin/AlertRulesPage';
+import { AuditTrailPage } from '@/features/platform-admin/AuditTrailPage';
+import { UsersPage } from '@/features/platform-admin/UsersPage';
 import { FleetSetupPage } from '@/features/admin/FleetSetupPage';
 import { VesselEquipmentPage } from '@/features/admin/VesselEquipmentPage';
 import { CaptainsPage } from '@/features/admin/CaptainsPage';
@@ -89,6 +91,9 @@ function Console() {
         <Route path="/platform/bands" element={<Guard role="PLATFORM_ADMIN" user={user.role}><MaintenanceBandsPage /></Guard>} />
         {/* Who is told about what, and whether it reached them (SoW §8.5, §11). */}
         <Route path="/platform/alerts" element={<Guard role="PLATFORM_ADMIN" user={user.role}><AlertRulesPage /></Guard>} />
+        {/* SoW §8.5: the users overview, and the trail in full. */}
+        <Route path="/platform/users" element={<Guard role="PLATFORM_ADMIN" user={user.role}><UsersPage /></Guard>} />
+        <Route path="/platform/audit" element={<Guard role="PLATFORM_ADMIN" user={user.role}><AuditTrailPage /></Guard>} />
         {/* Troubleshooting content (SoW §13). */}
         <Route path="/platform/checks" element={<Guard role="PLATFORM_ADMIN" user={user.role}><ChecksPage /></Guard>} />
         <Route path="/platform/checks/:flowId" element={<Guard role="PLATFORM_ADMIN" user={user.role}><CheckEditorPage /></Guard>} />

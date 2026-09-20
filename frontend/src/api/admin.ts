@@ -103,6 +103,8 @@ export const createAccount = (body: {
   organizationId?: number;
   vesselId?: number;
   vesselIds?: number[];
+  /** Seastella-side staff are scoped by the client organizations they serve (OI-16). */
+  organizationIds?: number[];
 }) => api.post<LinkSent>('/api/v1/users', body);
 
 /** A fresh invitation for someone who has not accepted; the earlier link stops working. */
