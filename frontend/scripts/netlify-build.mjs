@@ -20,8 +20,18 @@ const run = (cmd, options = {}) =>
   });
 
 if (origin) {
+  const buildEnv = {
+    ...process.env,
+    VITE_API_URL: origin,
+  };
+
+  console.log('=== SEASTELLA BUILD CONFIG ===');
+  console.log('SEASTELLA_API_ORIGIN:', buildEnv.SEASTELLA_API_ORIGIN);
+  console.log('VITE_API_URL:', buildEnv.VITE_API_URL);
+  console.log('==============================');
+
   console.log(`Building against the live backend at ${origin}`);
-  run('npm run build', { env: { ...process.env, VITE_API_URL: origin } });
+  run('npm run build', { env: buildEnv });
 } else {
   console.log('SEASTELLA_API_ORIGIN not set: building the frontend-only demo');
   run('npm run build:demo');

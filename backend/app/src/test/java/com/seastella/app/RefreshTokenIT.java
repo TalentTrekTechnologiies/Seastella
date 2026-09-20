@@ -143,6 +143,30 @@ class RefreshTokenIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    @DisplayName("Netlify production origin is allowed for refresh preflight requests")
+    void productionOriginAllowsPreflightForRefresh() throws Exception {
+        mvc.perform(post("/api/v1/auth/refresh")
+                        .header(HttpHeaders.ORIGIN, "https://seastella.netlify.app")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type,authorization,x-requested-with")
+                        .header("X-Requested-With", "SeaStella"))
+                .andExpect(status().isOk());
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/v1/auth/refresh")
+                        .header(HttpHeaders.ORIGIN, "https://seastella.netlify.app")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type,authorization,x-requested-with"))
+                .andExpect(status().isOk())
+                .andExpect(result -> {
+                    String allowOrigin = result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);
+                    assertThat(allowOrigin).isEqualTo("https://seastella.netlify.app");
+                    assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS)).isEqualTo("true");
+                    assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS)).contains("POST");
+                    assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS)).contains("Authorization");
+                });
+    }
+
     private MvcResult login(String email) throws Exception {
         return mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

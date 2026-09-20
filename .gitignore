@@ -23,3 +23,8 @@ data-backup-*/
 # A JVM that runs out of memory or disk leaves these behind.
 hs_err_pid*.log
 replay_pid*.log
+
+# Eclipse IDE files
+.project
+.classpath
+.settings/
