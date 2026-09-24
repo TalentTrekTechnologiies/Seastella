@@ -69,6 +69,7 @@ class SchemaMigrationIT {
                 // troubleshooting (V13, V15)
                 "troubleshooting_flow", "troubleshooting_step", "troubleshooting_session",
                 "troubleshooting_response", "conversation", "conversation_message", "conversation_read",
+                "spare_service_record",
                 // identity-access (V16, V17)
                 "refresh_token", "user_token",
                 // masterdata-import (V21)
@@ -111,7 +112,10 @@ class SchemaMigrationIT {
                 "23",   // notification: certificate expiry reminders
                 "24",   // notification: part shortage alerts
                 "25",   // identity-access: sessions end when a sign-in address changes
-                "26");  // troubleshooting: one thread, read state and attachments
+                "26",   // troubleshooting: one thread, read state and attachments
+                "27",   // fleet: a Spare's service history
+                "28",   // fleet: critical spares, minimum notes and compliance
+                "29"); // masterdata-import: a staged row says what kind of thing it is
     }
 
     @Test

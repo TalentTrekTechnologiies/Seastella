@@ -30,13 +30,15 @@ class DefaultSpareServiceHistory implements SpareServiceHistory {
     private static final Logger log = LoggerFactory.getLogger(DefaultSpareServiceHistory.class);
 
     private final SpareRepository spares;
+    private final SpareServiceRecordRepository records;
     private final VesselRepository vessels;
     private final ScopeResolver scopes;
     private final AuditService audit;
 
-    DefaultSpareServiceHistory(SpareRepository spares, VesselRepository vessels, ScopeResolver scopes,
-                               AuditService audit) {
+    DefaultSpareServiceHistory(SpareRepository spares, SpareServiceRecordRepository records,
+                               VesselRepository vessels, ScopeResolver scopes, AuditService audit) {
         this.spares = spares;
+        this.records = records;
         this.vessels = vessels;
         this.scopes = scopes;
         this.audit = audit;
@@ -44,21 +46,30 @@ class DefaultSpareServiceHistory implements SpareServiceHistory {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public void recordCompletedService(Long spareId, LocalDate serviceDate, String requestNumber) {
-        if (spareId == null || serviceDate == null) return;
-        Spare spare = spares.findById(spareId).orElse(null);
+    public void recordCompletedService(CompletedService service) {
+        if (service == null || service.spareId() == null || service.serviceDate() == null) return;
+        Spare spare = spares.findById(service.spareId()).orElse(null);
         if (spare == null) {
-            log.warn("Completed service for a spare that no longer exists: {}", spareId);
+            log.warn("Completed service for a spare that no longer exists: {}", service.spareId());
             return;
         }
+        // One request, one history row, however many times completion replays.
+        if (service.serviceRequestId() != null
+                && records.findByServiceRequestId(service.serviceRequestId()).isPresent()) {
+            return;
+        }
+
+        records.save(SpareServiceRecord.fromRequest(spare.getId(), spare.getVesselId(), service.serviceDate(),
+                workPerformed(service), service.partsUsed(), service.performedBy(),
+                service.serviceRequestId(), service.requestNumber()));
+
         LocalDate before = spare.getLastAnnualServiceDate();
-        if (before != null && !serviceDate.isAfter(before)) {
-            // An older date is history, not a correction: the trail keeps it,
-            // the spare keeps the most recent service it has had.
-            return;
+        // An older date is history, not a correction: the record keeps it, the
+        // spare keeps the most recent service it has actually had.
+        if (before == null || service.serviceDate().isAfter(before)) {
+            spare.setLastAnnualServiceDate(service.serviceDate());
+            spares.save(spare);
         }
-        spare.setLastAnnualServiceDate(serviceDate);
-        spares.save(spare);
 
         AccessScope actor = scopes.currentScope();
         Long organizationId = vessels.findById(spare.getVesselId()).map(Vessel::getOrganizationId).orElse(null);
@@ -68,7 +79,19 @@ class DefaultSpareServiceHistory implements SpareServiceHistory {
                 .entity("Spare", spare.getId())
                 .scope(organizationId, spare.getVesselId())
                 .before(AuditJson.of("lastAnnualServiceDate", before))
-                .after(AuditJson.of("lastAnnualServiceDate", serviceDate, "serviceRequest", requestNumber))
+                .after(AuditJson.of("lastAnnualServiceDate", spare.getLastAnnualServiceDate(),
+                        "serviceDate", service.serviceDate(), "serviceRequest", service.requestNumber(),
+                        "source", "PLATFORM"))
                 .build());
+    }
+
+    /** The engineer's own words where there are any; otherwise something true. */
+    private static String workPerformed(CompletedService service) {
+        String reported = service.workPerformed() == null ? "" : service.workPerformed().trim();
+        if (!reported.isEmpty()) {
+            return reported.length() > 2000 ? reported.substring(0, 1999) + "…" : reported;
+        }
+        return "Service completed under " + (service.requestNumber() == null ? "a service request"
+                : service.requestNumber()) + ".";
     }
 }

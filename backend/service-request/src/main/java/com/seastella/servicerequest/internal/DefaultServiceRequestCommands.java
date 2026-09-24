@@ -130,16 +130,25 @@ class DefaultServiceRequestCommands implements ServiceRequestCommands {
                 new TransitionRequest(action, scope.userId(), scope.role(), trimToNull(reason), engineerUserId));
 
         if (action == ServiceRequestAction.COMPLETE) {
+            CompletionReport report = reports.findByServiceRequestId(request.getId()).orElse(null);
             // SoW s18: a completed service recalculates the next-service-due
             // date. Same transaction, so the new cycle commits with the completion.
-            LocalDate serviceDate = reports.findByServiceRequestId(request.getId())
-                    .map(CompletionReport::getServiceDate)
-                    .orElse(LocalDate.now(ZoneOffset.UTC));
+            LocalDate serviceDate = report == null ? LocalDate.now(ZoneOffset.UTC) : report.getServiceDate();
             maintenance.serviceCompleted(request.getSpareId(), serviceDate);
-            // SRQ-19: and the spare itself carries the date of its last service,
-            // which is what the equipment report and a surveyor ask for.
-            serviceHistory.recordCompletedService(request.getSpareId(), serviceDate, request.getRequestNumber());
+            // SRQ-19: and the spare's own history gains what was done, not just
+            // when - which is what a surveyor reads and what an audit asks for.
+            serviceHistory.recordCompletedService(new SpareServiceHistory.CompletedService(
+                    request.getSpareId(), request.getId(), request.getRequestNumber(), serviceDate,
+                    report == null ? null : report.getWorkPerformed(),
+                    report == null ? null : report.getPartsUsed(),
+                    report == null ? null : engineerName(report.getEngineerUserId())));
         }
+    }
+
+    /** The engineer who did the work, by name: a history row is read by people. */
+    private String engineerName(Long engineerUserId) {
+        return engineerUserId == null ? null
+                : users.find(engineerUserId).map(UserDirectory.UserRef::fullName).orElse(null);
     }
 
     @Override

@@ -58,6 +58,31 @@
 .imp-changes b { font-weight: 600; }
 .imp-changes svg { color: var(--sbs-signal); }
 
+/* One workbook can hold a vessel, its equipment and its spares; each group
+   says which it is, and the heading is dropped when there is only one. */
+.imp-group { display: grid; gap: 8px; }
+.imp-group + .imp-group { margin-top: 18px; }
+.imp-group__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sbs-ink-3);
+}
+.imp-group__count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--sbs-ink-2);
+  background: var(--sbs-plate-sunk);
+}
+.imp-row-item__on { font-style: normal; color: var(--sbs-ink-3); }
+
 @media (max-width: 640px) {
   .imp-changes__field { min-width: 0; }
 }

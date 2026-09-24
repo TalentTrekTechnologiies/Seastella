@@ -7,6 +7,22 @@ import { api, downloadFile, uploadFile } from './client';
 
 export type RowOutcome = 'NEW' | 'MODIFIED' | 'UNCHANGED' | 'INVALID' | 'DUPLICATE';
 
+/**
+ * What a staged row is about. A client's own workbook can carry all three at
+ * once - the vessel's particulars, its equipment, and a minimum-spares form -
+ * and each lands somewhere different.
+ */
+export type RowKind = 'VESSEL' | 'EQUIPMENT' | 'CRITICAL_SPARE';
+
+export const KIND_LABEL: Record<RowKind, string> = {
+  VESSEL: 'Vessel details',
+  EQUIPMENT: 'Equipment',
+  CRITICAL_SPARE: 'Critical spares',
+};
+
+/** The order the preview reads in: a ship, then its equipment, then its spares. */
+export const KIND_ORDER: RowKind[] = ['VESSEL', 'EQUIPMENT', 'CRITICAL_SPARE'];
+
 export const OUTCOME_LABEL: Record<RowOutcome, string> = {
   NEW: 'Add',
   MODIFIED: 'Change',
@@ -23,11 +39,14 @@ export interface RowChange {
 
 export interface ImportRowView {
   id: number;
+  kind: RowKind;
   rowNumber: number;
   imoNumber: string | null;
   vesselName: string | null;
   vmpRef: string | null;
   spareName: string | null;
+  /** For a critical spare, the equipment the form hangs it on. */
+  equipmentLabel: string | null;
   outcome: RowOutcome;
   messages: string | null;
   changes: RowChange[];

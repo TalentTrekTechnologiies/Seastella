@@ -52,6 +52,27 @@ public class ReplacementPart extends BaseEntity implements VesselScoped {
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
+    /**
+     * One of the minimum spares the client's own form requires (GM 2.3.9.9),
+     * as opposed to an ordinary consumable somebody recorded.
+     */
+    @Column(name = "critical", nullable = false)
+    private boolean critical;
+
+    /**
+     * The requirement as the form words it, where a number cannot say it:
+     * "2 pcs each athwartship, fore &amp; aft and Flinders bar".
+     */
+    @Column(name = "minimum_note", length = 300)
+    private String minimumNote;
+
+    /** YES, NO or NA. Null means nobody has assessed it yet, which is not NA. */
+    @Column(name = "compliance", length = 8)
+    private String compliance;
+
+    @Column(name = "remarks", length = 1000)
+    private String remarks;
+
     @Column(name = "seed_marker", length = 8)
     private String seedMarker;
 
@@ -77,6 +98,10 @@ public class ReplacementPart extends BaseEntity implements VesselScoped {
     public String getLocation() { return location; }
     public LocalDate getExpiryDate() { return expiryDate; }
     public String getSeedMarker() { return seedMarker; }
+    public boolean isCritical() { return critical; }
+    public String getMinimumNote() { return minimumNote; }
+    public String getCompliance() { return compliance; }
+    public String getRemarks() { return remarks; }
 
     /** Derived, never stored - see the class note. */
     public boolean isBelowMinimum() {
@@ -94,5 +119,16 @@ public class ReplacementPart extends BaseEntity implements VesselScoped {
 
     /** What the vessel must always hold; shortage is derived from it, never stored. */
     public void setMinimumQuantity(int minimum) { this.minimumQuantity = minimum; }
+    public void setCritical(boolean critical) { this.critical = critical; }
+    public void setMinimumNote(String v) { this.minimumNote = v; }
+    public void setRemarks(String v) { this.remarks = v; }
+
+    /**
+     * What the vessel declares about this requirement. Null is not the same as
+     * NA: one means nobody has looked, the other means the equipment is not
+     * carried, and a compliance form that cannot tell them apart is worthless.
+     */
+    public void setCompliance(String value) { this.compliance = value; }
+
     public void markSeed() { this.seedMarker = "SEED"; }
 }

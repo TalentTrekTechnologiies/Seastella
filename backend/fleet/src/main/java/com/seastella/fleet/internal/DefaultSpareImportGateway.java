@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -34,15 +35,17 @@ class DefaultSpareImportGateway implements SpareImportGateway {
     private final VesselRepository vessels;
     private final SpareRepository spares;
     private final EquipmentCategoryRepository categories;
+    private final ReplacementPartRepository parts;
     private final ScopeResolver scopes;
     private final DomainEventPublisher events;
 
     DefaultSpareImportGateway(VesselRepository vessels, SpareRepository spares,
-                              EquipmentCategoryRepository categories, ScopeResolver scopes,
-                              DomainEventPublisher events) {
+                              EquipmentCategoryRepository categories, ReplacementPartRepository parts,
+                              ScopeResolver scopes, DomainEventPublisher events) {
         this.vessels = vessels;
         this.spares = spares;
         this.categories = categories;
+        this.parts = parts;
         this.scopes = scopes;
         this.events = events;
     }
@@ -106,6 +109,93 @@ class DefaultSpareImportGateway implements SpareImportGateway {
         apply(spare, values);
         spares.save(spare);
         publishServiceDate(spare, before, spare.getLastAnnualServiceDate());
+    }
+
+    // ------------------------------------------------------- vessel particulars
+
+    @Override
+    @Transactional(readOnly = true)
+    public VesselParticulars particulars(Long vesselId) {
+        return vessels.findById(vesselId)
+                .map(v -> new VesselParticulars(v.getName(), v.getMmsi(), v.getCallSign(), v.getFlag(),
+                        v.getVesselClass(), v.getArea(), v.getVesselType(), v.getDwt()))
+                .orElseGet(VesselParticulars::empty);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void updateVessel(Long vesselId, VesselParticulars v) {
+        Vessel vessel = vessels.findById(vesselId).orElseThrow();
+        if (v.name() != null) vessel.setName(v.name().trim());
+        if (v.mmsi() != null) vessel.setMmsi(blankToNull(v.mmsi()));
+        if (v.callSign() != null) vessel.setCallSign(blankToNull(v.callSign()));
+        if (v.flag() != null) vessel.setFlag(blankToNull(v.flag()));
+        if (v.vesselClass() != null) vessel.setVesselClass(blankToNull(v.vesselClass()));
+        if (v.area() != null) vessel.setArea(blankToNull(v.area()));
+        if (v.vesselType() != null) vessel.setVesselType(blankToNull(v.vesselType()));
+        if (v.dwt() != null) vessel.setDwt(v.dwt());
+        vessels.save(vessel);
+    }
+
+    // ------------------------------------------------------------ critical spares
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, ExistingPart> criticalSparesByKey(Long vesselId) {
+        Map<Long, String> equipmentNames = new LinkedHashMap<>();
+        spares.findByVesselIdOrderByPathAsc(vesselId)
+                .forEach(sp -> equipmentNames.put(sp.getId(), sp.getName()));
+
+        Map<String, ExistingPart> byKey = new LinkedHashMap<>();
+        for (ReplacementPart part : parts.findByVesselIdOrderByNameAsc(vesselId)) {
+            PartValues values = valuesOf(part, equipmentNames.get(part.getSpareId()));
+            // First one wins: two rows sharing a key are the caller's duplicate to report,
+            // not ours to silently merge.
+            byKey.putIfAbsent(values.key(), new ExistingPart(part.getId(), values));
+        }
+        return byKey;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Long createCriticalSpare(Long vesselId, PartValues v) {
+        // A minimum of 0 is what the form says when it states no countable figure;
+        // the note carries the words.
+        ReplacementPart part = new ReplacementPart(vesselId, v.name().trim(),
+                v.quantityOnHand() == null ? 0 : v.quantityOnHand(),
+                v.minimumQuantity() == null ? 0 : v.minimumQuantity());
+        part.setCritical(true);
+        applyPart(part, v);
+        return parts.save(part).getId();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void updateCriticalSpare(Long partId, PartValues v) {
+        ReplacementPart part = parts.findById(partId).orElseThrow();
+        if (v.minimumQuantity() != null) part.setMinimumQuantity(v.minimumQuantity());
+        if (v.quantityOnHand() != null) part.setQuantityOnHand(v.quantityOnHand());
+        part.setCritical(true);
+        applyPart(part, v);
+        parts.save(part);
+    }
+
+    /**
+     * The fields a sheet may set. Stock on hand and the minimum are handled by
+     * the callers above, because creating needs a figure and updating must not
+     * reset one to zero just because the cell was blank.
+     */
+    private void applyPart(ReplacementPart part, PartValues v) {
+        if (v.spareId() != null) part.setSpareId(v.spareId());
+        if (v.minimumNote() != null) part.setMinimumNote(blankToNull(v.minimumNote()));
+        if (v.compliance() != null) part.setCompliance(blankToNull(v.compliance()));
+        if (v.remarks() != null) part.setRemarks(blankToNull(v.remarks()));
+    }
+
+    private static PartValues valuesOf(ReplacementPart p, String equipmentName) {
+        return new PartValues(p.getName(), equipmentName, null, p.getSpareId(),
+                p.getMinimumQuantity(), p.getMinimumNote(), p.getQuantityOnHand(),
+                p.getCompliance(), p.getRemarks());
     }
 
     /** 13.1.2 hangs under 13.1; a top-level reference has no parent. */

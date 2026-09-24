@@ -146,12 +146,15 @@ class RefreshTokenIT {
     @Test
     @DisplayName("Netlify production origin is allowed for refresh preflight requests")
     void productionOriginAllowsPreflightForRefresh() throws Exception {
+        // An allowed origin is not a credential. The browser is permitted to
+        // make the call; the call still has to carry a refresh cookie, and
+        // without one it is refused exactly as from anywhere else. CORS that
+        // let an unauthenticated refresh through would be a way in, not a
+        // convenience.
         mvc.perform(post("/api/v1/auth/refresh")
                         .header(HttpHeaders.ORIGIN, "https://seastella.netlify.app")
-                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
-                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "content-type,authorization,x-requested-with")
                         .header("X-Requested-With", "SeaStella"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
 
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/v1/auth/refresh")
                         .header(HttpHeaders.ORIGIN, "https://seastella.netlify.app")
@@ -163,7 +166,11 @@ class RefreshTokenIT {
                     assertThat(allowOrigin).isEqualTo("https://seastella.netlify.app");
                     assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS)).isEqualTo("true");
                     assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS)).contains("POST");
-                    assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS)).contains("Authorization");
+                    // Spring echoes back the headers the browser asked for, in
+                    // the case the browser used. Header names are
+                    // case-insensitive, so the assertion has to be too.
+                    assertThat(result.getResponse().getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS))
+                            .containsIgnoringCase("authorization");
                 });
     }
 

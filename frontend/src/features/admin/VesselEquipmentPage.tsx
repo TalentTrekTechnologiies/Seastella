@@ -11,8 +11,10 @@ import { formatDays } from '@/design-system/status';
 import { formatDate } from '@/lib/format';
 import { errorText } from './AdminParts';
 import { DocumentsPanel } from '@/features/documents/DocumentsPanel';
-import { PartsPanel } from '@/features/parts/PartsPanel';
+import { CriticalSparesPanel } from '@/features/parts/CriticalSparesPanel';
 import { SpareTree } from '@/features/spares/SpareTree';
+import { ServiceHistoryPanel } from './ServiceHistoryPanel';
+import { AddSpareDialog } from './AddSpareDialog';
 import { Dialog as DocumentsDialog } from '@/design-system/Dialog';
 
 /**
@@ -32,6 +34,8 @@ export function VesselEquipmentPage() {
   const due = useQuery({ queryKey: ['vessel-maintenance', vesselId], queryFn: () => fetchVesselMaintenance(vesselId), enabled: Number.isFinite(vesselId) });
   const [editing, setEditing] = useState<SpareNode | null>(null);
   const [documentsFor, setDocumentsFor] = useState<SpareNode | null>(null);
+  const [historyFor, setHistoryFor] = useState<SpareNode | null>(null);
+  const [addingUnder, setAddingUnder] = useState<SpareNode | null | undefined>(undefined);
   const [notice, setNotice] = useState<string | null>(null);
 
   const dueBySpare = useMemo(() => new Map((due.data ?? []).map((d) => [d.spareId, d])), [due.data]);
@@ -62,6 +66,11 @@ export function VesselEquipmentPage() {
         title="Equipment"
         count={spares.length}
         subtitle={`${withDetails} with details recorded · ${tracked} under maintenance tracking`}
+        action={
+          <Button variant="primary" onClick={() => setAddingUnder(null)}>
+            Add equipment
+          </Button>
+        }
         flush
       >
         {fit.isLoading ? (
@@ -76,6 +85,13 @@ export function VesselEquipmentPage() {
             meta={(spare) => <EquipmentMeta spare={spare} due={dueBySpare.get(spare.id)} />}
             actions={(spare) => (
               <>
+                {/* The history is what a surveyor and an auditor ask for. */}
+                <Button variant="ghost" onClick={() => setHistoryFor(spare)}>
+                  Service history
+                </Button>
+                <Button variant="ghost" onClick={() => setAddingUnder(spare)}>
+                  Add spare
+                </Button>
                 <Button variant="ghost" onClick={() => setDocumentsFor(spare)}>
                   Documents
                 </Button>
@@ -86,13 +102,8 @@ export function VesselEquipmentPage() {
         )}
       </Plate>
 
-      {/* The Technical Head decides what must be held; the vessel counts it. */}
-      <Plate
-        title="Replacement parts"
-        subtitle="Spare parts held on board. Set the minimum each part must not fall below — the bridge and the office are alerted when a count goes under it."
-      >
-        <PartsPanel vesselId={vesselId} canSetMinimum />
-      </Plate>
+      {/* The client's own minimum-spares form (GM 2.3.9.9), per vessel. */}
+      <CriticalSparesPanel vesselId={vesselId} equipment={spares} canManage />
 
       <Plate
         title="Vessel documents"
@@ -100,6 +111,38 @@ export function VesselEquipmentPage() {
       >
         <DocumentsPanel ownerType="VESSEL" ownerId={vesselId} ownerName={fit.data?.vesselName ?? 'this vessel'} canAttach />
       </Plate>
+
+      {historyFor && (
+        <DocumentsDialog
+          title="Service history"
+          subtitle={`${historyFor.path} · ${historyFor.name}`}
+          onClose={() => setHistoryFor(null)}
+          width={820}
+        >
+          <ServiceHistoryPanel
+            spareId={historyFor.id}
+            spareName={historyFor.name}
+            canRecord
+            onChanged={() => {
+              client.invalidateQueries({ queryKey: ['vessel-fit', vesselId] });
+              client.invalidateQueries({ queryKey: ['vessel-maintenance', vesselId] });
+            }}
+          />
+        </DocumentsDialog>
+      )}
+
+      {addingUnder !== undefined && (
+        <AddSpareDialog
+          vesselId={vesselId}
+          parent={addingUnder}
+          onClose={() => setAddingUnder(undefined)}
+          onAdded={(added) => {
+            setAddingUnder(undefined);
+            setNotice(`${added.path} ${added.name} added.`);
+            client.invalidateQueries({ queryKey: ['vessel-fit', vesselId] });
+          }}
+        />
+      )}
 
       {documentsFor && (
         <DocumentsDialog

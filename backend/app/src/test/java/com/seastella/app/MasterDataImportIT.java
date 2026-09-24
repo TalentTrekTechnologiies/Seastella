@@ -223,11 +223,16 @@ class MasterDataImportIT {
     }
 
     @Test
-    @DisplayName("a file that is not the template is refused with an explanation")
-    void notTheTemplate() throws Exception {
+    @DisplayName("a file nothing can be read from is refused, and says what was needed")
+    void aFileNothingCanBeReadFrom() throws Exception {
         MvcResult notXlsx = upload(head, "IMO,VMP\n123,13.1".getBytes());
         assertThat(notXlsx.getResponse().getStatus()).isEqualTo(400);
+        assertThat(notXlsx.getResponse().getContentAsString()).contains(".xlsx");
 
+        // A workbook whose headings mean nothing to us. A client's own file no
+        // longer has to look like our template - ClientSheetImportIT covers what
+        // is read from one - but a file with no recognisable column at all still
+        // cannot be guessed at, and says so rather than importing nothing.
         byte[] wrongColumns;
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Spares");
@@ -243,7 +248,9 @@ class MasterDataImportIT {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + head))
                 .andReturn();
         assertThat(refused.getResponse().getStatus()).isEqualTo(400);
-        assertThat(refused.getResponse().getContentAsString()).contains("IMO Number");
+        assertThat(refused.getResponse().getContentAsString())
+                .as("the message names what a sheet needs, and offers the template")
+                .contains("template");
     }
 
     @Test

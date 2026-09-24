@@ -11,6 +11,8 @@ public interface ReplacementPartRepository extends JpaRepository<ReplacementPart
 
     List<ReplacementPart> findByVesselIdIn(Set<Long> vesselIds);
 
+    List<ReplacementPart> findByVesselIdOrderByNameAsc(Long vesselId);
+
     /** Shortage is derived in the predicate, never read from a stored flag. */
     @Query("select p from ReplacementPart p where p.vesselId in :ids and p.quantityOnHand < p.minimumQuantity")
     List<ReplacementPart> findBelowMinimum(@Param("ids") Set<Long> ids);

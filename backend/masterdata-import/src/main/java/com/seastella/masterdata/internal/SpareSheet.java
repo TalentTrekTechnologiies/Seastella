@@ -174,6 +174,32 @@ final class SpareSheet {
 
     // ---------------------------------------------------------------- parse
 
+    /**
+     * Whether this workbook is our template.
+     *
+     * <p>The test is the two columns the template requires and no other file
+     * happens to have together - an IMO number beside a VMP reference. A file
+     * that passes is parsed here, exactly; anything else is read leniently by
+     * {@link ClientSheetReader}, which is right for a stranger's file and
+     * wrong for ours, because it has no concept of half our columns.
+     */
+    static boolean isTemplate(byte[] content) {
+        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
+            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                Sheet sheet = workbook.getSheetAt(i);
+                Row headings = sheet.getRow(sheet.getFirstRowNum());
+                if (headings == null) continue;
+                Map<Column, Integer> columns = columns(headings);
+                if (columns.containsKey(Column.IMO) && columns.containsKey(Column.VMP_REF)) return true;
+            }
+            return false;
+        } catch (IOException | RuntimeException e) {
+            // Not readable as our template. Whether it is readable at all is the
+            // lenient reader's answer to give, with a better message than this.
+            return false;
+        }
+    }
+
     static List<ParsedRow> parse(byte[] content) {
         try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
             Sheet sheet = sheet(workbook);

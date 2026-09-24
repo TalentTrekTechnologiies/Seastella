@@ -124,3 +124,8 @@
 }
 .userrole:first-of-type .userrole__head { border-top: 0; }
 .userrole__head .mono { color: var(--sbs-signal); }
+
+/* A checkbox with its reason underneath (SoW §9 equipment entry). */
+.checkline { display: flex; gap: 11px; align-items: flex-start; cursor: pointer; font-size: 14.5px; }
+.checkline input { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--sbs-signal); flex: none; }
+.checkline small { display: block; margin-top: 2px; font-size: 13px; color: var(--sbs-ink-3); }

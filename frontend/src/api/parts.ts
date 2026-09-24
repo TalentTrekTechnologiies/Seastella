@@ -18,7 +18,38 @@ export interface PartRow {
   expiryDate: string | null;
   spareId: number | null;
   spareName: string | null;
+  sparePath: string | null;
+  /** One of the minimum spares the client's own form requires (GM 2.3.9.9). */
+  critical: boolean;
+  /** The requirement in the form's words, where a number cannot say it. */
+  minimumNote: string | null;
+  compliance: 'YES' | 'NO' | 'NA' | null;
+  remarks: string | null;
 }
+
+export interface NewPart {
+  name: string;
+  /** The equipment it belongs to. */
+  spareId?: number;
+  partNumber?: string;
+  manufacturer?: string;
+  quantityOnHand?: number;
+  minimumQuantity?: number;
+  minimumNote?: string;
+  compliance?: 'YES' | 'NO' | 'NA';
+  remarks?: string;
+  location?: string;
+  expiryDate?: string;
+  critical?: boolean;
+}
+
+/** Adds one line of the vessel's minimum-spares form. */
+export const addPart = (vesselId: number, part: NewPart) =>
+  api.post<PartRow>(`/api/v1/vessels/${vesselId}/parts`, part);
+
+/** What the vessel declares about one requirement, and why. */
+export const declareCompliance = (partId: number, compliance: 'YES' | 'NO' | 'NA' | null, remarks?: string) =>
+  api.put<PartRow>(`/api/v1/parts/${partId}/compliance`, { compliance, remarks });
 
 export const fetchParts = (vesselId: number) => api.get<PartRow[]>(`/api/v1/vessels/${vesselId}/parts`);
 

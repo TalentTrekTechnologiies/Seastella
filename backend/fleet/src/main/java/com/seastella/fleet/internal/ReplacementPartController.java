@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -104,6 +105,110 @@ class ReplacementPartController {
         return ResponseEntity.ok(view(part));
     }
 
+    /**
+     * Adds a spare part the vessel must hold (GM 2.3.9.9).
+     *
+     * <p>The client keeps a minimum-spares form per vessel: the equipment, the
+     * part, how many must be aboard, whether the vessel complies, and remarks.
+     * This is one line of that form, entered by hand; the same rows arrive in
+     * bulk through the spreadsheet import.
+     *
+     * <p>The minimum is kept twice on purpose — as a number, because the
+     * below-minimum alert is arithmetic, and as the form's own words, because
+     * "2 pcs each athwartship, fore and aft and Flinders bar" is not a number.
+     */
+    @PostMapping("/vessels/{vesselId}/parts")
+    @Transactional
+    ResponseEntity<PartView> add(@PathVariable Long vesselId, @RequestBody NewPartBody body) {
+        AccessScope actor = scopes.currentScope();
+        if (actor.role() != Role.PLATFORM_ADMIN && actor.role() != Role.TECHNICAL_HEAD) {
+            throw ForbiddenException.ofAction("add to what this vessel must hold in stock");
+        }
+        scopeGuard.assertVessel(vesselId);
+        if (body == null) throw new ValidationException("Enter the part's details.");
+
+        String name = required(body.name(), 200);
+        int minimum = body.minimumQuantity() == null ? 0 : body.minimumQuantity();
+        int onHand = body.quantityOnHand() == null ? 0 : body.quantityOnHand();
+        if (minimum < 0 || minimum > 100_000) throw new ValidationException("Enter a minimum between 0 and 100,000.");
+        if (onHand < 0 || onHand > 100_000) throw new ValidationException("Enter a count between 0 and 100,000.");
+
+        ReplacementPart part = new ReplacementPart(vesselId, name, onHand, minimum);
+        part.setCritical(body.critical() == null || body.critical());
+        part.setSpareId(equipmentOn(vesselId, body.spareId()));
+        part.setPartNumber(text(body.partNumber(), 120));
+        part.setManufacturer(text(body.manufacturer(), 120));
+        part.setLocation(text(body.location(), 120));
+        part.setExpiryDate(body.expiryDate());
+        part.setMinimumNote(text(body.minimumNote(), 300));
+        part.setCompliance(compliance(body.compliance()));
+        part.setRemarks(text(body.remarks(), 1000));
+        parts.save(part);
+
+        Long organizationId = vessels.findById(vesselId).map(Vessel::getOrganizationId).orElse(null);
+        audit.record(entry(actor, AuditAction.PART_STOCK_CHANGED, part, organizationId)
+                .after(AuditJson.of("added", name, "minimumQuantity", minimum, "quantityOnHand", onHand,
+                        "critical", part.isCritical(), "compliance", part.getCompliance()))
+                .build());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(view(part));
+    }
+
+    /**
+     * What the vessel declares about one requirement: complies, does not, or
+     * does not apply, with the remark that explains it.
+     *
+     * <p>Separate from the minimum itself because it answers a different
+     * question and is reviewed on a different rhythm — the minimum is master
+     * data, the compliance is this month's inventory check.
+     */
+    @PutMapping("/parts/{partId}/compliance")
+    @Transactional
+    ResponseEntity<PartView> declareCompliance(@PathVariable Long partId, @RequestBody ComplianceBody body) {
+        AccessScope actor = scopes.currentScope();
+        if (actor.role() != Role.PLATFORM_ADMIN && actor.role() != Role.TECHNICAL_HEAD) {
+            throw ForbiddenException.ofAction("record compliance against the minimum spares");
+        }
+        ReplacementPart part = load(partId);
+        String before = part.getCompliance();
+        part.setCompliance(compliance(body == null ? null : body.compliance()));
+        if (body != null && body.remarks() != null) part.setRemarks(text(body.remarks(), 1000));
+        parts.save(part);
+
+        Long organizationId = vessels.findById(part.getVesselId()).map(Vessel::getOrganizationId).orElse(null);
+        audit.record(entry(actor, AuditAction.PART_STOCK_CHANGED, part, organizationId)
+                .before(AuditJson.of("compliance", before))
+                .after(AuditJson.of("compliance", part.getCompliance(), "remarks", part.getRemarks()))
+                .build());
+        return ResponseEntity.ok(view(part));
+    }
+
+    /** The equipment this part belongs to, if one was named, and only on this vessel. */
+    private Long equipmentOn(Long vesselId, Long spareId) {
+        if (spareId == null) return null;
+        Spare spare = spares.findById(spareId)
+                .orElseThrow(() -> NotFoundException.ofResource("Spare", spareId));
+        if (!spare.getVesselId().equals(vesselId)) {
+            throw NotFoundException.ofResource("Spare", spareId);
+        }
+        return spare.getId();
+    }
+
+    private static String compliance(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String value = raw.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!java.util.Set.of("YES", "NO", "NA").contains(value)) {
+            throw new ValidationException("Compliance is Yes, No or NA.");
+        }
+        return value;
+    }
+
+    private static String required(String value, int max) {
+        String t = value == null ? "" : value.trim();
+        if (t.isEmpty()) throw new ValidationException("Give the part a name.");
+        if (t.length() > max) throw new ValidationException("Keep the name under " + max + " characters.");
+        return t;
+    }
+
     /** What the vessel should always hold. The Technical Head's decision, not the Captain's. */
     @PutMapping("/parts/{partId}")
     @Transactional
@@ -168,9 +273,12 @@ class ReplacementPartController {
     private PartView view(ReplacementPart part) {
         String spareName = part.getSpareId() == null ? null
                 : spares.findById(part.getSpareId()).map(Spare::getName).orElse(null);
+        String sparePath = part.getSpareId() == null ? null
+                : spares.findById(part.getSpareId()).map(Spare::getPath).orElse(null);
         return new PartView(part.getId(), part.getVesselId(), part.getName(), part.getPartNumber(),
                 part.getManufacturer(), part.getQuantityOnHand(), part.getMinimumQuantity(),
-                part.isBelowMinimum(), part.getLocation(), part.getExpiryDate(), part.getSpareId(), spareName);
+                part.isBelowMinimum(), part.getLocation(), part.getExpiryDate(), part.getSpareId(), spareName,
+                sparePath, part.isCritical(), part.getMinimumNote(), part.getCompliance(), part.getRemarks());
     }
 
     private static AuditEntry.Builder entry(AccessScope actor, String action, ReplacementPart part, Long organizationId) {
@@ -191,9 +299,17 @@ class ReplacementPartController {
 
     record PartView(Long id, Long vesselId, String name, String partNumber, String manufacturer,
                     int quantityOnHand, int minimumQuantity, boolean belowMinimum, String location,
-                    LocalDate expiryDate, Long spareId, String spareName) {}
+                    LocalDate expiryDate, Long spareId, String spareName, String sparePath,
+                    boolean critical, String minimumNote, String compliance, String remarks) {}
 
     record StockBody(Integer quantityOnHand, String note) {}
 
     record PartBody(Integer minimumQuantity, String location, LocalDate expiryDate) {}
+
+    record NewPartBody(String name, Long spareId, String partNumber, String manufacturer,
+                       Integer quantityOnHand, Integer minimumQuantity, String minimumNote,
+                       String compliance, String remarks, String location, LocalDate expiryDate,
+                       Boolean critical) {}
+
+    record ComplianceBody(String compliance, String remarks) {}
 }

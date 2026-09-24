@@ -19,12 +19,18 @@ import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
 import com.seastella.identity.api.ScopeResolver;
 import com.seastella.identity.api.UserDirectory;
+import com.seastella.fleet.api.SpareImportGateway.ExistingPart;
+import com.seastella.fleet.api.SpareImportGateway.PartValues;
+import com.seastella.fleet.api.SpareImportGateway.VesselParticulars;
+import com.seastella.masterdata.internal.ClientSheetReader.CriticalSpareRow;
+import com.seastella.masterdata.internal.ClientSheetReader.VesselDetails;
 import com.seastella.masterdata.internal.SpareSheet.Column;
 import com.seastella.masterdata.internal.SpareSheet.ParsedRow;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -88,8 +94,9 @@ class ImportService {
 
     record Change(String field, String before, String after) {}
 
-    record RowView(Long id, int rowNumber, String imoNumber, String vesselName, String vmpRef, String spareName,
-                   String outcome, String messages, List<Change> changes, boolean applied) {}
+    record RowView(Long id, String kind, int rowNumber, String imoNumber, String vesselName, String vmpRef,
+                   String spareName, String equipmentLabel, String outcome, String messages,
+                   List<Change> changes, boolean applied) {}
 
     record BatchView(Long id, String fileName, long fileSize, String status, String uploadedBy, Instant uploadedAt,
                      String committedBy, Instant committedAt, String vessels, int rowCount, int newCount,
@@ -111,17 +118,25 @@ class ImportService {
             throw new ValidationException("Upload the Excel template (.xlsx).");
         }
 
-        List<ParsedRow> parsed = SpareSheet.parse(content);
+        SheetSource source = SheetSource.of(content);
         Staging staging = new Staging(actor);
         List<ImportRow> staged = new ArrayList<>();
 
         ImportBatch batch = batches.save(new ImportBatch(trim(fileName, 255), content.length, actor.userId(), Instant.now()));
-        for (ParsedRow row : parsed) {
+        // The vessel first: the preview reads top to bottom, and its equipment
+        // and spares mean nothing until you know which ship they belong to.
+        if (source.vessel() != null) {
+            staged.add(staging.classifyVessel(batch.getId(), source.vessel()));
+        }
+        for (ParsedRow row : source.equipment()) {
             staged.add(staging.classify(batch.getId(), row));
+        }
+        for (CriticalSpareRow row : source.criticalSpares()) {
+            staged.add(staging.classifySpare(batch.getId(), row, source.vessel()));
         }
         rows.saveAll(staged);
 
-        batch.summarise(parsed.size(), staging.count(ImportRow.Outcome.NEW), staging.count(ImportRow.Outcome.MODIFIED),
+        batch.summarise(staged.size(), staging.count(ImportRow.Outcome.NEW), staging.count(ImportRow.Outcome.MODIFIED),
                 staging.count(ImportRow.Outcome.UNCHANGED), staging.count(ImportRow.Outcome.INVALID),
                 staging.count(ImportRow.Outcome.DUPLICATE), staging.vesselsSummary());
         batches.save(batch);
@@ -181,6 +196,9 @@ class ImportService {
         List<ImportRow> applicable = staged.stream()
                 .filter(r -> r.getOutcome() == ImportRow.Outcome.NEW || r.getOutcome() == ImportRow.Outcome.MODIFIED)
                 .sorted(Comparator.comparing(ImportRow::getVesselId)
+                        // The vessel, then its equipment, then the spares that hang on it:
+                        // each kind needs the one before it to be in place.
+                        .thenComparing(r -> r.getKind().ordinal())
                         // Parents before children: 13 before 13.1 before 13.1.2.
                         .thenComparing(r -> depth(r.getVmpRef()))
                         .thenComparing(ImportRow::getRowNumber))
@@ -191,13 +209,30 @@ class ImportService {
 
         int applied = 0;
         for (ImportRow row : applicable) {
-            Staged values = read(row);
-            if (row.getOutcome() == ImportRow.Outcome.NEW) {
-                Long id = fleetGateway.create(row.getVesselId(), row.getVmpRef(), values.categoryId(), values.values());
-                row.appliedAs(id);
-            } else {
-                fleetGateway.update(row.getSpareId(), values.categoryId(), values.values());
-                row.appliedAs(row.getSpareId());
+            switch (row.getKind()) {
+                case VESSEL -> {
+                    fleetGateway.updateVessel(row.getVesselId(), readVessel(row));
+                    row.appliedToVessel();
+                }
+                case EQUIPMENT -> {
+                    Staged values = read(row);
+                    if (row.getOutcome() == ImportRow.Outcome.NEW) {
+                        row.appliedAs(fleetGateway.create(row.getVesselId(), row.getVmpRef(),
+                                values.categoryId(), values.values()));
+                    } else {
+                        fleetGateway.update(row.getSpareId(), values.categoryId(), values.values());
+                        row.appliedAs(row.getSpareId());
+                    }
+                }
+                case CRITICAL_SPARE -> {
+                    PartValues values = readPart(row);
+                    if (row.getOutcome() == ImportRow.Outcome.NEW) {
+                        row.appliedAsPart(fleetGateway.createCriticalSpare(row.getVesselId(), values));
+                    } else {
+                        fleetGateway.updateCriticalSpare(row.getPartId(), values);
+                        row.appliedAsPart(row.getPartId());
+                    }
+                }
             }
             applied++;
         }
@@ -262,6 +297,9 @@ class ImportService {
         private final Map<Long, Set<String>> refsInFile = new HashMap<>();
         private final LocalDate tomorrow = LocalDate.now(ZoneOffset.UTC).plusDays(1);
         private final Map<String, FleetDirectory.CategoryRef> categories = new HashMap<>();
+        private final Map<Long, Map<String, ExistingPart>> partsByVessel = new HashMap<>();
+        /** Categories worked out for rows in this same file, so children can inherit them. */
+        private final Map<String, FleetDirectory.CategoryRef> categoryByRef = new HashMap<>();
 
         Staging(AccessScope actor) {
             this.actor = actor;
@@ -301,30 +339,37 @@ class ImportService {
             if (vessel != null) vessels.add(vessel.name() + " (" + vessel.imoNumber() + ")");
 
             if (!problems.isEmpty()) {
-                return staged(batchId, row, imo, ref, name, vessel, null, ImportRow.Outcome.INVALID, problems, Map.of());
+                return staged(batchId, row, imo, ref, name, vessel, null, null,
+                        ImportRow.Outcome.INVALID, problems, Map.of());
             }
 
             String key = imo + "|" + ref;
             Integer first = seen.putIfAbsent(key, row.rowNumber());
             if (first != null) {
                 problems.add("The same spare is on row " + first + " of this file.");
-                return staged(batchId, row, imo, ref, name, vessel, null, ImportRow.Outcome.DUPLICATE, problems, Map.of());
+                return staged(batchId, row, imo, ref, name, vessel, null, null,
+                        ImportRow.Outcome.DUPLICATE, problems, Map.of());
             }
             refsInFile.computeIfAbsent(vessel.id(), v -> new HashSet<>()).add(ref);
 
             ExistingSpare existing = spares(vessel.id()).get(ref);
-            FleetDirectory.CategoryRef category = category(row, problems);
+            FleetDirectory.CategoryRef category = category(row, problems);  // may be inferred below
             Map<Column, Object> provided = values(row, problems);
 
+            if (existing == null && category == null && row.get(Column.CATEGORY) == null) {
+                category = inferCategory(vessel.id(), ref, name);
+            }
             if (existing == null) {
                 if (category == null && row.get(Column.CATEGORY) == null) {
-                    problems.add("This spare is new, so Equipment Category is required.");
+                    problems.add("This equipment is new and its category could not be worked out from its name "
+                            + "or its parent. Add an Equipment Category column, or use the SeaStella template.");
                 }
                 if (name == null) problems.add("This spare is new, so Spare / Description is required.");
                 parentProblem(vessel.id(), ref).ifPresent(problems::add);
             }
             if (!problems.isEmpty()) {
-                return staged(batchId, row, imo, ref, name, vessel, existing, ImportRow.Outcome.INVALID, problems, Map.of());
+                return staged(batchId, row, imo, ref, name, vessel, existing, category,
+                        ImportRow.Outcome.INVALID, problems, Map.of());
             }
 
             Map<String, Change> changes = existing == null
@@ -333,7 +378,208 @@ class ImportService {
             ImportRow.Outcome outcome = existing == null ? ImportRow.Outcome.NEW
                     : changes.isEmpty() ? ImportRow.Outcome.UNCHANGED : ImportRow.Outcome.MODIFIED;
             return staged(batchId, row, imo, ref, name == null && existing != null ? existing.values().name() : name,
-                    vessel, existing, outcome, problems, changes);
+                    vessel, existing, category, outcome, problems, changes);
+        }
+
+        // --------------------------------------------------------- the vessel
+
+        /**
+         * The vessel's own particulars, as the top of a client's sheet states
+         * them.
+         *
+         * <p>The vessel has to exist already. A spreadsheet may correct what we
+         * hold about a ship, but it may not conjure one: an IMO number is unique
+         * across the platform, so a mistyped digit here would permanently claim
+         * a number belonging to a real vessel somewhere else.
+         */
+        ImportRow classifyVessel(Long batchId, VesselDetails details) {
+            List<String> problems = new ArrayList<>();
+            String imo = details.imoNumber();
+            if (imo == null) {
+                problems.add("This file gives vessel details but no IMO number, "
+                        + "so there is no way to tell which vessel they belong to.");
+            }
+            VesselRef vessel = imo == null ? null : resolve(imo).orElse(null);
+            if (imo != null && vessel == null) {
+                // Same words whether the vessel is unknown or another client's (S-08).
+                problems.add("No vessel with IMO " + imo + " in your fleet. "
+                        + "Add the vessel first, then import this file to fill in its details.");
+            }
+            if (vessel != null) vessels.add(vessel.name() + " (" + vessel.imoNumber() + ")");
+
+            Map<String, String> values = vesselValues(details);
+            if (!problems.isEmpty()) {
+                return stagedVessel(batchId, imo, details.name(), null, ImportRow.Outcome.INVALID,
+                        problems, values, Map.of());
+            }
+
+            Map<String, Change> changes = vesselChanges(fleetGateway.particulars(vessel.id()), details, problems);
+            if (!problems.isEmpty()) {
+                return stagedVessel(batchId, imo, details.name(), vessel, ImportRow.Outcome.INVALID,
+                        problems, values, Map.of());
+            }
+            // A vessel already on the platform is never "new"; the sheet either
+            // changes its particulars or agrees with them.
+            ImportRow.Outcome outcome = changes.isEmpty()
+                    ? ImportRow.Outcome.UNCHANGED : ImportRow.Outcome.MODIFIED;
+            return stagedVessel(batchId, imo, details.name(), vessel, outcome, problems, values, changes);
+        }
+
+        private Map<String, String> vesselValues(VesselDetails d) {
+            Map<String, String> values = new LinkedHashMap<>();
+            putIfPresent(values, "NAME", d.name());
+            putIfPresent(values, "MMSI", d.mmsi());
+            putIfPresent(values, "CALL_SIGN", d.callSign());
+            putIfPresent(values, "FLAG", d.flag());
+            putIfPresent(values, "CLASS", d.vesselClass());
+            putIfPresent(values, "AREA", d.area());
+            putIfPresent(values, "TYPE", d.vesselType());
+            putIfPresent(values, "DWT", d.dwt());
+            return values;
+        }
+
+        private Map<String, Change> vesselChanges(VesselParticulars now, VesselDetails d, List<String> problems) {
+            Map<String, Change> changes = new LinkedHashMap<>();
+            vesselField(changes, "NAME", "Vessel Name", d.name(), now.name(), 120, problems);
+            vesselField(changes, "MMSI", "MMSI", d.mmsi(), now.mmsi(), 12, problems);
+            vesselField(changes, "CALL_SIGN", "Call Sign", d.callSign(), now.callSign(), 16, problems);
+            vesselField(changes, "FLAG", "Flag", d.flag(), now.flag(), 64, problems);
+            vesselField(changes, "CLASS", "Class", d.vesselClass(), now.vesselClass(), 64, problems);
+            vesselField(changes, "AREA", "Trading Area", d.area(), now.area(), 64, problems);
+            vesselField(changes, "TYPE", "Vessel Type", d.vesselType(), now.vesselType(), 64, problems);
+
+            if (d.dwt() != null) {
+                BigDecimal dwt = decimal(d.dwt());
+                if (dwt == null) {
+                    problems.add("DWT \"" + d.dwt() + "\" is not a number.");
+                } else if (!Objects.equals(display(dwt), display(now.dwt()))) {
+                    changes.put("DWT", new Change("DWT", display(now.dwt()), display(dwt)));
+                }
+            }
+            return changes;
+        }
+
+        private void vesselField(Map<String, Change> changes, String key, String label,
+                                 String value, String current, int max, List<String> problems) {
+            if (value == null) return;
+            if (value.length() > max) {
+                problems.add(label + " is longer than " + max + " characters.");
+                return;
+            }
+            if (!Objects.equals(value, current)) changes.put(key, new Change(label, current, value));
+        }
+
+        // -------------------------------------------------------- critical spares
+
+        /**
+         * One line of a minimum-spares form.
+         *
+         * <p>Which equipment it hangs on is settled at commit, not here: the
+         * equipment may be arriving in this very file and not exist yet.
+         */
+        ImportRow classifySpare(Long batchId, CriticalSpareRow row, VesselDetails details) {
+            List<String> problems = new ArrayList<>();
+            String imo = details == null ? null : details.imoNumber();
+            String name = row.partName();
+
+            if (imo == null) {
+                problems.add("This file lists spares but names no vessel, "
+                        + "so there is nothing to add them to.");
+            }
+            if (name == null || name.isBlank()) {
+                problems.add("This spare has no name.");
+            } else if (name.length() > 200) {
+                problems.add("The spare name is longer than 200 characters.");
+            }
+            problems.addAll(row.warnings());
+
+            VesselRef vessel = imo == null ? null : resolve(imo).orElse(null);
+            if (imo != null && vessel == null) {
+                problems.add("No vessel with IMO " + imo + " in your fleet.");
+            }
+
+            String equipment = row.equipmentName() != null ? row.equipmentName() : row.equipmentRef();
+            Map<String, String> values = spareValues(row, equipment);
+            if (!problems.isEmpty()) {
+                return stagedSpare(batchId, row.rowNumber(), imo, name, equipment, vessel, null,
+                        ImportRow.Outcome.INVALID, problems, values, Map.of());
+            }
+
+            PartValues incoming = new PartValues(name, equipment, row.equipmentRef(), null,
+                    row.minimumQuantity(), row.minimumNote(), row.quantityOnHand(),
+                    row.compliance(), row.remarks());
+
+            String key = vessel.id() + "|" + incoming.key();
+            Integer first = seen.putIfAbsent(key, row.rowNumber());
+            if (first != null) {
+                problems.add("The same spare for the same equipment is on row " + first + " of this file.");
+                return stagedSpare(batchId, row.rowNumber(), imo, name, equipment, vessel, null,
+                        ImportRow.Outcome.DUPLICATE, problems, values, Map.of());
+            }
+
+            ExistingPart existing = parts(vessel.id()).get(incoming.key());
+            Map<String, Change> changes = existing == null
+                    ? newSpareChanges(incoming)
+                    : spareChanges(existing.values(), incoming);
+            ImportRow.Outcome outcome = existing == null ? ImportRow.Outcome.NEW
+                    : changes.isEmpty() ? ImportRow.Outcome.UNCHANGED : ImportRow.Outcome.MODIFIED;
+            return stagedSpare(batchId, row.rowNumber(), imo, name, equipment, vessel, existing,
+                    outcome, problems, values, changes);
+        }
+
+        private Map<String, String> spareValues(CriticalSpareRow row, String equipment) {
+            Map<String, String> values = new LinkedHashMap<>();
+            putIfPresent(values, "PART_NAME", row.partName());
+            putIfPresent(values, "EQUIPMENT", equipment);
+            putIfPresent(values, "EQUIPMENT_REF", row.equipmentRef());
+            putIfPresent(values, "MIN_QTY", row.minimumQuantity() == null ? null : row.minimumQuantity().toString());
+            putIfPresent(values, "MIN_NOTE", row.minimumNote());
+            putIfPresent(values, "ON_HAND", row.quantityOnHand() == null ? null : row.quantityOnHand().toString());
+            putIfPresent(values, "COMPLIANCE", row.compliance());
+            putIfPresent(values, "REMARKS", row.remarks());
+            return values;
+        }
+
+        private Map<String, Change> newSpareChanges(PartValues v) {
+            Map<String, Change> changes = new LinkedHashMap<>();
+            changes.put("PART_NAME", new Change("Spare Part", null, v.name()));
+            if (v.equipmentName() != null) changes.put("EQUIPMENT", new Change("Equipment", null, v.equipmentName()));
+            if (v.minimumQuantity() != null) changes.put("MIN_QTY", new Change("Minimum Quantity", null, v.minimumQuantity().toString()));
+            if (v.minimumNote() != null) changes.put("MIN_NOTE", new Change("Minimum (as written)", null, v.minimumNote()));
+            if (v.quantityOnHand() != null) changes.put("ON_HAND", new Change("Quantity On Hand", null, v.quantityOnHand().toString()));
+            if (v.compliance() != null) changes.put("COMPLIANCE", new Change("Compliance", null, v.compliance()));
+            if (v.remarks() != null) changes.put("REMARKS", new Change("Remarks", null, v.remarks()));
+            return changes;
+        }
+
+        private Map<String, Change> spareChanges(PartValues now, PartValues v) {
+            Map<String, Change> changes = new LinkedHashMap<>();
+            if (v.minimumQuantity() != null && !Objects.equals(v.minimumQuantity(), now.minimumQuantity())) {
+                changes.put("MIN_QTY", new Change("Minimum Quantity",
+                        display(now.minimumQuantity()), v.minimumQuantity().toString()));
+            }
+            if (v.quantityOnHand() != null && !Objects.equals(v.quantityOnHand(), now.quantityOnHand())) {
+                changes.put("ON_HAND", new Change("Quantity On Hand",
+                        display(now.quantityOnHand()), v.quantityOnHand().toString()));
+            }
+            if (v.minimumNote() != null && !Objects.equals(v.minimumNote(), now.minimumNote())) {
+                changes.put("MIN_NOTE", new Change("Minimum (as written)", now.minimumNote(), v.minimumNote()));
+            }
+            if (v.compliance() != null && !Objects.equals(v.compliance(), now.compliance())) {
+                changes.put("COMPLIANCE", new Change("Compliance", now.compliance(), v.compliance()));
+            }
+            if (v.remarks() != null && !Objects.equals(v.remarks(), now.remarks())) {
+                changes.put("REMARKS", new Change("Remarks", now.remarks(), v.remarks()));
+            }
+            return changes;
+        }
+
+        private Map<String, ExistingPart> parts(Long vesselId) {
+            return partsByVessel.computeIfAbsent(vesselId, fleetGateway::criticalSparesByKey);
+        }
+
+        private static void putIfPresent(Map<String, String> values, String key, String value) {
+            if (value != null && !value.isBlank()) values.put(key, value.trim());
         }
 
         private Optional<VesselRef> resolve(String imo) {
@@ -364,6 +610,66 @@ class ImportService {
                 problems.add("\"" + value + "\" is not an equipment category in SeaStella.");
             }
             return category;
+        }
+
+        /**
+         * The category for a row whose file has no category column.
+         *
+         * <p>A client's equipment list names the category in the equipment
+         * itself - "X-Band RADAR", "ECDIS NO 1", "GPS 1" - so that is read
+         * first. A sub-component rarely does ("MAGNETRON", "scanner unit FAN"),
+         * and takes its parent's, which is what the VMP tree means anyway:
+         * 13.1.1 is part of the radar at 13.1.
+         *
+         * <p>Returns null when neither answers, and the row is then refused with
+         * a message rather than filed under a guess.
+         */
+        private FleetDirectory.CategoryRef inferCategory(Long vesselId, String ref, String name) {
+            FleetDirectory.CategoryRef fromName = categoryInName(name);
+            if (fromName != null) {
+                categoryByRef.put(vesselId + "|" + ref, fromName);
+                return fromName;
+            }
+            for (String parent = parentRef(ref); parent != null; parent = parentRef(parent)) {
+                FleetDirectory.CategoryRef inherited = categoryByRef.get(vesselId + "|" + parent);
+                if (inherited == null) {
+                    ExistingSpare onVessel = spares(vesselId).get(parent);
+                    if (onVessel != null && onVessel.equipmentCategoryId() != null) {
+                        inherited = categories.get(key(onVessel.categoryCode()));
+                    }
+                }
+                if (inherited != null) {
+                    categoryByRef.put(vesselId + "|" + ref, inherited);
+                    return inherited;
+                }
+            }
+            return null;
+        }
+
+        /** The longest category code or name the equipment's own name contains. */
+        private FleetDirectory.CategoryRef categoryInName(String name) {
+            if (name == null) return null;
+            String haystack = key(name);
+            if (haystack.isEmpty()) return null;
+            FleetDirectory.CategoryRef best = null;
+            int bestLength = 0;
+            for (FleetDirectory.CategoryRef c : fleet.equipmentCategories()) {
+                for (String candidate : List.of(key(c.code()), key(c.name()))) {
+                    // Two letters match far too much; "AIS" and "GPS" are the short ones that count.
+                    if (candidate.length() < 3 || !haystack.contains(candidate)) continue;
+                    if (candidate.length() > bestLength) {
+                        best = c;
+                        bestLength = candidate.length();
+                    }
+                }
+            }
+            return best;
+        }
+
+        private static String parentRef(String ref) {
+            if (ref == null) return null;
+            int lastDot = ref.lastIndexOf('.');
+            return lastDot <= 0 ? null : ref.substring(0, lastDot);
         }
 
         /** Everything the row provides, checked; problems are collected rather than thrown. */
@@ -475,13 +781,44 @@ class ImportService {
         }
 
         private ImportRow staged(Long batchId, ParsedRow row, String imo, String ref, String name, VesselRef vessel,
-                                 ExistingSpare existing, ImportRow.Outcome outcome, List<String> problems,
+                                 ExistingSpare existing, FleetDirectory.CategoryRef category,
+                                 ImportRow.Outcome outcome, List<String> problems,
                                  Map<String, Change> changes) {
             counts.merge(outcome, 1, Integer::sum);
             Map<String, String> values = new LinkedHashMap<>();
             row.text().forEach((column, value) -> values.put(column.name(), value));
-            return new ImportRow(batchId, row.rowNumber(), trim(imo, 16), trim(ref, 32), trim(name, 200),
-                    vessel == null ? null : vessel.id(), existing == null ? null : existing.id(),
+            // A client's sheet has no category column, so the category worked out
+            // here is written down. Commit rebuilds what it applies from these
+            // values, and would otherwise have nothing to rebuild it from.
+            if (category != null) values.put(Column.CATEGORY.name(), category.code());
+            return new ImportRow(batchId, ImportRow.Kind.EQUIPMENT, row.rowNumber(), trim(imo, 16), trim(ref, 32),
+                    trim(name, 200), null, vessel == null ? null : vessel.id(),
+                    existing == null ? null : existing.id(), null,
+                    outcome, trim(String.join(" ", problems), MAX_MESSAGES),
+                    write(values), changes.isEmpty() ? null : write(changes));
+        }
+
+        private ImportRow stagedVessel(Long batchId, String imo, String name, VesselRef vessel,
+                                       ImportRow.Outcome outcome, List<String> problems,
+                                       Map<String, String> values, Map<String, Change> changes) {
+            counts.merge(outcome, 1, Integer::sum);
+            // Row 1: a client's sheet states the vessel at the top, and the
+            // preview should show it there too.
+            return new ImportRow(batchId, ImportRow.Kind.VESSEL, 1, trim(imo, 16), null,
+                    trim(name == null && vessel != null ? vessel.name() : name, 200), null,
+                    vessel == null ? null : vessel.id(), null, null,
+                    outcome, trim(String.join(" ", problems), MAX_MESSAGES),
+                    write(values), changes.isEmpty() ? null : write(changes));
+        }
+
+        private ImportRow stagedSpare(Long batchId, int rowNumber, String imo, String name, String equipment,
+                                      VesselRef vessel, ExistingPart existing, ImportRow.Outcome outcome,
+                                      List<String> problems, Map<String, String> values,
+                                      Map<String, Change> changes) {
+            counts.merge(outcome, 1, Integer::sum);
+            return new ImportRow(batchId, ImportRow.Kind.CRITICAL_SPARE, rowNumber, trim(imo, 16), null,
+                    trim(name, 200), trim(equipment, 200), vessel == null ? null : vessel.id(), null,
+                    existing == null ? null : existing.id(),
                     outcome, trim(String.join(" ", problems), MAX_MESSAGES),
                     write(values), changes.isEmpty() ? null : write(changes));
         }
@@ -516,6 +853,76 @@ class ImportService {
                         : values.get(Column.CRITICALITY.name()).trim().toUpperCase(Locale.ROOT)));
     }
 
+    /** The vessel particulars a staged row would write. */
+    private VesselParticulars readVessel(ImportRow row) {
+        Map<String, String> values = readMap(row.getValuesJson());
+        return new VesselParticulars(values.get("NAME"), values.get("MMSI"), values.get("CALL_SIGN"),
+                values.get("FLAG"), values.get("CLASS"), values.get("AREA"), values.get("TYPE"),
+                decimal(values.get("DWT")));
+    }
+
+    /**
+     * The critical spare a staged row would write.
+     *
+     * <p>The equipment it belongs to is resolved now rather than at upload,
+     * because equipment arriving in this same file is applied first and exists
+     * by the time this runs. Equipment that never turns up leaves the spare on
+     * the vessel unattached, which is what a form listing a spare for equipment
+     * the vessel has no record of actually means.
+     */
+    private PartValues readPart(ImportRow row) {
+        Map<String, String> values = readMap(row.getValuesJson());
+        return new PartValues(values.get("PART_NAME"), row.getEquipmentLabel(), values.get("EQUIPMENT_REF"),
+                equipmentId(row.getVesselId(), values.get("EQUIPMENT_REF"), row.getEquipmentLabel()),
+                wholeNumber(values.get("MIN_QTY")), values.get("MIN_NOTE"),
+                wholeNumber(values.get("ON_HAND")), values.get("COMPLIANCE"), values.get("REMARKS"));
+    }
+
+    /**
+     * The equipment a critical spare belongs to, by the name the form gives it.
+     *
+     * <p>The name is tried first and the reference second, which is the
+     * opposite of how equipment rows are matched. A minimum-spares form states
+     * its equipment by name - "X-Band RADAR" - and numbers its own lines 1, 2,
+     * 3 down the left. Those line numbers read exactly like VMP references, so
+     * trusting them first hangs the first spare on whatever equipment happens
+     * to sit at VMP 1. A reference is used only when the form named no
+     * equipment at all, where it is the only thing left to go on.
+     */
+    private Long equipmentId(Long vesselId, String ref, String label) {
+        Map<String, ExistingSpare> onVessel = fleetGateway.sparesByVmpRef(vesselId);
+        if (label != null) {
+            Optional<Long> byName = onVessel.values().stream()
+                    .filter(sp -> sp.values().name() != null && key(sp.values().name()).equals(key(label)))
+                    .map(ExistingSpare::id)
+                    .findFirst();
+            if (byName.isPresent()) return byName.get();
+        }
+        if (ref != null) {
+            ExistingSpare byRef = onVessel.get(ref);
+            if (byRef != null) return byRef.id();
+        }
+        return null;
+    }
+
+    private static Integer wholeNumber(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static BigDecimal decimal(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new BigDecimal(value.trim().replace(",", ""));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     private ImportBatch visible(Long batchId, AccessScope actor) {
         ImportBatch batch = batches.findById(batchId).orElseThrow(() -> NotFoundException.ofResource("Import", batchId));
         if (actor.role() != Role.PLATFORM_ADMIN && !colleagues(actor).contains(batch.getUploadedByUserId())) {
@@ -540,9 +947,10 @@ class ImportService {
     private BatchView view(ImportBatch batch, List<ImportRow> staged, AccessScope actor) {
         Map<Long, String> names = names(staged);
         List<RowView> rowViews = staged.stream()
-                .map(r -> new RowView(r.getId(), r.getRowNumber(), r.getImoNumber(),
-                        r.getVesselId() == null ? null : names.get(r.getVesselId()), r.getVmpRef(), r.getSpareName(),
-                        r.getOutcome().name(), r.getMessages(), changes(r), r.isApplied()))
+                .map(r -> new RowView(r.getId(), r.getKind().name(), r.getRowNumber(), r.getImoNumber(),
+                        r.getVesselId() == null ? null : names.get(r.getVesselId()), r.getVmpRef(),
+                        r.getSpareName(), r.getEquipmentLabel(), r.getOutcome().name(), r.getMessages(),
+                        changes(r), r.isApplied()))
                 .toList();
         boolean canCommit = batch.getStatus() == ImportBatch.Status.PREVIEW
                 && batch.getApplicableCount() > 0

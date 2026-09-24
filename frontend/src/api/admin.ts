@@ -155,3 +155,67 @@ export interface SpareDue {
 
 export const fetchVesselMaintenance = (vesselId: number) =>
   api.get<SpareDue[]>(`/api/v1/vessels/${vesselId}/maintenance`);
+
+/**
+ * A Spare's service history (SoW §6.3, §9.3).
+ *
+ * <p>Two kinds of row. `PLATFORM` is written by the platform when a service
+ * request completes and carries that request's number; `RECORDED` is entered
+ * by the Technical Head — work done before this platform existed, or by a
+ * contractor who was never on it. A fleet joining the platform arrives with
+ * years of the second kind.
+ */
+export interface ServiceRecord {
+  id: number;
+  serviceDate: string;
+  source: 'PLATFORM' | 'RECORDED';
+  workPerformed: string;
+  partsUsed?: string;
+  performedBy?: string;
+  serviceRequestId?: number;
+  requestNumber?: string;
+  recordedBy?: string;
+  notes?: string;
+  /** Only a hand-entered row can be taken back out. */
+  removable: boolean;
+}
+
+export const fetchServiceHistory = (spareId: number) =>
+  api.get<ServiceRecord[]>(`/api/v1/spares/${spareId}/service-history`);
+
+export const recordService = (
+  spareId: number,
+  entry: { serviceDate: string; workPerformed: string; partsUsed?: string; performedBy?: string; notes?: string },
+) => api.post<ServiceRecord>(`/api/v1/spares/${spareId}/service-history`, entry);
+
+export const removeServiceRecord = (spareId: number, recordId: number) =>
+  api.del(`/api/v1/spares/${spareId}/service-history/${recordId}`);
+
+/** Adding equipment or a component to a vessel by hand (SoW §9). */
+export interface NewSpare {
+  name: string;
+  /** Omit for a top-level item; give it to add a component inside one. */
+  parentSpareId?: number;
+  /** Required only for a top-level item; a child takes its parent's. */
+  equipmentCategoryId?: number;
+  make?: string;
+  model?: string;
+  serialNumber?: string;
+  softwareVersion?: string;
+  installationDate?: string;
+  criticality?: string;
+  tracksRunningHours?: boolean;
+}
+
+export const addSpare = (vesselId: number, spare: NewSpare) =>
+  api.post<{ id: number; path: string; name: string }>(`/api/v1/vessels/${vesselId}/spares`, spare);
+
+export interface EquipmentCategoryOption {
+  id: number;
+  code: string;
+  name: string;
+  displayOrder: number;
+}
+
+export const fetchEquipmentCategories = (vesselId: number) =>
+  api.get<EquipmentCategoryOption[]>(`/api/v1/vessels/${vesselId}/spares/categories`);

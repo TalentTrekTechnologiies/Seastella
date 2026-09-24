@@ -9,8 +9,11 @@ import {
   fetchImports,
   uploadImport,
   OUTCOME_LABEL,
+  KIND_LABEL,
+  KIND_ORDER,
   type ImportBatch,
   type RowOutcome,
+  type ImportRowView,
 } from '@/api/imports';
 import { Button, Chip, ConsoleHeader, EmptyNote, Plate, StatTile } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
@@ -28,6 +31,11 @@ import './import.css';
  * every row is shown with what it would do — add, change, leave alone, or
  * refuse with the reason — and nothing reaches a vessel until that preview is
  * confirmed.
+ *
+ * <p>The file does not have to be ours. A fleet moving onto the platform
+ * uploads the list it already keeps, and the preview sorts it into the vessel's
+ * own details, its equipment, and its critical spares, so what each part would
+ * do is visible before any of it happens.
  */
 export function ImportPage() {
   const client = useQueryClient();
@@ -94,10 +102,13 @@ export function ImportPage() {
       <ConsoleHeader
         scope={[{ label: 'Master data' }, { label: 'Import', strong: true }]}
         title="Import vessel equipment"
-        subtitle="Upload the VMP spreadsheet. SeaStella shows what each row would do and changes nothing until you confirm."
+        subtitle="Upload your own equipment list or our template. SeaStella shows what each row would do and changes nothing until you confirm."
       />
 
-      <Plate title="1. Get the spreadsheet" subtitle="Start from a blank template, or from a vessel's current equipment to correct it">
+      <Plate
+        title="1. Get the template (optional)"
+        subtitle="Your own spreadsheet can be uploaded as it is. Use the template to start from blank, or to correct a vessel's current equipment."
+      >
         <div className="imp-row">
           <Field label="Vessel" htmlFor="imp-vessel" hint="Leave blank for an empty template.">
             <select id="imp-vessel" className="input" value={vesselId} onChange={(e) => setVesselId(e.target.value ? Number(e.target.value) : '')}>
@@ -119,7 +130,10 @@ export function ImportPage() {
         </div>
       </Plate>
 
-      <Plate title="2. Upload it" subtitle="Excel (.xlsx). Nothing is changed by uploading.">
+      <Plate
+        title="2. Upload it"
+        subtitle="Excel (.xlsx). Vessel details, equipment and critical spares are all read, from whichever sheet holds them. Nothing is changed by uploading."
+      >
         <div className="imp-row">
           <input
             ref={fileInput}
@@ -283,38 +297,91 @@ function BatchPanel({
       {rows.length === 0 ? (
         <EmptyNote>No rows of that kind in this file.</EmptyNote>
       ) : (
-        <ul className="imp-rows">
-          {rows.map((row) => (
-            <li key={row.id} className={`imp-row-item imp-row-item--${row.outcome.toLowerCase()}`}>
-              <span className="imp-row-item__n">{row.rowNumber}</span>
-              <div className="imp-row-item__main">
-                <div className="imp-row-item__title">
-                  <b>{row.vmpRef ?? '—'}</b>
-                  <span>{row.spareName ?? '(no description)'}</span>
-                  <OutcomePill outcome={row.outcome} applied={row.applied} />
-                </div>
-                <div className="imp-row-item__meta">
-                  {row.vesselName ? `${row.vesselName} · IMO ${row.imoNumber}` : `IMO ${row.imoNumber ?? '—'}`}
-                </div>
-                {row.messages && <p className="imp-row-item__msg">{row.messages}</p>}
-                {row.changes.length > 0 && (
-                  <ul className="imp-changes">
-                    {row.changes.map((c) => (
-                      <li key={c.field}>
-                        <span className="imp-changes__field">{c.field}</span>
-                        {c.before ? <s>{c.before}</s> : <i>empty</i>}
-                        <Icon name="check" size={12} />
-                        <b>{c.after ?? 'empty'}</b>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+        KIND_ORDER.filter((kind) => rows.some((r) => r.kind === kind)).map((kind) => {
+          const inKind = rows.filter((r) => r.kind === kind);
+          return (
+            <section key={kind} className="imp-group">
+              {/* A file holding only equipment needs no heading telling it so. */}
+              {groupCount(rows) > 1 && (
+                <h4 className="imp-group__title">
+                  {KIND_LABEL[kind]}
+                  <span className="imp-group__count">{inKind.length}</span>
+                </h4>
+              )}
+              <ul className="imp-rows">
+                {inKind.map((row) => (
+                  <li key={row.id} className={`imp-row-item imp-row-item--${row.outcome.toLowerCase()}`}>
+                    <span className="imp-row-item__n">{row.rowNumber}</span>
+                    <div className="imp-row-item__main">
+                      <div className="imp-row-item__title">
+                        <RowTitle row={row} />
+                        <OutcomePill outcome={row.outcome} applied={row.applied} />
+                      </div>
+                      <div className="imp-row-item__meta">
+                        {row.vesselName ? `${row.vesselName} · IMO ${row.imoNumber}` : `IMO ${row.imoNumber ?? '—'}`}
+                      </div>
+                      {row.messages && <p className="imp-row-item__msg">{row.messages}</p>}
+                      {row.changes.length > 0 && (
+                        <ul className="imp-changes">
+                          {row.changes.map((c) => (
+                            <li key={c.field}>
+                              <span className="imp-changes__field">{c.field}</span>
+                              {c.before ? <s>{c.before}</s> : <i>empty</i>}
+                              <Icon name="check" size={12} />
+                              <b>{c.after ?? 'empty'}</b>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })
       )}
     </Plate>
+  );
+}
+
+/** How many kinds of thing this file turned out to hold. */
+function groupCount(rows: ImportRowView[]) {
+  return new Set(rows.map((r) => r.kind)).size;
+}
+
+/**
+ * What the row is, said the way that kind of row reads.
+ *
+ * <p>A VMP number in front makes sense for equipment, where it is the identity.
+ * A vessel has none, and a critical spare's own number would be the line
+ * number of the form it came from - so each says what it is instead.
+ */
+function RowTitle({ row }: { row: ImportRowView }) {
+  if (row.kind === 'VESSEL') {
+    return (
+      <>
+        <b>Vessel</b>
+        <span>{row.spareName ?? row.vesselName ?? '(unnamed)'}</span>
+      </>
+    );
+  }
+  if (row.kind === 'CRITICAL_SPARE') {
+    return (
+      <>
+        <b>Spare</b>
+        <span>
+          {row.spareName ?? '(no name)'}
+          {row.equipmentLabel && <em className="imp-row-item__on"> on {row.equipmentLabel}</em>}
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      <b>{row.vmpRef ?? '—'}</b>
+      <span>{row.spareName ?? '(no description)'}</span>
+    </>
   );
 }
 
