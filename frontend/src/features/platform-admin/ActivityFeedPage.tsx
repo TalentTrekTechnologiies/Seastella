@@ -167,7 +167,7 @@ export function ActivityFeedPage() {
   );
 }
 
-function FeedList({ items }: { items: ActivityEntry[] }) {
+export function FeedList({ items }: { items: ActivityEntry[] }) {
   let lastDay = '';
   return (
     <ol className="feed">

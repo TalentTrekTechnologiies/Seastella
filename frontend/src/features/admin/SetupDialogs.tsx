@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   allocateVessels,
   assignCaptain,
@@ -10,6 +10,7 @@ import {
   type LinkSent,
   type OrganizationRow,
 } from '@/api/admin';
+import { readVesselDetails, uploadImport } from '@/api/imports';
 import { Button, Segmented } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
 import { errorText } from './AdminParts';
@@ -159,7 +160,16 @@ export function AddPersonDialog({
   );
 }
 
-/** Technical Head: a vessel with the VMP template's fields and the standard fit. */
+/**
+ * Technical Head: a vessel with the VMP template's fields, and either the
+ * standard fit or the vessel's own equipment list imported from Excel.
+ *
+ * <p>Importing prefills the particulars from the sheet, but a person still
+ * checks them and adds the vessel: the file never creates a vessel by itself,
+ * because a mistyped IMO would claim a real ship's number. The same file is
+ * then staged as an import, so equipment and critical spares go through the
+ * usual preview before anything is applied.
+ */
 export function AddVesselDialog({
   organizations,
   onClose,
@@ -168,8 +178,13 @@ export function AddVesselDialog({
   /** Only for the Platform Admin, who chooses the operating organization. */
   organizations?: OrganizationRow[];
   onClose: () => void;
-  onCreated: (vessel: AdminVessel) => void;
+  /** imported: the staged import to preview next, or why staging it failed. */
+  onCreated: (vessel: AdminVessel, imported?: { batchId?: number; error?: string }) => void;
 }) {
+  const [mode, setMode] = useState<'import' | 'manual'>('import');
+  const [file, setFile] = useState<File | null>(null);
+  const [reading, setReading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     organizationId: '',
     name: '',
@@ -188,13 +203,45 @@ export function AddVesselDialog({
     setForm((f) => ({ ...f, [key]: e.target.value }));
   const valid =
     form.name.trim() !== '' && /^\d{7}$/.test(form.imoNumber.trim()) && (!organizations || form.organizationId !== '');
+  const importing = mode === 'import';
+
+  const pickFile = async (chosen: File | null) => {
+    setFile(chosen);
+    setError(null);
+    if (!chosen) return;
+    setReading(true);
+    try {
+      const d = await readVesselDetails(chosen);
+      // Only fill what the sheet states; anything already typed is kept otherwise.
+      setForm((f) => ({
+        ...f,
+        name: d.name ?? f.name,
+        imoNumber: d.imoNumber ? d.imoNumber.replace(/\D/g, '').slice(0, 7) : f.imoNumber,
+        mmsi: d.mmsi ?? f.mmsi,
+        callSign: d.callSign ?? f.callSign,
+        flag: d.flag ?? f.flag,
+        vesselClass: d.vesselClass ?? f.vesselClass,
+        area: d.area ?? f.area,
+        vesselType: d.vesselType ?? f.vesselType,
+        dwt: d.dwt ? d.dwt.replace(/[^\d.]/g, '') : f.dwt,
+      }));
+      if (!d.name && !d.imoNumber) {
+        setError('This file does not state the vessel name or IMO number. Enter them below; its equipment will still be imported.');
+      }
+    } catch (e) {
+      setError(errorText(e, 'The file could not be read.'));
+      setFile(null);
+      if (fileInput.current) fileInput.current.value = '';
+    } finally {
+      setReading(false);
+    }
+  };
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      onCreated(
-        await createVessel({
+      const vessel = await createVessel({
           organizationId: form.organizationId ? Number(form.organizationId) : undefined,
           name: form.name,
           imoNumber: form.imoNumber.trim(),
@@ -205,8 +252,20 @@ export function AddVesselDialog({
           area: form.area || undefined,
           vesselType: form.vesselType || undefined,
           dwt: form.dwt ? Number(form.dwt) : undefined,
-        }),
-      );
+          standardFit: !(importing && file),
+        });
+      if (!(importing && file)) {
+        onCreated(vessel);
+        return;
+      }
+      // The vessel now exists, so the same file stages against it. A failure
+      // here leaves the vessel in place; the import can be retried on its own.
+      try {
+        const batch = await uploadImport(file, vessel.id);
+        onCreated(vessel, { batchId: batch.id });
+      } catch (e) {
+        onCreated(vessel, { error: errorText(e, 'The equipment list could not be staged.') });
+      }
     } catch (e) {
       setError(errorText(e, 'The vessel could not be added.'));
       setBusy(false);
@@ -216,18 +275,47 @@ export function AddVesselDialog({
   return (
     <Dialog
       title="Add vessel"
-      subtitle="Vessel particulars as in the VMP template"
+      subtitle={importing ? "From the vessel's own Excel equipment list" : 'Vessel particulars as in the VMP template'}
       onClose={onClose}
       width={680}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={busy || !valid} onClick={submit}>
-            {busy ? 'Adding…' : 'Add vessel'}
+          <Button variant="primary" disabled={busy || reading || !valid || (importing && !file)} onClick={submit}>
+            {busy ? 'Adding…' : importing ? 'Add vessel and preview import' : 'Add vessel'}
           </Button>
         </>
       }
     >
+      <Segmented<'import' | 'manual'>
+        label="How to add the vessel"
+        value={mode}
+        onChange={(m) => {
+          setMode(m);
+          setError(null);
+        }}
+        options={[
+          { value: 'import', label: 'Import from Excel' },
+          { value: 'manual', label: 'Enter manually' },
+        ]}
+      />
+      {importing && (
+        <div className="vessel-import">
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            hidden
+            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+          />
+          <Button onClick={() => fileInput.current?.click()} disabled={reading || busy}>
+            {reading ? 'Reading…' : file ? 'Choose another file' : 'Choose Excel file'}
+          </Button>
+          <span className="vessel-import__name">
+            {file ? file.name : "The client's equipment list (.xlsx). Vessel details below are filled from it."}
+          </span>
+        </div>
+      )}
       <div className="form-grid">
         {organizations && (
           <div className="ffield--wide">
@@ -272,11 +360,18 @@ export function AddVesselDialog({
         </Field>
       </div>
       <div className="fit-note">
-        <div>
-          <b>Standard bridge fit included.</b> The vessel starts with the VMP template's navigational equipment list — AIS
-          through GPS, with EPIRB batteries, radar magnetrons and ECDIS fans nested under their units. Makes, models,
-          serial numbers and service dates are added from the vessel's own records.
-        </div>
+        {importing ? (
+          <div>
+            <b>Equipment and critical spares come from the file.</b> Check the details above, then add the vessel. You
+            will see a preview of every equipment and critical-spare row, and nothing is applied until you confirm it.
+          </div>
+        ) : (
+          <div>
+            <b>Standard bridge fit included.</b> The vessel starts with the VMP template's navigational equipment list —
+            AIS through GPS, with EPIRB batteries, radar magnetrons and ECDIS fans nested under their units. Makes,
+            models, serial numbers and service dates are added from the vessel's own records.
+          </div>
+        )}
       </div>
       <FormError message={error} />
     </Dialog>

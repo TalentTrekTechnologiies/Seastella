@@ -62,12 +62,17 @@ const SETUP: Partial<Record<Role, NavItem[]>> = {
     { label: 'Users & roles', to: '/platform/users', icon: 'users' },
     { label: 'Audit trail', to: '/platform/audit', icon: 'audit' },
     { label: 'Data import', to: '/fleet/import', icon: 'report' },
+    { label: 'Service history', to: '/fleet/history', icon: 'history' },
   ],
   TECHNICAL_HEAD: [
     { label: 'Vessels & managers', to: '/fleet/setup', icon: 'ship' },
+    { label: 'Service history', to: '/fleet/history', icon: 'history' },
     { label: 'Data import', to: '/fleet/import', icon: 'report' },
   ],
-  SHIP_MANAGER: [{ label: 'Captains', to: '/vessels/captains', icon: 'users' }],
+  SHIP_MANAGER: [
+    { label: 'Captains', to: '/vessels/captains', icon: 'users' },
+    { label: 'Service history', to: '/fleet/history', icon: 'history' },
+  ],
   // Running hours are recorded on the vessel page beside the meters; the live
   // chat is on each request. Equipment is the one thing that needs its own page.
   CAPTAIN: [{ label: 'Equipment', to: '/vessel/equipment', icon: 'spare' }],
@@ -105,6 +110,8 @@ export function navigationFor(role: Role): NavSection[] {
         { label: role === 'SERVICE_ENGINEER' ? 'My jobs list' : 'Service requests', to: '/requests', icon: 'wrench' },
         // Reports are role-scoped; the engineer has none of the SoW §7 reports.
         ...(role === 'SERVICE_ENGINEER' ? [] : [{ label: 'Reports', to: '/reports', icon: 'report' }]),
+        // Every role's own record of work; the Platform Admin reads the full feed instead.
+        ...(role === 'PLATFORM_ADMIN' ? [] : [{ label: 'Activity history', to: '/history', icon: 'audit' }]),
         ...(SETUP[role] ?? []),
       ],
     },

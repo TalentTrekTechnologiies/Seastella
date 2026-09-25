@@ -66,14 +66,14 @@ class CriticalSpareSheetTest {
     void minimumsThatAreNotNumbersAreKept() throws IOException {
         ClientSheet sheet = ClientSheetReader.read(minimumSparesForm());
 
-        // "2 pcs each athwartship, fore & aft and Flinders bar" cannot be an
-        // integer, and rounding it to 2 would state something the form does not.
+        // The form's words are kept as written; the figure they start with is the
+        // floor the shortage alert counts against - "2 pcs each ..." is at least 2.
         CriticalSpareRow correctors = spareNamed(sheet, "Magnetic Correctors").orElseThrow();
-        assertThat(correctors.minimumQuantity()).isNull();
+        assertThat(correctors.minimumQuantity()).isEqualTo(2);
         assertThat(correctors.minimumNote()).contains("athwartship");
 
         CriticalSpareRow paper = spareNamed(sheet, "Paper Rolls").orElseThrow();
-        assertThat(paper.minimumQuantity()).as("\"6 pcs\" is not countable either").isNull();
+        assertThat(paper.minimumQuantity()).as("\"6 pcs\" counts as 6").isEqualTo(6);
         assertThat(paper.minimumNote()).isEqualTo("6 pcs");
     }
 

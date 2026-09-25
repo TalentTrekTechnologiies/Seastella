@@ -115,7 +115,8 @@ class SchemaMigrationIT {
                 "26",   // troubleshooting: one thread, read state and attachments
                 "27",   // fleet: a Spare's service history
                 "28",   // fleet: critical spares, minimum notes and compliance
-                "29"); // masterdata-import: a staged row says what kind of thing it is
+                "29", // masterdata-import: a staged row says what kind of thing it is
+                "30"); // fleet: a critical spare keeps the form's name for its equipment
     }
 
     @Test

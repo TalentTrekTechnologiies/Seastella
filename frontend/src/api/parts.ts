@@ -25,6 +25,8 @@ export interface PartRow {
   minimumNote: string | null;
   compliance: 'YES' | 'NO' | 'NA' | null;
   remarks: string | null;
+  /** The form's name for the equipment, when the part is not linked to one on the vessel. */
+  equipmentLabel: string | null;
 }
 
 export interface NewPart {
@@ -50,6 +52,13 @@ export const addPart = (vesselId: number, part: NewPart) =>
 /** What the vessel declares about one requirement, and why. */
 export const declareCompliance = (partId: number, compliance: 'YES' | 'NO' | 'NA' | null, remarks?: string) =>
   api.put<PartRow>(`/api/v1/parts/${partId}/compliance`, { compliance, remarks });
+
+/** Corrects a part's details. The on-board figure is a stock count, sent separately. */
+export const updatePartDetails = (partId: number, part: Omit<NewPart, 'quantityOnHand' | 'critical'>) =>
+  api.put<PartRow>(`/api/v1/parts/${partId}/details`, part);
+
+/** Takes a part off the vessel's list. */
+export const removePart = (partId: number) => api.del(`/api/v1/parts/${partId}`);
 
 export const fetchParts = (vesselId: number) => api.get<PartRow[]>(`/api/v1/vessels/${vesselId}/parts`);
 

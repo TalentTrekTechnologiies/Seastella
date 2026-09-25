@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { addSpare, fetchEquipmentCategories } from '@/api/admin';
+import { addSpare, createEquipmentCategory, fetchEquipmentCategories, type EquipmentCategoryOption } from '@/api/admin';
 import type { SpareNode } from '@/api/serviceRequests';
 import { Button } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
@@ -42,7 +42,9 @@ export function AddSpareDialog({
   });
 
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<number | ''>('');
+  /** A chosen category id, NEW for a new equipment type, or '' while it is still being suggested. */
+  const [picked, setPicked] = useState<number | 'NEW' | ''>('');
+  const [newType, setNewType] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
@@ -53,17 +55,26 @@ export function AddSpareDialog({
   const [error, setError] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
-  const valid = name.trim() !== '' && (parent !== null || categoryId !== '');
+  // Until someone chooses, the category follows the name: "X-Band Radar" is a Radar.
+  const suggested = useMemo(() => suggestCategory(name, categories.data ?? []), [name, categories.data]);
+  const categoryId = picked === '' ? suggested?.id ?? '' : picked;
+  const creatingType = picked === 'NEW';
+  const valid =
+    name.trim() !== '' && (parent !== null || (creatingType ? newType.trim() !== '' : categoryId !== ''));
 
   const save = async () => {
     setBusy(true);
     setError(null);
     try {
+      let category = parent === null && !creatingType ? Number(categoryId) : undefined;
+      if (parent === null && creatingType) {
+        category = (await createEquipmentCategory(vesselId, newType.trim())).id;
+      }
       onAdded(
         await addSpare(vesselId, {
           name: name.trim(),
           parentSpareId: parent?.id,
-          equipmentCategoryId: parent === null ? Number(categoryId) : undefined,
+          equipmentCategoryId: category,
           make: make.trim() || undefined,
           model: model.trim() || undefined,
           serialNumber: serialNumber.trim() || undefined,
@@ -105,26 +116,55 @@ export function AddSpareDialog({
       </Field>
 
       {parent === null ? (
-        <Field
-          label="Equipment category"
-          htmlFor="spare-new-category"
-          hint="Its VMP number comes from the category; you do not type one."
-        >
-          <select
-            id="spare-new-category"
-            className="input"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-            disabled={categories.isLoading}
+        <>
+          <Field
+            label="Equipment type"
+            htmlFor="spare-new-category"
+            hint={
+              creatingType
+                ? 'A new type gets its own VMP number block.'
+                : picked === '' && suggested
+                  ? `Picked from the name — it is a ${suggested.name}. Change it if that is wrong.`
+                  : 'What kind of equipment this is. It sets the VMP number (Radar is 13, so a radar becomes 13.x) and how it is grouped in reports.'
+            }
           >
-            <option value="">{categories.isLoading ? 'Loading…' : 'Choose a category'}</option>
-            {(categories.data ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+            <select
+              id="spare-new-category"
+              className="input"
+              value={creatingType ? 'NEW' : categoryId}
+              onChange={(e) => {
+                const v = e.target.value;
+                setPicked(v === 'NEW' ? 'NEW' : v ? Number(v) : '');
+                if (v === 'NEW' && newType === '') setNewType(name.trim());
+              }}
+              disabled={categories.isLoading}
+            >
+              <option value="">{categories.isLoading ? 'Loading…' : 'Choose a type'}</option>
+              {(categories.data ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.displayOrder} · {c.name}
+                </option>
+              ))}
+              <option value="NEW">+ New equipment type (none of these fits)</option>
+            </select>
+          </Field>
+          {creatingType && (
+            <Field
+              label="New equipment type"
+              htmlFor="spare-new-type"
+              hint="Name the kind, not this unit: “Magnetic Compass”, not “Magnetic Compass No. 2”."
+            >
+              <input
+                id="spare-new-type"
+                className="input"
+                maxLength={80}
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+                placeholder="e.g. Magnetic Compass"
+              />
+            </Field>
+          )}
+        </>
       ) : (
         <p className="otp__note">
           This spare belongs to {parent.path} {parent.name} and takes the next number beneath it — the VMP decimal
@@ -189,4 +229,27 @@ export function AddSpareDialog({
       <FormError message={error} />
     </Dialog>
   );
+}
+
+/**
+ * The category whose name or code the equipment's name contains - the longest
+ * such match, so "SAT-C" beats nothing and "Echo Sounder" beats "Echo". Three
+ * letters at least: two-letter matches would fire on almost anything.
+ */
+function suggestCategory(name: string, categories: EquipmentCategoryOption[]) {
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const haystack = key(name);
+  if (haystack.length < 3) return undefined;
+  let best: EquipmentCategoryOption | undefined;
+  let bestLength = 0;
+  for (const c of categories) {
+    for (const candidate of [key(c.name), key(c.code)]) {
+      if (candidate.length < 3 || !haystack.includes(candidate)) continue;
+      if (candidate.length > bestLength) {
+        best = c;
+        bestLength = candidate.length;
+      }
+    }
+  }
+  return best;
 }

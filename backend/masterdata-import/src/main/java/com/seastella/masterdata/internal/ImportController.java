@@ -50,10 +50,22 @@ class ImportController {
     }
 
     @PostMapping
-    ResponseEntity<ImportService.BatchView> upload(@RequestParam("file") MultipartFile file) throws IOException {
+    ResponseEntity<ImportService.BatchView> upload(@RequestParam("file") MultipartFile file,
+                                                  @RequestParam(required = false) Long vesselId) throws IOException {
         byte[] content = file == null ? new byte[0] : file.getBytes();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(imports.upload(safeName(file == null ? null : file.getOriginalFilename()), content));
+                .body(imports.upload(safeName(file == null ? null : file.getOriginalFilename()), content, vesselId));
+    }
+
+    /**
+     * The vessel particulars a client's sheet states, read and returned without
+     * staging anything - so "Add vessel" can offer them for the user to check.
+     * The vessel itself is still created by a person, never by the file.
+     */
+    @PostMapping("/vessel-details")
+    ResponseEntity<ClientSheetReader.VesselDetails> vesselDetails(@RequestParam("file") MultipartFile file)
+            throws IOException {
+        return ResponseEntity.ok(imports.vesselDetails(file == null ? new byte[0] : file.getBytes()));
     }
 
     @GetMapping

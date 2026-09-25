@@ -73,6 +73,10 @@ public class ReplacementPart extends BaseEntity implements VesselScoped {
     @Column(name = "remarks", length = 1000)
     private String remarks;
 
+    /** The form's name for the equipment, kept for a part not linked to any. */
+    @Column(name = "equipment_label", length = 200)
+    private String equipmentLabel;
+
     @Column(name = "seed_marker", length = 8)
     private String seedMarker;
 
@@ -102,6 +106,9 @@ public class ReplacementPart extends BaseEntity implements VesselScoped {
     public String getMinimumNote() { return minimumNote; }
     public String getCompliance() { return compliance; }
     public String getRemarks() { return remarks; }
+    public String getEquipmentLabel() { return equipmentLabel; }
+    public void setEquipmentLabel(String v) { this.equipmentLabel = v; }
+    public void setName(String v) { this.name = v; }
 
     /** Derived, never stored - see the class note. */
     public boolean isBelowMinimum() {

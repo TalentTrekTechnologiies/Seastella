@@ -83,6 +83,68 @@ class SpareCreationController {
                 .toList());
     }
 
+    /**
+     * A new kind of equipment - a Magnetic Compass, an Aldis Lamp - that none
+     * of the VMP template's categories covers.
+     *
+     * <p>It takes the next free VMP block: one past both the highest category
+     * number and the highest top-level number any vessel already uses, so it
+     * can never land inside a block that equipment already occupies. A name
+     * that matches an existing category returns that one instead of a twin.
+     */
+    @PostMapping("/categories")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','TECHNICAL_HEAD')")
+    @Transactional
+    ResponseEntity<CategoryView> addCategory(@PathVariable Long vesselId, @RequestBody CategoryBody body) {
+        AccessScope actor = scopes.currentScope();
+        scopeGuard.assertVessel(vesselId);
+        String name = body == null || body.name() == null ? "" : body.name().trim().replaceAll("\\s+", " ");
+        if (name.isEmpty()) throw new ValidationException("Name the new equipment type.");
+        if (name.length() > 80) throw new ValidationException("Keep the name under 80 characters.");
+
+        String key = name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        Optional<EquipmentCategory> same = categories.findAll().stream()
+                .filter(c -> c.getName().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "").equals(key)
+                        || c.getCode().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "").equals(key))
+                .findFirst();
+        if (same.isPresent()) {
+            EquipmentCategory c = same.get();
+            return ResponseEntity.ok(new CategoryView(c.getId(), c.getCode(), c.getName(), c.getDisplayOrder()));
+        }
+
+        int highestCategory = categories.findAll().stream().mapToInt(EquipmentCategory::getDisplayOrder).max().orElse(0);
+        int highestInUse = spares.topLevelPaths().stream()
+                .map(SpareCreationController::firstSegment)
+                .mapToInt(seg -> {
+                    try {
+                        return Integer.parseInt(seg);
+                    } catch (NumberFormatException e) {
+                        return 0;
+                    }
+                })
+                .max().orElse(0);
+        int block = Math.max(highestCategory, highestInUse) + 1;
+
+        String base = name.toUpperCase(java.util.Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
+        if (base.isEmpty()) base = "TYPE";
+        if (base.length() > 34) base = base.substring(0, 34);
+        String code = base;
+        for (int n = 2; categories.findByCode(code).isPresent(); n++) code = base + "_" + n;
+
+        EquipmentCategory saved = categories.save(new EquipmentCategory(code, name, block));
+        audit.record(AuditEntry.builder()
+                .actor(actor.userId(), actor.role().name())
+                .action(AuditAction.EQUIPMENT_CATEGORY_CREATED)
+                .entity("EquipmentCategory", saved.getId())
+                .scope(null, vesselId)
+                .after(AuditJson.of("name", name, "code", code, "vmpBlock", block))
+                .build());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(new CategoryView(saved.getId(), saved.getCode(), saved.getName(), saved.getDisplayOrder()));
+    }
+
+    record CategoryBody(String name) {}
+
     @PostMapping
     @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','TECHNICAL_HEAD')")
     @Transactional
@@ -96,6 +158,14 @@ class SpareCreationController {
         String name = required(body.name(), 200);
         Spare parent = parentOf(body.parentSpareId(), vesselId);
         Long categoryId = categoryFor(body, parent);
+        if (parent == null) {
+            // The vessel already has this type's heading item - 11 VDR - so a new
+            // unit of that type is its next child, 11.1 then 11.2, as the VMP nests.
+            parent = spares.findByVesselIdOrderByPathAsc(vesselId).stream()
+                    .filter(sp -> sp.getParentSpareId() == null && sp.getPath().indexOf('.') < 0)
+                    .filter(sp -> sp.getEquipmentCategoryId().equals(categoryId))
+                    .findFirst().orElse(null);
+        }
         String path = nextPath(vesselId, parent, categoryId);
         if (path.chars().filter(c -> c == '.').count() >= MAX_DEPTH) {
             throw new WorkflowException("That is too deep to be a real equipment structure.");

@@ -15,6 +15,7 @@ import com.seastella.identity.api.ScopeGuard;
 import com.seastella.identity.api.ScopeResolver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -209,6 +210,72 @@ class ReplacementPartController {
         return t;
     }
 
+    /**
+     * Corrects a part's details - everything the form records about it. The
+     * on-board count is not here: that is a stock count, with its own alert.
+     */
+    @PutMapping("/parts/{partId}/details")
+    @Transactional
+    ResponseEntity<PartView> edit(@PathVariable Long partId, @RequestBody DetailsBody body) {
+        AccessScope actor = scopes.currentScope();
+        if (actor.role() != Role.PLATFORM_ADMIN && actor.role() != Role.TECHNICAL_HEAD) {
+            throw ForbiddenException.ofAction("change what this vessel must hold in stock");
+        }
+        ReplacementPart part = load(partId);
+        if (body == null) throw new ValidationException("Enter the part's details.");
+        int minimum = body.minimumQuantity() == null ? 0 : body.minimumQuantity();
+        if (minimum < 0 || minimum > 100_000) throw new ValidationException("Enter a minimum between 0 and 100,000.");
+
+        String before = AuditJson.of("name", part.getName(), "minimumQuantity", part.getMinimumQuantity(),
+                "spareId", part.getSpareId(), "compliance", part.getCompliance());
+        boolean wasBelow = part.isBelowMinimum();
+        part.setName(required(body.name(), 200));
+        part.setSpareId(equipmentOn(part.getVesselId(), body.spareId()));
+        if (body.spareId() != null) part.setEquipmentLabel(null);
+        part.setPartNumber(text(body.partNumber(), 120));
+        part.setManufacturer(text(body.manufacturer(), 120));
+        part.setMinimumQuantity(minimum);
+        part.setMinimumNote(text(body.minimumNote(), 300));
+        part.setLocation(text(body.location(), 120));
+        part.setExpiryDate(body.expiryDate());
+        part.setCompliance(compliance(body.compliance()));
+        part.setRemarks(text(body.remarks(), 1000));
+        parts.save(part);
+
+        Long organizationId = vessels.findById(part.getVesselId()).map(Vessel::getOrganizationId).orElse(null);
+        audit.record(entry(actor, AuditAction.PART_STOCK_CHANGED, part, organizationId)
+                .before(before)
+                .after(AuditJson.of("name", part.getName(), "minimumQuantity", part.getMinimumQuantity(),
+                        "spareId", part.getSpareId(), "compliance", part.getCompliance()))
+                .build());
+        // Raising the minimum can put a part short without anyone touching the shelf.
+        if (part.isBelowMinimum() && !wasBelow) {
+            events.publish(new FleetEvents.PartStockChanged(part.getId(), part.getName(), part.getPartNumber(),
+                    part.getVesselId(), vesselName(part.getVesselId()), organizationId, part.getQuantityOnHand(),
+                    part.getQuantityOnHand(), part.getMinimumQuantity(), true, actor.userId(), Instant.now()));
+        }
+        return ResponseEntity.ok(view(part));
+    }
+
+    /** Takes a part off the list - one entered or imported by mistake. */
+    @DeleteMapping("/parts/{partId}")
+    @Transactional
+    ResponseEntity<Void> remove(@PathVariable Long partId) {
+        AccessScope actor = scopes.currentScope();
+        if (actor.role() != Role.PLATFORM_ADMIN && actor.role() != Role.TECHNICAL_HEAD) {
+            throw ForbiddenException.ofAction("change what this vessel must hold in stock");
+        }
+        ReplacementPart part = load(partId);
+        Long organizationId = vessels.findById(part.getVesselId()).map(Vessel::getOrganizationId).orElse(null);
+        audit.record(entry(actor, AuditAction.PART_STOCK_CHANGED, part, organizationId)
+                .before(AuditJson.of("name", part.getName(), "minimumQuantity", part.getMinimumQuantity(),
+                        "quantityOnHand", part.getQuantityOnHand()))
+                .after(AuditJson.of("removed", true))
+                .build());
+        parts.delete(part);
+        return ResponseEntity.noContent().build();
+    }
+
     /** What the vessel should always hold. The Technical Head's decision, not the Captain's. */
     @PutMapping("/parts/{partId}")
     @Transactional
@@ -278,7 +345,8 @@ class ReplacementPartController {
         return new PartView(part.getId(), part.getVesselId(), part.getName(), part.getPartNumber(),
                 part.getManufacturer(), part.getQuantityOnHand(), part.getMinimumQuantity(),
                 part.isBelowMinimum(), part.getLocation(), part.getExpiryDate(), part.getSpareId(), spareName,
-                sparePath, part.isCritical(), part.getMinimumNote(), part.getCompliance(), part.getRemarks());
+                sparePath, part.isCritical(), part.getMinimumNote(), part.getCompliance(), part.getRemarks(),
+                part.getEquipmentLabel());
     }
 
     private static AuditEntry.Builder entry(AccessScope actor, String action, ReplacementPart part, Long organizationId) {
@@ -300,7 +368,7 @@ class ReplacementPartController {
     record PartView(Long id, Long vesselId, String name, String partNumber, String manufacturer,
                     int quantityOnHand, int minimumQuantity, boolean belowMinimum, String location,
                     LocalDate expiryDate, Long spareId, String spareName, String sparePath,
-                    boolean critical, String minimumNote, String compliance, String remarks) {}
+                    boolean critical, String minimumNote, String compliance, String remarks, String equipmentLabel) {}
 
     record StockBody(Integer quantityOnHand, String note) {}
 
@@ -312,4 +380,8 @@ class ReplacementPartController {
                        Boolean critical) {}
 
     record ComplianceBody(String compliance, String remarks) {}
+
+    record DetailsBody(String name, Long spareId, String partNumber, String manufacturer, Integer minimumQuantity,
+                       String minimumNote, String location, LocalDate expiryDate, String compliance,
+                       String remarks) {}
 }

@@ -26,6 +26,8 @@ import { ChecksPage } from '@/features/content/ChecksPage';
 import { CheckEditorPage } from '@/features/content/CheckEditorPage';
 import { ProblemTypesPage } from '@/features/content/ProblemTypesPage';
 import { ImportPage } from '@/features/import/ImportPage';
+import { ServiceHistoryPage } from '@/features/history/ServiceHistoryPage';
+import { ActivityHistoryPage } from '@/features/history/ActivityHistoryPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import type { Role } from '@/api/types';
 import { ErrorState } from '@/design-system/States';
@@ -101,6 +103,17 @@ function Console() {
         <Route path="/fleet/setup" element={<Guard role="TECHNICAL_HEAD" user={user.role}><FleetSetupPage /></Guard>} />
         <Route path="/fleet/vessels/:vesselId" element={<Guard role="TECHNICAL_HEAD" user={user.role}><VesselEquipmentPage /></Guard>} />
         <Route path="/vessels/captains" element={<Guard role="SHIP_MANAGER" user={user.role}><CaptainsPage /></Guard>} />
+        {/* The fleet's service history in one place: shore roles; recording is the Technical Head's. */}
+        <Route
+          path="/fleet/history"
+          element={
+            user.role === 'PLATFORM_ADMIN' || user.role === 'TECHNICAL_HEAD' || user.role === 'SHIP_MANAGER' ? (
+              <ServiceHistoryPage role={user.role} />
+            ) : (
+              <ErrorState error={new ApiError(403, 'FORBIDDEN', 'Not permitted')} />
+            )
+          }
+        />
         {/* VMP master-data import (SoW §10): Platform Admin and Technical Head. */}
         <Route
           path="/fleet/import"
@@ -113,6 +126,7 @@ function Console() {
           }
         />
         {/* Reports: the list a role may run is decided server-side (SoW §7). */}
+        <Route path="/history" element={<ActivityHistoryPage role={user.role} />} />
         <Route path="/reports" element={<ReportsPage />} />
         {/* Every role reaches requests; the server scopes what each one sees. */}
         <Route path="/requests" element={<RequestsPage />} />

@@ -1,6 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { addPart, declareCompliance, fetchParts, type PartRow } from '@/api/parts';
+import {
+  addPart,
+  countStock,
+  declareCompliance,
+  fetchParts,
+  removePart,
+  updatePartDetails,
+  type PartRow,
+} from '@/api/parts';
 import type { SpareNode } from '@/api/serviceRequests';
 import { Button, EmptyNote, Plate } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
@@ -8,6 +16,7 @@ import { LoadingState } from '@/design-system/States';
 import { Pill } from '@/design-system/StatusBadge';
 import { formatDate } from '@/lib/format';
 import { errorText } from '@/features/admin/AdminParts';
+import { ImportFileButton } from '@/features/import/ImportFileButton';
 import './critical-spares.css';
 
 /**
@@ -38,6 +47,7 @@ export function CriticalSparesPanel({
   const client = useQueryClient();
   const parts = useQuery({ queryKey: ['parts', vesselId], queryFn: () => fetchParts(vesselId) });
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<PartRow | null>(null);
   const [declaring, setDeclaring] = useState<PartRow | null>(null);
 
   const refresh = () => {
@@ -53,7 +63,7 @@ export function CriticalSparesPanel({
   const groups = useMemo(() => {
     const byEquipment = new Map<string, PartRow[]>();
     for (const part of critical) {
-      const key = part.spareName ?? 'Not linked to equipment';
+      const key = part.spareName ?? part.equipmentLabel ?? 'Not linked to equipment';
       const list = byEquipment.get(key) ?? [];
       list.push(part);
       byEquipment.set(key, list);
@@ -77,9 +87,13 @@ export function CriticalSparesPanel({
       }
       action={
         canManage && (
-          <Button variant="primary" onClick={() => setAdding(true)}>
-            Add critical spare
-          </Button>
+          <div className="plate-actions">
+            {/* The client's minimum-spares form, read as it is. */}
+            <ImportFileButton vesselId={vesselId} />
+            <Button variant="primary" onClick={() => setAdding(true)}>
+              Add critical spare
+            </Button>
+          </div>
         )
       }
       flush
@@ -103,6 +117,7 @@ export function CriticalSparesPanel({
             <span>On board</span>
             <span>Compliance</span>
             <span>Remarks</span>
+            <span />
           </div>
           {groups.map(([equipmentName, rows]) => (
             <div className="crit__group" key={equipmentName}>
@@ -132,6 +147,13 @@ export function CriticalSparesPanel({
                     )}
                   </span>
                   <span className="crit__remarks">{part.remarks || '—'}</span>
+                  <span className="crit__actions">
+                    {canManage && (
+                      <Button variant="ghost" onClick={() => setEditing(part)}>
+                        Edit
+                      </Button>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
@@ -139,13 +161,18 @@ export function CriticalSparesPanel({
         </div>
       )}
 
-      {adding && (
-        <AddCriticalSpareDialog
+      {(adding || editing) && (
+        <CriticalSpareDialog
           vesselId={vesselId}
           equipment={equipment}
-          onClose={() => setAdding(false)}
-          onAdded={() => {
+          part={editing}
+          onClose={() => {
             setAdding(false);
+            setEditing(null);
+          }}
+          onSaved={() => {
+            setAdding(false);
+            setEditing(null);
             refresh();
           }}
         />
@@ -180,27 +207,31 @@ function tone(compliance: PartRow['compliance']) {
   return 'unknown';
 }
 
-function AddCriticalSpareDialog({
+/** Adds a line of the minimum-spares form, or corrects one when `part` is given. */
+function CriticalSpareDialog({
   vesselId,
   equipment,
+  part,
   onClose,
-  onAdded,
+  onSaved,
 }: {
   vesselId: number;
   equipment: SpareNode[];
+  part: PartRow | null;
   onClose: () => void;
-  onAdded: () => void;
+  onSaved: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [spareId, setSpareId] = useState<number | ''>('');
-  const [minimumQuantity, setMinimumQuantity] = useState('1');
-  const [minimumNote, setMinimumNote] = useState('');
-  const [quantityOnHand, setQuantityOnHand] = useState('0');
-  const [partNumber, setPartNumber] = useState('');
-  const [location, setLocation] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [name, setName] = useState(part?.name ?? '');
+  const [spareId, setSpareId] = useState<number | ''>(part?.spareId ?? '');
+  const [minimumQuantity, setMinimumQuantity] = useState(String(part?.minimumQuantity ?? 1));
+  const [minimumNote, setMinimumNote] = useState(part?.minimumNote ?? '');
+  const [quantityOnHand, setQuantityOnHand] = useState(String(part?.quantityOnHand ?? 0));
+  const [partNumber, setPartNumber] = useState(part?.partNumber ?? '');
+  const [location, setLocation] = useState(part?.location ?? '');
+  const [expiryDate, setExpiryDate] = useState(part?.expiryDate ?? '');
+  const [remarks, setRemarks] = useState(part?.remarks ?? '');
   const [busy, setBusy] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const valid = name.trim() !== '' && Number.isFinite(Number(minimumQuantity));
@@ -208,37 +239,65 @@ function AddCriticalSpareDialog({
   const save = async () => {
     setBusy(true);
     setError(null);
+    const details = {
+      name: name.trim(),
+      spareId: spareId === '' ? undefined : Number(spareId),
+      minimumQuantity: Number(minimumQuantity),
+      minimumNote: minimumNote.trim() || undefined,
+      partNumber: partNumber.trim() || undefined,
+      location: location.trim() || undefined,
+      expiryDate: expiryDate || undefined,
+      remarks: remarks.trim() || undefined,
+    };
     try {
-      await addPart(vesselId, {
-        name: name.trim(),
-        spareId: spareId === '' ? undefined : Number(spareId),
-        minimumQuantity: Number(minimumQuantity),
-        minimumNote: minimumNote.trim() || undefined,
-        quantityOnHand: Number(quantityOnHand) || 0,
-        partNumber: partNumber.trim() || undefined,
-        location: location.trim() || undefined,
-        expiryDate: expiryDate || undefined,
-        remarks: remarks.trim() || undefined,
-        critical: true,
-      });
-      onAdded();
+      if (part) {
+        await updatePartDetails(part.id, {
+          ...details,
+          manufacturer: part.manufacturer ?? undefined,
+          compliance: part.compliance ?? undefined,
+        });
+        // The on-board figure is a stock count: it has its own shortage alert.
+        const counted = Number(quantityOnHand) || 0;
+        if (counted !== part.quantityOnHand) await countStock(part.id, counted, 'Corrected from the critical spares list');
+      } else {
+        await addPart(vesselId, { ...details, quantityOnHand: Number(quantityOnHand) || 0, critical: true });
+      }
+      onSaved();
     } catch (e) {
-      setError(errorText(e, 'That spare could not be added.'));
+      setError(errorText(e, part ? 'That spare could not be saved.' : 'That spare could not be added.'));
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!part) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await removePart(part.id);
+      onSaved();
+    } catch (e) {
+      setError(errorText(e, 'That spare could not be removed.'));
       setBusy(false);
     }
   };
 
   return (
     <Dialog
-      title="Add a critical spare"
-      subtitle="A part this vessel must always hold on board"
+      title={part ? 'Edit critical spare' : 'Add a critical spare'}
+      subtitle={part ? part.spareName ?? part.equipmentLabel ?? 'Not linked to equipment' : 'A part this vessel must always hold on board'}
       onClose={onClose}
       width={620}
       footer={
         <>
+          {part && (
+            <Button variant="danger" disabled={busy} onClick={() => (confirmRemove ? void remove() : setConfirmRemove(true))}>
+              {confirmRemove ? 'Confirm remove' : 'Remove'}
+            </Button>
+          )}
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" disabled={busy || !valid} onClick={save}>
-            {busy ? 'Adding…' : 'Add'}
+            {busy ? 'Saving…' : part ? 'Save' : 'Add'}
           </Button>
         </>
       }
@@ -261,7 +320,9 @@ function AddCriticalSpareDialog({
           value={spareId}
           onChange={(e) => setSpareId(e.target.value ? Number(e.target.value) : '')}
         >
-          <option value="">Not linked to a specific item</option>
+          <option value="">
+            {part?.equipmentLabel ? `Not linked (listed under ${part.equipmentLabel})` : 'Not linked to a specific item'}
+          </option>
           {equipment.map((s) => (
             <option key={s.id} value={s.id}>
               {s.path} {s.name}

@@ -277,6 +277,9 @@ final class ClientSheetReader {
             String partName = text(row, columns.get(Field.SPARE_PART), formatter);
             Integer minimum = wholeNumber(row, columns.get(Field.MINIMUM_QTY), formatter);
             String minimumNote = minimum == null ? text(row, columns.get(Field.MINIMUM_QTY), formatter) : null;
+            // "2 nos." still means at least two: the words stay as the note, and the
+            // leading figure drives the below-minimum alert.
+            if (minimum == null) minimum = leadingCount(minimumNote);
 
             String vmpRef = vmpRef(cell(row, columns.get(Field.VMP_REF)), formatter);
             String name = text(row, columns.get(Field.NAME), formatter);
@@ -379,6 +382,15 @@ final class ClientSheetReader {
         if (cell == null) return null;
         String value = formatter.formatCellValue(cell).trim();
         return value.isEmpty() ? null : value;
+    }
+
+    private static final java.util.regex.Pattern LEADING_COUNT = java.util.regex.Pattern.compile("^(\\d{1,5})(?!\\s*[./:-]\\s*\\d)\\b");
+
+    /** The figure a quantity starts with - 2 from "2 nos." or "2 pcs each ..." - or null. */
+    static Integer leadingCount(String text) {
+        if (text == null) return null;
+        java.util.regex.Matcher m = LEADING_COUNT.matcher(text.trim());
+        return m.find() ? Integer.valueOf(m.group(1)) : null;
     }
 
     /** "6 pcs" is not a whole number; "6" is. A quantity we cannot count stays text. */

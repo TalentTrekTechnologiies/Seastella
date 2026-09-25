@@ -112,6 +112,16 @@ class ImportService {
      */
     @Transactional
     BatchView upload(String fileName, byte[] content) {
+        return upload(fileName, content, null);
+    }
+
+    /**
+     * As above, into one chosen vessel when {@code vesselId} is given: rows that
+     * do not name a vessel are read as that vessel's, and rows naming another
+     * are refused.
+     */
+    @Transactional
+    BatchView upload(String fileName, byte[] content, Long vesselId) {
         AccessScope actor = scopes.currentScope();
         if (content == null || content.length == 0) throw new ValidationException("Choose a file to upload.");
         if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
@@ -119,13 +129,21 @@ class ImportService {
         }
 
         SheetSource source = SheetSource.of(content);
+        // Only particulars the file itself states are offered as vessel changes.
+        boolean fileNamesVessel = source.vessel() != null;
+        if (vesselId != null) {
+            VesselRef target = fleetGateway.vessel(vesselId)
+                    .filter(v -> inScope(actor, v.organizationId()))
+                    .orElseThrow(() -> NotFoundException.ofResource("Vessel", vesselId));
+            source = source.intoVessel(target.imoNumber(), target.name());
+        }
         Staging staging = new Staging(actor);
         List<ImportRow> staged = new ArrayList<>();
 
         ImportBatch batch = batches.save(new ImportBatch(trim(fileName, 255), content.length, actor.userId(), Instant.now()));
         // The vessel first: the preview reads top to bottom, and its equipment
         // and spares mean nothing until you know which ship they belong to.
-        if (source.vessel() != null) {
+        if (fileNamesVessel) {
             staged.add(staging.classifyVessel(batch.getId(), source.vessel()));
         }
         for (ParsedRow row : source.equipment()) {
@@ -148,6 +166,17 @@ class ImportService {
                         "duplicate", batch.getDuplicateCount(), "vessels", batch.getVesselsSummary()))
                 .build());
         return view(batch, staged, actor);
+    }
+
+    /**
+     * Reads only the vessel particulars from a file, changing nothing. An
+     * all-empty answer means the file names no vessel (our template, or a
+     * sheet without a header block).
+     */
+    VesselDetails vesselDetails(byte[] content) {
+        if (content == null || content.length == 0) throw new ValidationException("Choose a file to upload.");
+        VesselDetails found = SheetSource.of(content).vessel();
+        return found != null ? found : new VesselDetails(null, null, null, null, null, null, null, null, null);
     }
 
     // ------------------------------------------------------------------- read
@@ -898,7 +927,9 @@ class ImportService {
                     .findFirst();
             if (byName.isPresent()) return byName.get();
         }
-        if (ref != null) {
+        // Only when the form named no equipment: a named one that is not on the
+        // vessel stays unlinked rather than landing on whatever sits at that number.
+        if (ref != null && label == null) {
             ExistingSpare byRef = onVessel.get(ref);
             if (byRef != null) return byRef.id();
         }

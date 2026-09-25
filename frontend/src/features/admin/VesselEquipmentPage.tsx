@@ -15,6 +15,7 @@ import { CriticalSparesPanel } from '@/features/parts/CriticalSparesPanel';
 import { SpareTree } from '@/features/spares/SpareTree';
 import { ServiceHistoryPanel } from './ServiceHistoryPanel';
 import { AddSpareDialog } from './AddSpareDialog';
+import { ImportFileButton } from '@/features/import/ImportFileButton';
 import { Dialog as DocumentsDialog } from '@/design-system/Dialog';
 
 /**
@@ -67,9 +68,12 @@ export function VesselEquipmentPage() {
         count={spares.length}
         subtitle={`${withDetails} with details recorded · ${tracked} under maintenance tracking`}
         action={
-          <Button variant="primary" onClick={() => setAddingUnder(null)}>
-            Add equipment
-          </Button>
+          <div className="plate-actions">
+            <ImportFileButton vesselId={vesselId} />
+            <Button variant="primary" onClick={() => setAddingUnder(null)}>
+              Add equipment
+            </Button>
+          </div>
         }
         flush
       >

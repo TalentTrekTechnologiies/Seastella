@@ -78,7 +78,25 @@ export const fetchImports = () => api.get<ImportBatch[]>('/api/v1/imports');
 
 export const fetchImport = (id: number) => api.get<ImportBatch>(`/api/v1/imports/${id}`);
 
-export const uploadImport = (file: File) => uploadFile<ImportBatch>('/api/v1/imports', file);
+/** With a vessel, rows that name no vessel are read as that vessel's. */
+export const uploadImport = (file: File, vesselId?: number) =>
+  uploadFile<ImportBatch>('/api/v1/imports', file, { vesselId });
+
+/** Vessel particulars as a client's sheet states them. Nothing is staged or changed. */
+export interface SheetVesselDetails {
+  imoNumber: string | null;
+  name: string | null;
+  mmsi: string | null;
+  callSign: string | null;
+  flag: string | null;
+  vesselClass: string | null;
+  area: string | null;
+  vesselType: string | null;
+  dwt: string | null;
+}
+
+export const readVesselDetails = (file: File) =>
+  uploadFile<SheetVesselDetails>('/api/v1/imports/vessel-details', file);
 
 export const commitImport = (id: number) => api.post<ImportBatch>(`/api/v1/imports/${id}/commit`);
 

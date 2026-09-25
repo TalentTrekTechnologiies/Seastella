@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAdminVessels } from '@/api/admin';
 import {
@@ -94,6 +95,16 @@ export function ImportPage() {
     run('upload', async () => {
       setBatch(await fetchImport(id));
     });
+
+  // Arriving from "Add vessel": open the import that was staged for it.
+  const [params, setParams] = useSearchParams();
+  const linkedBatch = Number(params.get('batch')) || null;
+  useEffect(() => {
+    if (!linkedBatch) return;
+    open(linkedBatch);
+    setParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedBatch]);
 
   if (vessels.error) return <ErrorState error={vessels.error} onRetry={() => vessels.refetch()} />;
 

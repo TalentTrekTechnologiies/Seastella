@@ -2,6 +2,9 @@ package com.seastella.activityfeed.internal;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.seastella.identity.api.AccessScope;
+import com.seastella.identity.api.Role;
+import com.seastella.identity.api.ScopeResolver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -19,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +39,10 @@ import java.util.Set;
  * stay in the audit trail but out of the feed, where they would bury the events
  * the SoW names.
  *
- * <p>Platform Admin only; it spans every organization and vessel. An open feed
+ * <p>The full feed is the Platform Admin's; it spans every organization and
+ * vessel. Every other role reads the same entries through {@code /mine}: what
+ * they did themselves, and what happened on the vessels they are responsible
+ * for - each dashboard's own history (SoW s8, s12). An open feed
  * is pushed: the server announces each new entry over SSE and the client asks
  * for what is newer than the last id it holds (FEE-04).
  */
@@ -50,20 +57,29 @@ class ActivityFeedController {
                     "CLARIFICATION_REQUESTED", "ESCALATED_TO_LIVE_AGENT", "REQUEST_CLOSED_NO_COST", "ENGINEER_ASSIGNED",
                     "COMPLETION_REPORTED", "REQUEST_COMPLETED", "TROUBLESHOOTING_COMPLETED"),
             Category.INVOICES, Set.of("INVOICE_RAISED", "INVOICE_ACCEPTED", "INVOICE_REJECTED", "INVOICE_QUERIED"),
-            Category.MAINTENANCE, Set.of("MAINTENANCE_STATUS_CHANGED", "RUNNING_HOURS_RECORDED", "SPARE_UPDATED"),
+            Category.MAINTENANCE, Set.of("MAINTENANCE_STATUS_CHANGED", "RUNNING_HOURS_RECORDED", "SPARE_UPDATED",
+                    "SPARE_CREATED", "SPARE_DELETED", "SERVICE_DATE_CHANGED", "PART_STOCK_CHANGED",
+                    "DOCUMENT_UPLOADED", "DOCUMENT_DELETED"),
             Category.SETUP, Set.of("ORGANIZATION_CREATED", "USER_CREATED", "VESSEL_CREATED", "VESSEL_ASSIGNED",
                     "VESSEL_UNASSIGNED", "USER_STATUS_CHANGED", "PASSWORD_RESET", "ORGANIZATION_ASSIGNED",
                     "CONFIGURATION_CHANGED", "INVITATION_ACCEPTED", "PROBLEM_TYPE_CREATED", "PROBLEM_TYPE_UPDATED",
-                    "CHECKS_PUBLISHED", "CHECKS_RETIRED"));
+                    "CHECKS_PUBLISHED", "CHECKS_RETIRED", "VESSEL_UPDATED", "USER_UPDATED", "IMPORT_UPLOADED",
+                    "IMPORT_COMMITTED", "IMPORT_REJECTED", "EQUIPMENT_CATEGORY_CREATED"));
+
+    /** SoW s8: invoices are the Ship Manager's, Coordinator's, Technical Head's and Platform Admin's. */
+    private static final Set<Role> SEES_INVOICES =
+            Set.of(Role.PLATFORM_ADMIN, Role.TECHNICAL_HEAD, Role.SHIP_MANAGER, Role.SERVICE_COORDINATOR);
 
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper json;
     private final ActivityStream stream;
+    private final ScopeResolver scopes;
 
-    ActivityFeedController(JdbcTemplate jdbc, ObjectMapper json, ActivityStream stream) {
+    ActivityFeedController(JdbcTemplate jdbc, ObjectMapper json, ActivityStream stream, ScopeResolver scopes) {
         this.jdbc = new NamedParameterJdbcTemplate(jdbc);
         this.json = json;
         this.stream = stream;
+        this.scopes = scopes;
     }
 
     /**
@@ -87,14 +103,55 @@ class ActivityFeedController {
                               @RequestParam(required = false) Long after,
                               @RequestParam(defaultValue = "50") int limit) {
         int size = Math.min(Math.max(limit, 1), 200);
+        List<Item> items = query(null, false, organizationId, vesselId, category, before, after, size);
+        List<Option> organizations = jdbc.query("select id, name from organization order by name",
+                (rs, i) -> new Option(rs.getLong("id"), rs.getString("name")));
+        Long next = items.size() == size ? items.get(items.size() - 1).id() : null;
+        return ResponseEntity.ok(new Feed(items, next, organizations));
+    }
+
+    /**
+     * The history each role reads on its own dashboard: everything the caller
+     * did, and everything that happened on the vessels in their scope. A
+     * Service Engineer sees their own jobs rather than whole vessels, and the
+     * roles without invoice visibility do not see invoice events (SoW s8).
+     */
+    @GetMapping("/mine")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional(readOnly = true)
+    ResponseEntity<Feed> mine(@RequestParam(required = false) Long vesselId,
+                              @RequestParam(required = false) Category category,
+                              @RequestParam(defaultValue = "false") boolean onlyMine,
+                              @RequestParam(required = false) Long before,
+                              @RequestParam(defaultValue = "50") int limit) {
+        AccessScope scope = scopes.currentScope();
+        if (scope.userId() == null) return ResponseEntity.ok(new Feed(List.of(), null, List.of()));
+        if (vesselId != null && !scope.permitsVessel(vesselId)) {
+            return ResponseEntity.ok(new Feed(List.of(), null, List.of()));
+        }
+        if (category == Category.INVOICES && !SEES_INVOICES.contains(scope.role())) {
+            return ResponseEntity.ok(new Feed(List.of(), null, List.of()));
+        }
+        int size = Math.min(Math.max(limit, 1), 200);
+        List<Item> items = query(scope, onlyMine, null, vesselId, category, before, null, size);
+        Long next = items.size() == size ? items.get(items.size() - 1).id() : null;
+        return ResponseEntity.ok(new Feed(items, next, List.of()));
+    }
+
+    /**
+     * One query for both. {@code scope} null is the Platform Admin's full feed;
+     * otherwise it narrows to the caller's own actions and their vessels.
+     */
+    private List<Item> query(AccessScope scope, boolean onlyMine, Long organizationId, Long vesselId,
+                             Category category, Long before, Long after, int size) {
         StringBuilder sql = new StringBuilder("""
-                select a.id, a.action, a.entity_type, a.entity_id, a.occurred_at, a.after_value, a.actor_role, a.actor_user_id,
+                select a.id, a.action, a.entity_type, a.entity_id, a.occurred_at, a.after_value, a.before_value, a.actor_role, a.actor_user_id,
                        u.full_name as actor_name, v.id as v_id, v.name as vessel_name,
                        o.id as org_id, o.name as org_name,
                        sr.id as sr_id, sr.request_number, sr.title as sr_title,
                        inv.invoice_number, inv.service_request_id as inv_sr_id, isr.request_number as inv_sr_number,
                        sp.name as spare_name, tu.full_name as target_name, tu.role as target_role,
-                       eo.name as entity_org_name, ev.name as entity_vessel_name
+                       eo.name as entity_org_name, ev.name as entity_vessel_name, rp.name as part_name
                 from audit_entry a
                 left join app_user u on u.id = a.actor_user_id
                 left join vessel v on v.id = a.vessel_id
@@ -106,14 +163,50 @@ class ActivityFeedController {
                 left join app_user tu on a.entity_type = 'AppUser' and tu.id = a.entity_id
                 left join organization eo on a.entity_type = 'Organization' and eo.id = a.entity_id
                 left join vessel ev on a.entity_type = 'Vessel' and ev.id = a.entity_id
+                left join replacement_part rp on a.entity_type = 'ReplacementPart' and rp.id = a.entity_id
                 where a.action in (:actions)
                   and not (a.action = 'REQUEST_TRANSITIONED' and a.after_value like '%INVOICE%')
                 """);
+        List<String> actions = new ArrayList<>(category == null
+                ? ACTIONS.values().stream().flatMap(Set::stream).toList()
+                : List.copyOf(ACTIONS.get(category)));
+        if (scope != null && !SEES_INVOICES.contains(scope.role())) {
+            actions.removeAll(ACTIONS.get(Category.INVOICES));
+        }
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("actions", category == null
-                        ? ACTIONS.values().stream().flatMap(Set::stream).toList()
-                        : List.copyOf(ACTIONS.get(category)))
+                .addValue("actions", actions)
                 .addValue("lim", size);
+
+        if (scope != null && !scope.isPlatformWide()) {
+            params.addValue("me", scope.userId());
+            if (onlyMine) {
+                sql.append(" and a.actor_user_id = :me");
+            } else if (scope.role() == Role.SERVICE_ENGINEER) {
+                // An engineer's history is their jobs, not everything on those ships.
+                sql.append(" and (a.actor_user_id = :me");
+                if (!scope.assignedJobIds().isEmpty()) {
+                    sql.append(" or (a.entity_type = 'ServiceRequest' and a.entity_id in (:jobs))");
+                    params.addValue("jobs", scope.assignedJobIds());
+                }
+                sql.append(")");
+            } else {
+                sql.append(" and (a.actor_user_id = :me");
+                if (!scope.vesselIds().isEmpty()) {
+                    sql.append(" or a.vessel_id in (:vessels)");
+                    params.addValue("vessels", scope.vesselIds());
+                }
+                // The Technical Head also owns the organization's own setup: its people and vessels.
+                if (scope.role() == Role.TECHNICAL_HEAD && scope.organizationId() != null) {
+                    sql.append(" or (a.vessel_id is null and a.organization_id = :ownOrg)");
+                    params.addValue("ownOrg", scope.organizationId());
+                }
+                sql.append(")");
+            }
+        } else if (scope != null && onlyMine) {
+            params.addValue("me", scope.userId());
+            sql.append(" and a.actor_user_id = :me");
+        }
+
         if (organizationId != null) {
             sql.append(" and coalesce(a.organization_id, v.organization_id) = :org");
             params.addValue("org", organizationId);
@@ -132,12 +225,7 @@ class ActivityFeedController {
             params.addValue("after", after);
         }
         sql.append(" order by a.id desc limit :lim");
-
-        List<Item> items = jdbc.query(sql.toString(), params, (rs, i) -> toItem(rs));
-        List<Option> organizations = jdbc.query("select id, name from organization order by name",
-                (rs, i) -> new Option(rs.getLong("id"), rs.getString("name")));
-        Long next = items.size() == size ? items.get(items.size() - 1).id() : null;
-        return ResponseEntity.ok(new Feed(items, next, organizations));
+        return jdbc.query(sql.toString(), params, (rs, i) -> toItem(rs));
     }
 
     private Item toItem(ResultSet rs) throws SQLException {
@@ -149,6 +237,7 @@ class ActivityFeedController {
         String actor = rs.getString("actor_name");
         String vessel = firstNonNull(rs.getString("vessel_name"), rs.getString("entity_vessel_name"));
         String target = rs.getString("target_name");
+        JsonNode before = parse(rs.getString("before_value"));
         Timestamp at = rs.getTimestamp("occurred_at");
 
         return new Item(
@@ -160,7 +249,8 @@ class ActivityFeedController {
                 actor == null ? null : roleLabel(rs.getString("actor_role")),
                 summary(action, after, requestNumber, rs.getString("sr_title"), rs.getString("invoice_number"),
                         rs.getString("spare_name"), target, rs.getString("target_role"), vessel,
-                        rs.getString("entity_org_name"),
+                        rs.getString("entity_org_name"), before,
+                        firstNonNull(rs.getString("part_name"), text(before, "name")),
                         "AppUser".equals(rs.getString("entity_type")) && rs.getObject("actor_user_id") != null
                                 && rs.getLong("actor_user_id") == rs.getLong("entity_id")),
                 firstNonNull(rs.getString("org_name"), rs.getString("entity_org_name")),
@@ -171,7 +261,9 @@ class ActivityFeedController {
     /** One sentence per event, in the words the SoW uses. Reads after the actor's name. */
     private static String summary(String action, JsonNode after, String sr, String srTitle, String invoice,
                                   String spare, String target, String targetRole, String vessel, String org,
-                                  boolean aboutThemselves) {
+                                  JsonNode before, String part, boolean aboutThemselves) {
+        String item = spare == null ? "a spare" : spare;
+        String partName = part == null || part.isEmpty() ? "a critical spare" : part;
         String on = vessel == null ? "" : " on " + vessel;
         return switch (action) {
             case "REQUEST_RAISED" -> "raised " + sr + on + (srTitle == null ? "" : ": “" + srTitle + "”");
@@ -202,7 +294,52 @@ class ActivityFeedController {
             }
             case "RUNNING_HOURS_RECORDED" -> "recorded " + text(after, "runningHours") + " running hours on "
                     + (spare == null ? "a spare" : spare) + on;
-            case "SPARE_UPDATED" -> "updated the details of " + (spare == null ? "a spare" : spare) + on;
+            case "SPARE_UPDATED" -> "updated the details of " + item + on;
+            case "SPARE_CREATED" -> "added equipment " + firstNonNull(spare, text(after, "name")) + on;
+            case "SPARE_DELETED" -> "removed equipment " + firstNonNull(spare, text(before, "name")) + on;
+            case "SERVICE_DATE_CHANGED" -> {
+                if (after != null && after.path("removed").asBoolean(false)) {
+                    yield "removed a service entry (" + text(before, "serviceDate") + ") from " + item + on;
+                }
+                if (after != null && after.has("upload")) {
+                    yield "uploaded " + text(after, "entries") + " service history entries for " + item + on
+                            + " from " + text(after, "upload");
+                }
+                if (after != null && after.has("workPerformed")) {
+                    yield "recorded work on " + item + on + " (" + text(after, "serviceDate") + "): “"
+                            + text(after, "workPerformed") + "”";
+                }
+                if (after != null && after.has("serviceRequest")) {
+                    yield "added " + text(after, "serviceRequest") + " to the service history of " + item + on;
+                }
+                yield "set the last service date of " + item + on + " to " + text(after, "lastAnnualServiceDate");
+            }
+            case "PART_STOCK_CHANGED" -> {
+                if (after != null && after.path("removed").asBoolean(false)) yield "removed " + partName + " from the spares list" + on;
+                if (after != null && after.has("added")) {
+                    yield "added " + text(after, "added") + " to the spares list" + on + " (minimum "
+                            + text(after, "minimumQuantity") + ", " + text(after, "quantityOnHand") + " on board)";
+                }
+                if (after != null && after.has("name")) yield "edited the details of " + partName + on;
+                if (after != null && after.has("quantityOnHand")) {
+                    yield "counted " + partName + on + ": " + text(before, "quantityOnHand") + " → "
+                            + text(after, "quantityOnHand") + " on board (minimum " + text(after, "minimumQuantity") + ")";
+                }
+                if (after != null && after.has("remarks")) {
+                    yield "marked " + partName + on + " compliance as " + complianceLabel(text(after, "compliance"));
+                }
+                yield "changed the minimum for " + partName + on + " to " + text(after, "minimumQuantity");
+            }
+            case "DOCUMENT_UPLOADED" -> "uploaded the document “" + text(after, "title") + "”" + on;
+            case "DOCUMENT_DELETED" -> "deleted the document “" + text(before, "title") + "”" + on;
+            case "VESSEL_UPDATED" -> "updated the particulars of " + firstNonNull(vessel, "a vessel");
+            case "USER_UPDATED" -> "updated the account of " + firstNonNull(target, "a user");
+            case "IMPORT_UPLOADED" -> "uploaded " + text(after, "file") + " for import (" + text(after, "rows") + " rows)";
+            case "IMPORT_COMMITTED" -> "applied the import " + text(after, "file") + " (" + text(after, "applied")
+                    + " changes" + (text(after, "vessels").isEmpty() ? "" : " to " + text(after, "vessels")) + ")";
+            case "IMPORT_REJECTED" -> "discarded the import " + text(after, "file");
+            case "EQUIPMENT_CATEGORY_CREATED" -> "added the equipment type “" + text(after, "name") + "” (VMP block "
+                    + text(after, "vmpBlock") + ")" + on;
             case "ORGANIZATION_CREATED" -> "created organization " + firstNonNull(org, text(after, "name"));
             case "USER_CREATED" -> "created a " + roleLabel(targetRole) + " account for " + target;
             case "VESSEL_CREATED" -> "added vessel " + firstNonNull(vessel, text(after, "name"))
@@ -273,6 +410,15 @@ class ActivityFeedController {
             case "DUE" -> "Due";
             case "OVERDUE" -> "Overdue";
             default -> code.toLowerCase(Locale.ROOT);
+        };
+    }
+
+    private static String complianceLabel(String code) {
+        return switch (code) {
+            case "YES" -> "Yes";
+            case "NO" -> "No";
+            case "NA" -> "N/A";
+            default -> "not assessed";
         };
     }
 

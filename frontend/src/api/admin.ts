@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, downloadFile, uploadFile } from './client';
 import type { Role } from './types';
 
 /**
@@ -78,6 +78,8 @@ export interface VesselForm {
   area?: string;
   vesselType?: string;
   dwt?: number;
+  /** False when the vessel's own equipment list is imported instead. */
+  standardFit?: boolean;
 }
 
 export const fetchOrganizations = () => api.get<OrganizationRow[]>('/api/v1/organizations');
@@ -191,6 +193,47 @@ export const recordService = (
 export const removeServiceRecord = (spareId: number, recordId: number) =>
   api.del(`/api/v1/spares/${spareId}/service-history/${recordId}`);
 
+/** One entry of the fleet-wide history, with the vessel and equipment it belongs to. */
+export interface FleetServiceRecord extends ServiceRecord {
+  vesselId: number;
+  vesselName: string | null;
+  spareId: number;
+  sparePath: string | null;
+  spareName: string | null;
+}
+
+export const fetchFleetServiceHistory = (vesselId?: number) =>
+  api.get<FleetServiceRecord[]>(vesselId ? `/api/v1/service-history?vesselId=${vesselId}` : '/api/v1/service-history');
+
+/** What one row of an uploaded history sheet would do. */
+export interface HistoryUploadRow {
+  rowNumber: number;
+  vessel: string | null;
+  equipment: string | null;
+  date: string | null;
+  work: string | null;
+  parts: string | null;
+  performedBy: string | null;
+  status: 'ADD' | 'SKIP' | 'ERROR';
+  message: string | null;
+}
+
+export interface HistoryUpload {
+  rowCount: number;
+  addCount: number;
+  skipCount: number;
+  errorCount: number;
+  applied: boolean;
+  rows: HistoryUploadRow[];
+}
+
+/** apply=false only checks the file; apply=true adds every row, or none. */
+export const uploadServiceHistory = (file: File, apply: boolean, vesselId?: number) =>
+  uploadFile<HistoryUpload>('/api/v1/service-history/import', file, { vesselId, apply: String(apply) });
+
+export const downloadServiceHistoryTemplate = () =>
+  downloadFile('/api/v1/service-history/template', 'seastella-service-history.xlsx');
+
 /** Adding equipment or a component to a vessel by hand (SoW §9). */
 export interface NewSpare {
   name: string;
@@ -219,3 +262,7 @@ export interface EquipmentCategoryOption {
 
 export const fetchEquipmentCategories = (vesselId: number) =>
   api.get<EquipmentCategoryOption[]>(`/api/v1/vessels/${vesselId}/spares/categories`);
+
+/** A kind of equipment none of the categories covers. Returns the existing one if the name matches. */
+export const createEquipmentCategory = (vesselId: number, name: string) =>
+  api.post<EquipmentCategoryOption>(`/api/v1/vessels/${vesselId}/spares/categories`, { name });

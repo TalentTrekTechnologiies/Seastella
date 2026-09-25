@@ -10,6 +10,7 @@ import { VesselCard } from '@/design-system/VesselCard';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { RecentAlerts } from '@/features/alerts/RecentAlerts';
 import { VesselDrawer } from './VesselDrawer';
+import { RecentHistoryPlate } from '@/features/history/ActivityHistoryPage';
 
 /**
  * FLEET TECHNICAL COMMAND — Technical Head (SoW §8.1).
@@ -138,6 +139,9 @@ export function TechnicalHeadPage() {
           onClose={() => setOpenVessel(null)}
         />
       )}
+
+      {/* Every role keeps a record of its own work (SoW §8, §12). */}
+      <RecentHistoryPlate />
     </div>
   );
 }

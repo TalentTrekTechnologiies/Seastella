@@ -46,6 +46,39 @@ record SheetSource(VesselDetails vessel, List<ParsedRow> equipment,
                 asParsedRows(sheet), sheet.criticalSpares(), sheet.notes());
     }
 
+    /**
+     * The same file, read as belonging to one chosen vessel - the one whose page
+     * it was uploaded from. A client's minimum-spares form often never names the
+     * ship; here it does not have to. A file that names a different ship is
+     * refused rather than quietly redirected.
+     */
+    SheetSource intoVessel(String imo, String vesselName) {
+        String stated = vessel == null ? null : vessel.imoNumber();
+        if (stated != null && !stated.equals(imo)) {
+            throw new ValidationException(mismatch(stated, imo, vesselName));
+        }
+        List<ParsedRow> rows = new ArrayList<>();
+        for (ParsedRow row : equipment) {
+            String rowImo = row.get(Column.IMO);
+            if (rowImo != null && !rowImo.equals(imo)) {
+                throw new ValidationException(mismatch(rowImo, imo, vesselName));
+            }
+            Map<Column, String> text = new LinkedHashMap<>(row.text());
+            text.put(Column.IMO, imo);
+            rows.add(new ParsedRow(row.rowNumber(), text, row.dates()));
+        }
+        VesselDetails target = vessel == null
+                ? new VesselDetails(imo, null, null, null, null, null, null, null, null)
+                : new VesselDetails(imo, vessel.name(), vessel.mmsi(), vessel.callSign(), vessel.flag(),
+                        vessel.vesselClass(), vessel.area(), vessel.vesselType(), vessel.dwt());
+        return new SheetSource(target, rows, criticalSpares, notes);
+    }
+
+    private static String mismatch(String stated, String imo, String vesselName) {
+        return "This file is for IMO " + stated + ", not " + vesselName + " (IMO " + imo + "). "
+                + "Import it from that vessel's page, or from Data import.";
+    }
+
     /** True when this file is a client's own rather than our template. */
     boolean isClientSheet() {
         return vessel != null || !criticalSpares.isEmpty();

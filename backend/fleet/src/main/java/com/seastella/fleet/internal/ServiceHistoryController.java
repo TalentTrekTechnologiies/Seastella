@@ -8,8 +8,6 @@ import com.seastella.core.api.error.ForbiddenException;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.core.api.error.ValidationException;
 import com.seastella.core.api.error.WorkflowException;
-import com.seastella.core.api.event.DomainEventPublisher;
-import com.seastella.fleet.api.FleetEvents;
 import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
 import com.seastella.identity.api.ScopeGuard;
@@ -58,20 +56,18 @@ class ServiceHistoryController {
     private final ScopeResolver scopes;
     private final UserDirectory users;
     private final AuditService audit;
-    private final VesselRepository vessels;
-    private final DomainEventPublisher events;
+    private final ServiceDateSync dates;
 
     ServiceHistoryController(SpareServiceRecordRepository records, SpareRepository spares, ScopeGuard scopeGuard,
                              ScopeResolver scopes, UserDirectory users, AuditService audit,
-                             VesselRepository vessels, DomainEventPublisher events) {
+                             ServiceDateSync dates) {
         this.records = records;
         this.spares = spares;
         this.scopeGuard = scopeGuard;
         this.scopes = scopes;
         this.users = users;
         this.audit = audit;
-        this.vessels = vessels;
-        this.events = events;
+        this.dates = dates;
     }
 
     @GetMapping
@@ -115,7 +111,7 @@ class ServiceHistoryController {
                 text(body.notes(), 1000),
                 actor.userId()));
 
-        applyNewestDate(spare, actor);
+        dates.applyNewestDate(spare, actor.userId());
         audit.record(entry(actor, AuditAction.SERVICE_DATE_CHANGED, spare)
                 .after(AuditJson.of("serviceDate", saved.getServiceDate(), "workPerformed", saved.getWorkPerformed(),
                         "performedBy", saved.getPerformedBy(), "source", "RECORDED"))
@@ -140,7 +136,7 @@ class ServiceHistoryController {
         }
 
         records.delete(record);
-        applyNewestDate(spare, actor);
+        dates.applyNewestDate(spare, actor.userId());
         audit.record(entry(actor, AuditAction.SERVICE_DATE_CHANGED, spare)
                 .before(AuditJson.of("serviceDate", record.getServiceDate(),
                         "workPerformed", record.getWorkPerformed(), "source", "RECORDED"))
@@ -150,26 +146,6 @@ class ServiceHistoryController {
     }
 
     // -------------------------------------------------------------- internals
-
-    /**
-     * Keeps the spare's own date in step with its history, and asks the
-     * maintenance engine to re-band it. Entering a service that is older than
-     * the newest one must not move the due date backwards.
-     */
-    private void applyNewestDate(Spare spare, AccessScope actor) {
-        LocalDate previous = spare.getLastAnnualServiceDate();
-        LocalDate newest = records.newestServiceDate(spare.getId());
-        if (java.util.Objects.equals(newest, previous)) return;
-
-        spare.setLastAnnualServiceDate(newest);
-        spares.save(spare);
-        // The same event the equipment screen publishes, so one mechanism
-        // restarts the maintenance cycle however the date came to change.
-        Long organizationId = vessels.findById(spare.getVesselId())
-                .map(Vessel::getOrganizationId).orElse(null);
-        events.publish(new FleetEvents.ServiceDateChanged(spare.getId(), spare.getVesselId(), organizationId,
-                previous, newest, actor.userId(), java.time.Instant.now()));
-    }
 
     private AccessScope mayRecord() {
         AccessScope actor = scopes.currentScope();

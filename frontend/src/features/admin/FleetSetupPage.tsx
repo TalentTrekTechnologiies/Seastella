@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAccounts, fetchAdminVessels, type AccountSummary, type LinkSent } from '@/api/admin';
 import { Button, ConsoleHeader, EmptyNote, Plate } from '@/design-system/Console';
@@ -20,6 +20,7 @@ import { AddPersonDialog, AddVesselDialog, AllocateVesselsDialog } from './Setup
  */
 export function FleetSetupPage() {
   const client = useQueryClient();
+  const navigate = useNavigate();
   const vessels = useQuery({ queryKey: ['admin-vessels'], queryFn: fetchAdminVessels });
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: fetchAccounts });
   const [addingVessel, setAddingVessel] = useState(false);
@@ -168,10 +169,19 @@ export function FleetSetupPage() {
       {addingVessel && (
         <AddVesselDialog
           onClose={() => setAddingVessel(false)}
-          onCreated={(v) => {
+          onCreated={(v, imported) => {
             setAddingVessel(false);
-            setNotice(`${v.name} added with ${v.spareCount} spares from the standard bridge fit. Allocate it to a Ship Manager next.`);
             refresh();
+            if (imported?.batchId) {
+              // Straight to the preview of what the sheet adds to the new vessel.
+              navigate(`/fleet/import?batch=${imported.batchId}`);
+              return;
+            }
+            setNotice(
+              imported?.error
+                ? `${v.name} added, but its equipment list could not be imported: ${imported.error} Try it again from Data import.`
+                : `${v.name} added with ${v.spareCount} spares from the standard bridge fit. Allocate it to a Ship Manager next.`,
+            );
           }}
         />
       )}

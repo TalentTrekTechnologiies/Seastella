@@ -148,7 +148,8 @@ class DefaultSpareImportGateway implements SpareImportGateway {
 
         Map<String, ExistingPart> byKey = new LinkedHashMap<>();
         for (ReplacementPart part : parts.findByVesselIdOrderByNameAsc(vesselId)) {
-            PartValues values = valuesOf(part, equipmentNames.get(part.getSpareId()));
+            String equipment = part.getSpareId() != null ? equipmentNames.get(part.getSpareId()) : part.getEquipmentLabel();
+            PartValues values = valuesOf(part, equipment);
             // First one wins: two rows sharing a key are the caller's duplicate to report,
             // not ours to silently merge.
             byKey.putIfAbsent(values.key(), new ExistingPart(part.getId(), values));
@@ -187,6 +188,9 @@ class DefaultSpareImportGateway implements SpareImportGateway {
      */
     private void applyPart(ReplacementPart part, PartValues v) {
         if (v.spareId() != null) part.setSpareId(v.spareId());
+        // Keep the form's own name for the equipment, so an unlinked part still
+        // lists under it and matches itself on the next import.
+        if (v.equipmentName() != null) part.setEquipmentLabel(blankToNull(v.equipmentName()));
         if (v.minimumNote() != null) part.setMinimumNote(blankToNull(v.minimumNote()));
         if (v.compliance() != null) part.setCompliance(blankToNull(v.compliance()));
         if (v.remarks() != null) part.setRemarks(blankToNull(v.remarks()));

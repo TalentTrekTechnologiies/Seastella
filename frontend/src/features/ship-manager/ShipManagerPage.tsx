@@ -8,6 +8,7 @@ import { VesselCard } from '@/design-system/VesselCard';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { Icon } from '@/design-system/Icon';
 import { RecentAlerts } from '@/features/alerts/RecentAlerts';
+import { RecentHistoryPlate } from '@/features/history/ActivityHistoryPage';
 
 /**
  * VESSEL MANAGEMENT — Ship Manager / Superintendent (SoW §8.2).
@@ -182,6 +183,9 @@ export function ShipManagerPage() {
           </div>
         </>
       )}
+
+      {/* Every role keeps a record of its own work (SoW §8, §12). */}
+      <RecentHistoryPlate />
     </div>
   );
 }

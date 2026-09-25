@@ -18,6 +18,10 @@ public interface SpareRepository extends JpaRepository<Spare, Long> {
     /** Any top-level spare already filed under a category, for its VMP block number. */
     java.util.Optional<Spare> findFirstByEquipmentCategoryIdAndParentSpareIdIsNullOrderByIdAsc(Long categoryId);
 
+    /** Every top-level VMP number in use, so a new category's block does not collide with one. */
+    @Query("select s.path from Spare s where s.parentSpareId is null")
+    List<String> topLevelPaths();
+
     /**
      * A whole subtree in one indexed read, using the materialised path rather
      * than a recursive walk.

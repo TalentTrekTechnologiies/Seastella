@@ -187,7 +187,7 @@ class ClientSheetImportIT {
                 select minimum_quantity, minimum_note, compliance, spare_id
                 from replacement_part where vessel_id = ? and name = ?
                 """, vesselId, "Carbon brush");
-        assertThat(brush.get("minimum_quantity")).as("\"2 pcs\" is not a number").isEqualTo(0);
+        assertThat(brush.get("minimum_quantity")).as("\"2 pcs\" counts as 2 for the shortage alert").isEqualTo(2);
         assertThat(brush.get("minimum_note")).isEqualTo("2 pcs");
         assertThat(brush.get("compliance")).as("N/A is an answer, not an empty cell").isEqualTo("NA");
         assertThat(((Number) brush.get("spare_id")).longValue())

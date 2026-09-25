@@ -97,6 +97,19 @@
 }
 .fit-note b { color: var(--sbs-ink); }
 
+/* A plate with more than one action: import beside add. */
+.plate-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Add vessel: the Excel file the particulars are read from. */
+.vessel-import {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 16px;
+  flex-wrap: wrap;
+}
+.vessel-import__name { color: var(--sbs-ink-2); font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+
 /* ---- vessel equipment ---- */
 .equip__path { color: var(--sbs-ink-3); font-size: 14px; font-weight: 500; }
 .equip__missing { color: var(--sbs-ink-3); font-style: italic; }

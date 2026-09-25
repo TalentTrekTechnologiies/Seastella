@@ -40,6 +40,7 @@ public final class AuditAction {
     public static final String SPARE_DELETED = "SPARE_DELETED";
     public static final String RUNNING_HOURS_RECORDED = "RUNNING_HOURS_RECORDED";
     public static final String PART_STOCK_CHANGED = "PART_STOCK_CHANGED";
+    public static final String EQUIPMENT_CATEGORY_CREATED = "EQUIPMENT_CATEGORY_CREATED";
 
     // Maintenance (AUD-13, AUD-14)
     public static final String SERVICE_DATE_CHANGED = "SERVICE_DATE_CHANGED";

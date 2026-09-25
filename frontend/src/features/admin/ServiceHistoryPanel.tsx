@@ -80,7 +80,7 @@ export function ServiceHistoryPanel({
         </p>
         {canRecord && (
           <Button variant="primary" onClick={() => setAdding(true)}>
-            Record a past service
+            Add work done
           </Button>
         )}
       </div>
@@ -89,8 +89,8 @@ export function ServiceHistoryPanel({
         <LoadingState rows={3} />
       ) : rows.length === 0 ? (
         <EmptyNote>
-          If this equipment was serviced before it was on SeaStella, record it here — the history comes with the
-          vessel.
+          Record any service, repair or part replaced on this equipment — including work done before it was on
+          SeaStella, so the history comes with the vessel.
         </EmptyNote>
       ) : (
         <ol className="svchist__list">
@@ -169,7 +169,7 @@ export function ServiceHistoryPanel({
  * maintenance engine counts from, so entering one re-colours the item on every
  * dashboard, and the dialog says so before it is saved.
  */
-function RecordServiceDialog({
+export function RecordServiceDialog({
   spareId,
   spareName,
   onClose,
@@ -211,7 +211,7 @@ function RecordServiceDialog({
 
   return (
     <Dialog
-      title="Record a past service"
+      title="Add work done"
       subtitle={spareName}
       onClose={onClose}
       width={560}
@@ -219,15 +219,15 @@ function RecordServiceDialog({
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" disabled={busy || !valid} onClick={save}>
-            {busy ? 'Recording…' : 'Record service'}
+            {busy ? 'Saving…' : 'Save to history'}
           </Button>
         </>
       }
     >
       <Field
-        label="Date of service"
+        label="Date the work was done"
         htmlFor="svc-date"
-        hint="A past date. This is what the next service is counted from."
+        hint="Today or earlier. This is what the next service is counted from."
       >
         <input
           id="svc-date"
@@ -247,7 +247,7 @@ function RecordServiceDialog({
           maxLength={2000}
           value={workPerformed}
           onChange={(e) => setWorkPerformed(e.target.value)}
-          placeholder="e.g. Annual performance test and calibration; magnetron output verified within limits."
+          placeholder="e.g. Magnetron replaced; performance test and calibration done, output within limits."
         />
       </Field>
 
@@ -262,7 +262,7 @@ function RecordServiceDialog({
             placeholder="e.g. Marine Electronics Pte Ltd"
           />
         </Field>
-        <Field label="Parts used" htmlFor="svc-parts">
+        <Field label="Parts replaced / used" htmlFor="svc-parts" hint="Part names or numbers.">
           <input
             id="svc-parts"
             className="input"
@@ -278,8 +278,8 @@ function RecordServiceDialog({
       </Field>
 
       <p className="otp__note">
-        Recording a service moves this item's next-due date and its colour on every dashboard. Nothing is sent to
-        anybody — this is a record of work already done.
+        Saving this moves this item's next-due date and its colour on every dashboard. Nothing is sent to anybody —
+        this is a record of work already done.
       </p>
       <FormError message={error} />
     </Dialog>

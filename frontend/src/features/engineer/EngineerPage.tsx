@@ -10,6 +10,7 @@ import { ErrorState, LoadingState } from '@/design-system/States';
 import { Pill, PriorityChip } from '@/design-system/StatusBadge';
 import { Icon } from '@/design-system/Icon';
 import { categoryLabel } from '@/design-system/status';
+import { RecentHistoryPlate } from '@/features/history/ActivityHistoryPage';
 
 /**
  * ENGINEER WORKBOARD — Service Engineer (SoW §5, master brief §7.6).
@@ -178,6 +179,9 @@ export function EngineerPage() {
 
         </>
       )}
+
+      {/* Every role keeps a record of its own work (SoW §8, §12). */}
+      <RecentHistoryPlate />
     </div>
   );
 }

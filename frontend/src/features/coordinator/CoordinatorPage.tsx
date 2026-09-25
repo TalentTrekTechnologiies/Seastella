@@ -7,6 +7,7 @@ import { ActivityList, ConsoleHeader, EmptyNote, Plate, RadialGauge } from '@/de
 import { InvoiceCard, RefreshButton, RequestCard } from '@/design-system/ConsoleParts';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { Icon } from '@/design-system/Icon';
+import { RecentHistoryPlate } from '@/features/history/ActivityHistoryPage';
 
 /**
  * SERVICE CONTROL ROOM — Service Coordinator (SoW §8.4).
@@ -176,6 +177,9 @@ export function CoordinatorPage() {
           </Plate>
         </>
       )}
+
+      {/* Every role keeps a record of its own work (SoW §8, §12). */}
+      <RecentHistoryPlate />
     </div>
   );
 }

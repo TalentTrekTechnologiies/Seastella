@@ -38,6 +38,25 @@ export function fetchActivity(filter: {
 }
 
 /**
+ * The caller's own history: what they did, and what happened on the vessels
+ * (or, for an engineer, the jobs) they are responsible for. Every role has one.
+ */
+export function fetchMyActivity(filter: {
+  vesselId?: number;
+  category?: ActivityCategory;
+  onlyMine?: boolean;
+  before?: number;
+  limit?: number;
+}) {
+  const q = new URLSearchParams({ limit: String(filter.limit ?? 50) });
+  if (filter.vesselId) q.set('vesselId', String(filter.vesselId));
+  if (filter.category) q.set('category', filter.category);
+  if (filter.onlyMine) q.set('onlyMine', 'true');
+  if (filter.before) q.set('before', String(filter.before));
+  return api.get<ActivityFeed>(`/api/v1/activity/mine?${q.toString()}`);
+}
+
+/**
  * The feed's push channel (FEE-04).
  *
  * <p>Read with `fetch` rather than `EventSource`, because `EventSource` cannot

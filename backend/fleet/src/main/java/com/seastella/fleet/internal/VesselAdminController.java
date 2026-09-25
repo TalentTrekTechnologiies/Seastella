@@ -143,7 +143,9 @@ class VesselAdminController {
         vessel.setStatus(form.status() == null ? VesselStatus.ACTIVE : form.status());
         vessels.save(vessel);
 
-        int fitted = applyStandardFit(vessel.getId());
+        // A vessel added from its own equipment list takes that list instead:
+        // the standard fit would leave rows the sheet never mentioned.
+        int fitted = Boolean.FALSE.equals(form.standardFit()) ? 0 : applyStandardFit(vessel.getId());
 
         audit.record(AuditEntry.builder()
                 .actor(scope.userId(), scope.role().name())
@@ -226,7 +228,7 @@ class VesselAdminController {
 
     record VesselForm(Long organizationId, String name, String imoNumber, String mmsi, String callSign,
                       String flag, String vesselClass, String area, String vesselType, BigDecimal dwt,
-                      VesselStatus status) {}
+                      VesselStatus status, Boolean standardFit) {}
 
     record Person(Long id, String fullName) {}
 
