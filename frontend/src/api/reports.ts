@@ -34,5 +34,6 @@ export const fetchReports = () => api.get<ReportOption[]>('/api/v1/reports');
 
 export const fetchReport = (key: string) => api.get<ReportTable>(`/api/v1/reports/${key}`);
 
-export const downloadReportPdf = (key: string) =>
-  downloadFile(`/api/v1/reports/${key}/pdf`, `seastella-${key}.pdf`);
+/** The report as a PDF; with a vessel, only that vessel's lines. */
+export const downloadReportPdf = (key: string, vesselId?: number) =>
+  downloadFile(`/api/v1/reports/${key}/pdf${vesselId ? `?vesselId=${vesselId}` : ''}`, `thawe-marine-${key}.pdf`);

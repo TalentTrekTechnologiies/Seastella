@@ -123,7 +123,7 @@ function Editor({
       await action();
     } catch (e) {
       const stale = e instanceof ApiError && e.status === 409 && /reload/i.test(e.message);
-      setError({ message: e instanceof ApiError ? e.message : 'Could not reach SeaStella. Try again.', stale });
+      setError({ message: e instanceof ApiError ? e.message : 'Could not reach Thawe Marine. Try again.', stale });
     } finally {
       setBusy(null);
       setConfirm(null);

@@ -79,8 +79,11 @@ export const fetchImports = () => api.get<ImportBatch[]>('/api/v1/imports');
 export const fetchImport = (id: number) => api.get<ImportBatch>(`/api/v1/imports/${id}`);
 
 /** With a vessel, rows that name no vessel are read as that vessel's. */
-export const uploadImport = (file: File, vesselId?: number) =>
-  uploadFile<ImportBatch>('/api/v1/imports', file, { vesselId });
+export const uploadImport = (file: File, vesselId?: number, adoptFile = false) =>
+  uploadFile<ImportBatch>('/api/v1/imports', file, { vesselId, adoptFile: adoptFile ? 'true' : undefined });
+
+/** The refusal a vessel-scoped upload gives when the file names another IMO. */
+export const isOtherVesselsFile = (message: string | null) => !!message && message.startsWith('This file is for IMO');
 
 /** Vessel particulars as a client's sheet states them. Nothing is staged or changed. */
 export interface SheetVesselDetails {

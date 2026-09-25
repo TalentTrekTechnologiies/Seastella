@@ -1,10 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   allocateVessels,
   assignCaptain,
   createAccount,
   createOrganization,
   createVessel,
+  deleteVessel,
+  fetchVesselRemoval,
   type AccountSummary,
   type AdminVessel,
   type LinkSent,
@@ -184,6 +187,8 @@ export function AddVesselDialog({
   const [mode, setMode] = useState<'import' | 'manual'>('import');
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState(false);
+  /** The IMO the file itself states, to say so if the form now differs. */
+  const [fileImo, setFileImo] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     organizationId: '',
@@ -212,6 +217,7 @@ export function AddVesselDialog({
     setReading(true);
     try {
       const d = await readVesselDetails(chosen);
+      setFileImo(d.imoNumber ? d.imoNumber.replace(/\D/g, '').slice(0, 7) : null);
       // Only fill what the sheet states; anything already typed is kept otherwise.
       setForm((f) => ({
         ...f,
@@ -261,7 +267,8 @@ export function AddVesselDialog({
       // The vessel now exists, so the same file stages against it. A failure
       // here leaves the vessel in place; the import can be retried on its own.
       try {
-        const batch = await uploadImport(file, vessel.id);
+        // The person added this vessel from this file: it is this vessel's, whatever IMO it states.
+        const batch = await uploadImport(file, vessel.id, true);
         onCreated(vessel, { batchId: batch.id });
       } catch (e) {
         onCreated(vessel, { error: errorText(e, 'The equipment list could not be staged.') });
@@ -359,6 +366,12 @@ export function AddVesselDialog({
           <input id="vessel-dwt" className="input" inputMode="decimal" value={form.dwt} onChange={set('dwt')} />
         </Field>
       </div>
+      {importing && fileImo && form.imoNumber.trim() !== '' && form.imoNumber.trim() !== fileImo && (
+        <p className="otp__note">
+          The file says IMO <b>{fileImo}</b>; the vessel will be added as IMO <b>{form.imoNumber.trim()}</b>, and the
+          file's equipment and critical spares go onto it.
+        </p>
+      )}
       <div className="fit-note">
         {importing ? (
           <div>
@@ -374,6 +387,92 @@ export function AddVesselDialog({
         )}
       </div>
       <FormError message={error} />
+    </Dialog>
+  );
+}
+
+/**
+ * Deleting a vessel and everything on it. It cannot be undone, so the dialog
+ * says exactly what goes, and the vessel's name must be typed to confirm.
+ */
+export function DeleteVesselDialog({
+  vessel,
+  onClose,
+  onDeleted,
+}: {
+  vessel: AdminVessel;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const impact = useQuery({ queryKey: ['vessel-removal', vessel.id], queryFn: () => fetchVesselRemoval(vessel.id) });
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const matches = typed.trim().toLowerCase() === vessel.name.trim().toLowerCase();
+  const i = impact.data;
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteVessel(vessel.id, typed.trim());
+      onDeleted();
+    } catch (e) {
+      setError(errorText(e, 'The vessel could not be deleted.'));
+      setBusy(false);
+    }
+  };
+
+  const line = (n: number, one: string, many: string) => (n > 0 ? <li>{n} {n === 1 ? one : many}</li> : null);
+
+  return (
+    <Dialog
+      title={`Delete ${vessel.name}`}
+      subtitle={`IMO ${vessel.imoNumber} · this cannot be undone`}
+      onClose={onClose}
+      width={560}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="danger" disabled={busy || !matches || !i} onClick={remove}>
+            {busy ? 'Deleting…' : 'Delete vessel and everything on it'}
+          </Button>
+        </>
+      }
+    >
+      {impact.isLoading ? (
+        <p className="otp__note">Working out what would be removed…</p>
+      ) : i ? (
+        <>
+          <p className="otp__note">
+            <b>Everything belonging to this vessel is deleted</b>
+            {i.equipment + i.criticalSpares + i.serviceHistory + i.serviceRequests + i.invoices + i.documents + i.assignedPeople === 0
+              ? ' — it has nothing recorded yet.'
+              : ':'}
+          </p>
+          <ul className="delete-list">
+            {line(i.equipment, 'equipment item', 'equipment items')}
+            {line(i.criticalSpares, 'critical spare', 'critical spares')}
+            {line(i.serviceHistory, 'service history entry', 'service history entries')}
+            {line(i.serviceRequests, 'service request, with its checks, chats and reports', 'service requests, with their checks, chats and reports')}
+            {line(i.invoices, 'invoice', 'invoices')}
+            {line(i.documents, 'document and its file', 'documents and their files')}
+            {line(i.assignedPeople, 'person assigned to it (their account stays)', 'people assigned to it (their accounts stay)')}
+          </ul>
+          <p className="otp__note">The audit trail keeps a record that the vessel was deleted, by whom and when.</p>
+        </>
+      ) : null}
+      <Field label={`Type ${vessel.name} to confirm`} htmlFor="delete-vessel-name">
+        <input
+          id="delete-vessel-name"
+          className="input"
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          autoComplete="off"
+          placeholder={vessel.name}
+        />
+      </Field>
+      <FormError message={error ?? (impact.error ? errorText(impact.error, 'Could not read what would be removed.') : null)} />
     </Dialog>
   );
 }

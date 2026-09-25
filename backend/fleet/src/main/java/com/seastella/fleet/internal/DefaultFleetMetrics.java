@@ -167,6 +167,27 @@ class DefaultFleetMetrics implements FleetMetrics {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ServiceHistoryLine> serviceHistory(Set<Long> vesselIds, int limit) {
+        if (vesselIds.isEmpty()) return List.of();
+        return named.query("""
+                select r.service_date, v.name as vessel_name, s.path, s.name as spare_name, r.work_performed,
+                       r.parts_used, r.performed_by, r.request_number, r.notes
+                from spare_service_record r
+                join vessel v on v.id = r.vessel_id
+                join spare s on s.id = r.spare_id
+                where r.vessel_id in (:ids)
+                order by r.service_date desc, r.id desc
+                limit :lim
+                """, new MapSqlParameterSource("ids", vesselIds).addValue("lim", limit),
+                (rs, i) -> new ServiceHistoryLine(
+                        rs.getObject("service_date", java.time.LocalDate.class), rs.getString("vessel_name"),
+                        rs.getString("path"), rs.getString("spare_name"), rs.getString("work_performed"),
+                        rs.getString("parts_used"), rs.getString("performed_by"), rs.getString("request_number"),
+                        rs.getString("notes")));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PartShortage> parts(Set<Long> vesselIds, int limit) {
         if (vesselIds.isEmpty()) return List.of();
 

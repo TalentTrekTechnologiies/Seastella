@@ -128,7 +128,7 @@ function Summary({ data }: { data: PlatformAdminDashboard }) {
 
   return (
     <div className="summary">
-      <Plate title="Platform at a glance" subtitle="Everything registered on SeaStella today">
+      <Plate title="Platform at a glance" subtitle="Everything registered on Thawe Marine today">
         <div className="scale4">
           <Figure value={s.organizations} label="Organizations" />
           <Figure value={s.vessels} label="Vessels" />

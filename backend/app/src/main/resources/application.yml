@@ -99,9 +99,9 @@ seastella:
       # The sending address must be on a domain whose SPF/DKIM records name
       # the mail server, or the message is filtered. Replies go to a mailbox a
       # person actually reads, because an alert often needs an answer.
-      from: ${MAIL_FROM:SeaStella Maritime Ops <no-reply@seastella.in>}
+      from: ${MAIL_FROM:Thawe Marine <no-reply@seastella.in>}
       reply-to: ${MAIL_REPLY_TO:team@seastella.in}
       # Shown in email footers and on report letterheads.
-      brand: ${BRAND_NAME:Seastella}
+      brand: ${BRAND_NAME:Thawe Marine}
       brand-site: ${BRAND_SITE:seastella.in}
       dispatch-interval-ms: 10000

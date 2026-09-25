@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAccounts, fetchAdminVessels, type AccountSummary, type LinkSent } from '@/api/admin';
+import { fetchAccounts, fetchAdminVessels, type AccountSummary, type AdminVessel, type LinkSent } from '@/api/admin';
 import { Button, ConsoleHeader, EmptyNote, Plate } from '@/design-system/Console';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { FormError } from '@/design-system/Dialog';
 import { Icon } from '@/design-system/Icon';
 import { Pill } from '@/design-system/StatusBadge';
 import { AccountLine, LinkSentDialog, useAccountActions } from './AdminParts';
-import { AddPersonDialog, AddVesselDialog, AllocateVesselsDialog } from './SetupDialogs';
+import { AddPersonDialog, AddVesselDialog, AllocateVesselsDialog, DeleteVesselDialog } from './SetupDialogs';
 
 /**
  * VESSELS & SHIP MANAGERS — Technical Head (SoW s4.1 steps 3 and 4).
@@ -24,6 +24,7 @@ export function FleetSetupPage() {
   const vessels = useQuery({ queryKey: ['admin-vessels'], queryFn: fetchAdminVessels });
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: fetchAccounts });
   const [addingVessel, setAddingVessel] = useState(false);
+  const [deleting, setDeleting] = useState<AdminVessel | null>(null);
   const [addingManager, setAddingManager] = useState(false);
   const [allocating, setAllocating] = useState<AccountSummary | null>(null);
   const [invited, setInvited] = useState<LinkSent | null>(null);
@@ -121,6 +122,9 @@ export function FleetSetupPage() {
                   <Link to={`/fleet/vessels/${v.id}`} className="cbtn cbtn--secondary cbtn--md">
                     Equipment
                   </Link>
+                  <Button variant="ghost" onClick={() => setDeleting(v)}>
+                    Delete
+                  </Button>
                 </div>
               </li>
             ))}
@@ -182,6 +186,19 @@ export function FleetSetupPage() {
                 ? `${v.name} added, but its equipment list could not be imported: ${imported.error} Try it again from Data import.`
                 : `${v.name} added with ${v.spareCount} spares from the standard bridge fit. Allocate it to a Ship Manager next.`,
             );
+          }}
+        />
+      )}
+      {deleting && (
+        <DeleteVesselDialog
+          vessel={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setNotice(`${deleting.name} and everything on it was deleted.`);
+            setDeleting(null);
+            refresh();
+            client.invalidateQueries({ queryKey: ['fleet-service-history'] });
+            client.invalidateQueries({ queryKey: ['imports'] });
           }}
         />
       )}

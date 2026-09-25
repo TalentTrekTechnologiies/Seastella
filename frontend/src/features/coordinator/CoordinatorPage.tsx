@@ -73,7 +73,7 @@ export function CoordinatorPage() {
     <div className="console">
       <ConsoleHeader
         scope={[
-          { label: 'SeaStella service operations' },
+          { label: 'Thawe Marine service operations' },
           {
             label: orgs === 1 ? (data?.meta.organizationNames[0] ?? '—') : `${orgs} organizations`,
             strong: true,

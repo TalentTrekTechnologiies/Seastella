@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -40,14 +41,15 @@ class ReportController {
     }
 
     @GetMapping("/{key}")
-    ResponseEntity<ReportTable> report(@PathVariable String key) {
-        return ResponseEntity.ok(reports.build(byKey(key)));
+    ResponseEntity<ReportTable> report(@PathVariable String key,
+                                       @RequestParam(required = false) Long vesselId) {
+        return ResponseEntity.ok(reports.build(byKey(key), vesselId));
     }
 
     @GetMapping("/{key}/pdf")
-    ResponseEntity<byte[]> asPdf(@PathVariable String key) {
-        ReportTable table = reports.build(byKey(key));
-        String fileName = "seastella-" + table.key() + "-" + LocalDate.now(ZoneOffset.UTC) + ".pdf";
+    ResponseEntity<byte[]> asPdf(@PathVariable String key, @RequestParam(required = false) Long vesselId) {
+        ReportTable table = reports.build(byKey(key), vesselId);
+        String fileName = "thawe-marine-" + table.key() + "-" + LocalDate.now(ZoneOffset.UTC) + ".pdf";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(fileName).build().toString())

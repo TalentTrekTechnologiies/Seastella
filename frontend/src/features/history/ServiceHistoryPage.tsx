@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  downloadServiceHistoryExcel,
   downloadServiceHistoryTemplate,
   fetchAdminVessels,
   fetchFleetServiceHistory,
@@ -10,6 +11,7 @@ import {
   type HistoryUpload,
 } from '@/api/admin';
 import { fetchVesselFit } from '@/api/serviceRequests';
+import { downloadReportPdf } from '@/api/reports';
 import type { Role } from '@/api/types';
 import { Button, Chip, ConsoleHeader, EmptyNote, Plate, StatTile } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
@@ -39,6 +41,22 @@ export function ServiceHistoryPage({ role }: { role: Role }) {
   const [adding, setAdding] = useState(false);
   const [recordFor, setRecordFor] = useState<{ id: number; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState<null | 'pdf' | 'xlsx'>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const download = async (kind: 'pdf' | 'xlsx') => {
+    setDownloading(kind);
+    setDownloadError(null);
+    const target = vesselId === '' ? undefined : vesselId;
+    try {
+      if (kind === 'pdf') await downloadReportPdf('service-history', target);
+      else await downloadServiceHistoryExcel({ vesselId: target });
+    } catch (e) {
+      setDownloadError(errorText(e, 'The download could not be prepared.'));
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const vessels = useQuery({ queryKey: ['admin-vessels'], queryFn: fetchAdminVessels });
   const history = useQuery({
@@ -78,7 +96,16 @@ export function ServiceHistoryPage({ role }: { role: Role }) {
         title="Service history"
         subtitle="Every service, repair and part replaced across the fleet — from completed requests, entered by hand, or uploaded from Excel."
         actions={
-          canRecord && (
+          <>
+            <Button onClick={() => download('pdf')} disabled={downloading !== null} title="The history as a printable PDF — the vessel chosen below, or all">
+              <Icon name="file" size={16} />
+              {downloading === 'pdf' ? 'Preparing…' : 'Download PDF'}
+            </Button>
+            <Button onClick={() => download('xlsx')} disabled={downloading !== null} title="The history as Excel, in the same columns the upload reads">
+              <Icon name="report" size={16} />
+              {downloading === 'xlsx' ? 'Preparing…' : 'Download Excel'}
+            </Button>
+            {canRecord && (
             <>
               <Button onClick={() => setUploading(true)}>
                 <Icon name="report" size={16} />
@@ -88,9 +115,11 @@ export function ServiceHistoryPage({ role }: { role: Role }) {
                 Add work done
               </Button>
             </>
-          )
+            )}
+          </>
         }
       />
+      <FormError message={downloadError} />
 
       <div className="hist-tiles">
         <StatTile label="Entries" value={all.length} icon="history" />

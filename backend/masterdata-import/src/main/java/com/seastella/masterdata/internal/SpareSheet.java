@@ -138,24 +138,24 @@ final class SpareSheet {
     private static void instructions(XSSFWorkbook workbook, String vesselLabel) {
         Sheet sheet = workbook.createSheet("How to use this");
         List<String> lines = new ArrayList<>(List.of(
-                "SeaStella - vessel master data import",
+                "Thawe Marine - vessel master data import",
                 "",
                 vesselLabel == null
-                        ? "Fill in the Spares sheet, one row per spare, then upload it in SeaStella."
+                        ? "Fill in the Spares sheet, one row per spare, then upload it in Thawe Marine."
                         : "This file holds the spares currently recorded for " + vesselLabel
-                                + ". Edit what is wrong, add rows for what is missing, then upload it in SeaStella.",
+                                + ". Edit what is wrong, add rows for what is missing, then upload it in Thawe Marine.",
                 "",
-                "IMO Number * - identifies the vessel. It must already exist in SeaStella.",
+                "IMO Number * - identifies the vessel. It must already exist in Thawe Marine.",
                 "VMP Ref *    - the VMP decimal reference, e.g. 13 or 13.1 or 13.1.2. It identifies the spare",
                 "               on that vessel. 13.1.2 is recorded under 13.1, so add the parent first.",
                 "",
-                "A blank cell leaves the value as it is. To clear a value, edit the spare in SeaStella.",
+                "A blank cell leaves the value as it is. To clear a value, edit the spare in Thawe Marine.",
                 "Dates are read as dates, or as text in the form 2026-03-31.",
-                "Equipment Category and Spare / Description are needed only for a spare SeaStella does not have yet.",
+                "Equipment Category and Spare / Description are needed only for a spare Thawe Marine does not have yet.",
                 "Criticality is one of CRITICAL, HIGH, MEDIUM, LOW.",
                 "Has Hour Meter is Yes or No; running hours themselves are recorded on board, not imported.",
                 "",
-                "Nothing changes when you upload. SeaStella shows you what each row would do -",
+                "Nothing changes when you upload. Thawe Marine shows you what each row would do -",
                 "add, change, leave alone, or refuse with the reason - and changes nothing until you confirm."));
         for (int i = 0; i < lines.size(); i++) {
             sheet.createRow(i).createCell(0).setCellValue(lines.get(i));

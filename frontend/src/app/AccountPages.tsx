@@ -49,7 +49,7 @@ export function ResetPasswordPage() {
       load={fetchPasswordReset}
       submit={completePasswordReset}
       title="Choose a new password"
-      intro={() => 'Setting a new password signs you out of SeaStella on every other device.'}
+      intro={() => 'Setting a new password signs you out of Thawe Marine on every other device.'}
       action="Save password and sign in"
       expired={
         <>
@@ -88,7 +88,7 @@ function LinkPage({
   const [busy, setBusy] = useState(false);
   const [gone, setGone] = useState(false);
 
-  useDocumentTitle(`${title} · SeaStella`);
+  useDocumentTitle(`${title} · Thawe Marine`);
 
   const linkInvalid = gone || (pending.error instanceof ApiError && (pending.error.status === 410 || pending.error.status === 404));
 
@@ -111,7 +111,7 @@ function LinkPage({
       if (err instanceof ApiError && err.status === 410) {
         setGone(true);
       } else {
-        setError(err instanceof ApiError ? err.message : 'Could not reach SeaStella. Check your connection and try again.');
+        setError(err instanceof ApiError ? err.message : 'Could not reach Thawe Marine. Check your connection and try again.');
       }
       setBusy(false);
     }
@@ -211,7 +211,7 @@ export function ForgotPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useDocumentTitle('Reset your password · SeaStella');
+  useDocumentTitle('Reset your password · Thawe Marine');
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,7 +221,7 @@ export function ForgotPasswordPage() {
       await requestPasswordReset(email.trim());
       setSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach SeaStella. Check your connection and try again.');
+      setError(err instanceof ApiError ? err.message : 'Could not reach Thawe Marine. Check your connection and try again.');
     } finally {
       setBusy(false);
     }
@@ -233,7 +233,7 @@ export function ForgotPasswordPage() {
       {sent ? (
         <>
           <p className="signin__done" role="status">
-            If <b>{email.trim()}</b> belongs to an active SeaStella account, we have emailed it a link to choose a new
+            If <b>{email.trim()}</b> belongs to an active Thawe Marine account, we have emailed it a link to choose a new
             password. The link lasts one hour. If nothing arrives within a few minutes, check your spam folder or ask
             your administrator to send you a reset link.
           </p>

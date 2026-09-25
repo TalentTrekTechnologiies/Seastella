@@ -138,6 +138,99 @@ class FleetServiceHistoryController {
         }).toList());
     }
 
+    // ---------------------------------------------------------------- export
+
+    /**
+     * The history as Excel, in the upload's own columns - so a downloaded file
+     * can be corrected and uploaded again, and what is already there is skipped.
+     * One vessel, one item of equipment, or everything in scope.
+     */
+    @GetMapping("/export")
+    @Transactional(readOnly = true)
+    ResponseEntity<byte[]> export(@RequestParam(required = false) Long vesselId,
+                                  @RequestParam(required = false) Long spareId) throws IOException {
+        AccessScope scope = scopes.currentScope();
+        List<SpareServiceRecord> found;
+        String label;
+        if (spareId != null) {
+            Spare spare = spares.findById(spareId).orElseThrow(() -> NotFoundException.ofResource("Spare", spareId));
+            scopeGuard.assertVessel(spare.getVesselId());
+            found = records.findBySpareIdOrderByServiceDateDescIdDesc(spareId);
+            label = spare.getPath() + " " + spare.getName();
+        } else if (vesselId != null) {
+            scopeGuard.assertVessel(vesselId);
+            found = records.findByVesselIdInOrderByServiceDateDescIdDesc(Set.of(vesselId), PageRequest.of(0, MAX_ROWS));
+            label = vessels.findById(vesselId).map(Vessel::getName).orElse("vessel");
+        } else if (scope.isPlatformWide()) {
+            found = records.findAllByOrderByServiceDateDescIdDesc(PageRequest.of(0, MAX_ROWS));
+            label = "all vessels";
+        } else {
+            found = scope.vesselIds().isEmpty() ? List.of()
+                    : records.findByVesselIdInOrderByServiceDateDescIdDesc(scope.vesselIds(), PageRequest.of(0, MAX_ROWS));
+            label = "all vessels";
+        }
+
+        Map<Long, Spare> spareById = spares.findAllById(found.stream().map(SpareServiceRecord::getSpareId)
+                .collect(Collectors.toSet())).stream().collect(Collectors.toMap(Spare::getId, Function.identity()));
+        Map<Long, Vessel> vesselById = vessels.findAllById(found.stream().map(SpareServiceRecord::getVesselId)
+                .collect(Collectors.toSet())).stream().collect(Collectors.toMap(Vessel::getId, Function.identity()));
+
+        try (Workbook book = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = book.createSheet("Service history");
+            org.apache.poi.ss.usermodel.CellStyle bold = book.createCellStyle();
+            org.apache.poi.ss.usermodel.Font font = book.createFont();
+            font.setBold(true);
+            bold.setFont(font);
+            org.apache.poi.ss.usermodel.CellStyle dateStyle = book.createCellStyle();
+            dateStyle.setDataFormat(book.getCreationHelper().createDataFormat().getFormat("dd-mmm-yyyy"));
+
+            // The upload's columns first, then what helps a reader; the upload ignores the extras.
+            String[] headings = {"IMO Number", "Equipment", "Date", "Work done", "Parts replaced", "Performed by",
+                    "Notes", "Vessel", "Equipment name", "Source"};
+            int[] widths = {12, 12, 13, 50, 28, 26, 36, 22, 30, 20};
+            Row head = sheet.createRow(0);
+            for (int i = 0; i < headings.length; i++) {
+                Cell c = head.createCell(i);
+                c.setCellValue(headings[i]);
+                c.setCellStyle(bold);
+                sheet.setColumnWidth(i, widths[i] * 256);
+            }
+            sheet.createFreezePane(0, 1);
+            int r = 1;
+            for (SpareServiceRecord rec : found) {
+                Spare spare = spareById.get(rec.getSpareId());
+                Vessel vessel = vesselById.get(rec.getVesselId());
+                Row row = sheet.createRow(r++);
+                row.createCell(0).setCellValue(vessel == null ? "" : vessel.getImoNumber());
+                row.createCell(1).setCellValue(spare == null ? "" : spare.getPath());
+                Cell date = row.createCell(2);
+                date.setCellValue(rec.getServiceDate());
+                date.setCellStyle(dateStyle);
+                row.createCell(3).setCellValue(nz(rec.getWorkPerformed()));
+                row.createCell(4).setCellValue(nz(rec.getPartsUsed()));
+                row.createCell(5).setCellValue(nz(rec.getPerformedBy()));
+                row.createCell(6).setCellValue(nz(rec.getNotes()));
+                row.createCell(7).setCellValue(vessel == null ? "" : vessel.getName());
+                row.createCell(8).setCellValue(spare == null ? "" : spare.getName());
+                row.createCell(9).setCellValue(rec.getRequestNumber() == null ? "Recorded" : rec.getRequestNumber());
+            }
+            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, Math.max(0, r - 1), 0,
+                    headings.length - 1));
+            book.write(out);
+            String fileName = "thawe-marine-service-history-" + label.replaceAll("[^A-Za-z0-9]+", "-")
+                    .replaceAll("^-|-$", "").toLowerCase(Locale.ROOT) + "-" + LocalDate.now(ZoneOffset.UTC) + ".xlsx";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment().filename(fileName).build().toString())
+                    .contentType(MediaType.parseMediaType(XLSX))
+                    .body(out.toByteArray());
+        }
+    }
+
+    private static String nz(String s) {
+        return s == null ? "" : s;
+    }
+
     // -------------------------------------------------------------- template
 
     /** A blank sheet in the columns the upload reads. */
@@ -159,7 +252,7 @@ class FleetServiceHistoryController {
             book.write(out);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
-                            ContentDisposition.attachment().filename("seastella-service-history.xlsx").build().toString())
+                            ContentDisposition.attachment().filename("thawe-marine-service-history-template.xlsx").build().toString())
                     .contentType(MediaType.parseMediaType(XLSX))
                     .body(out.toByteArray());
         }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ApiError, DEMO_MODE } from '@/api/client';
 import { useAuth } from './AuthContext';
 import './signin.css';
+import './brand.css';
 
 /**
  * Sign-in against the real authentication endpoint.
@@ -30,7 +31,7 @@ export function SignIn() {
     try {
       await signIn(email, password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach SeaStella. Check your connection and try again.');
+      setError(err instanceof ApiError ? err.message : 'Could not reach Thawe Marine. Check your connection and try again.');
       setBusy(false);
     }
   }
@@ -52,11 +53,11 @@ export function SignIn() {
   return (
     <AuthFrame>
       <h2 className="signin__title">Sign in</h2>
-      <p className="signin__subtitle">Use your SeaStella account.</p>
+      <p className="signin__subtitle">Use your Thawe Marine account.</p>
 
       {DEMO_MODE && (
         <p className="signin__banner" role="note">
-          <strong>Demo</strong> — dashboards run on sample data captured from the SeaStella seed. No live backend is
+          <strong>Demo</strong> — dashboards run on sample data captured from the Thawe Marine seed. No live backend is
           connected. Choose a role below to explore.
         </p>
       )}
@@ -131,22 +132,19 @@ export function AuthFrame({ children }: { children: ReactNode }) {
     <div className="signin">
       <section className="signin__ocean">
         <div className="signin__brand">
-          {/* A fix on a chart: crossed bearings through a plotted point. */}
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="12" cy="12" r="2" fill="currentColor" />
-            <path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
-          <div>
-            <strong>SeaStella</strong>
-            <span>Maritime operations</span>
+          <span className="brand-mark" aria-hidden="true">
+            <img src="/thawe-wing.png" alt="" />
+          </span>
+          <div aria-label="Thawe Marine Services">
+            <strong className="brand-name">Thawe</strong>
+            <span className="brand-tag">Marine Services</span>
           </div>
         </div>
 
         <div className="signin__pitch">
           <h1>Every radar, gyro and EPIRB across your fleet — serviced on time.</h1>
           <p>
-            SeaStella tracks the navigation and GMDSS equipment fit of every vessel, shows what is falling due, and
+            Thawe Marine tracks the navigation and GMDSS equipment fit of every vessel, shows what is falling due, and
             carries each service request from the bridge to the engineer.
           </p>
           <ul className="signin__points">

@@ -45,6 +45,13 @@ public interface FleetMetrics {
     /** Every replacement part held on these vessels, for the inventory report (RPT-07). */
     List<PartShortage> parts(Set<Long> vesselIds, int limit);
 
+    /** Service history across the given vessels, newest first. */
+    List<ServiceHistoryLine> serviceHistory(Set<Long> vesselIds, int limit);
+
+    record ServiceHistoryLine(java.time.LocalDate serviceDate, String vesselName, String sparePath,
+                              String spareName, String workPerformed, String partsUsed, String performedBy,
+                              String requestNumber, String notes) {}
+
     /** One vessel's spare tree, ordered by VMP path so nesting reads naturally. */
     List<SpareNode> spareTree(Long vesselId);
 

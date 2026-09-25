@@ -40,7 +40,7 @@ record SheetSource(VesselDetails vessel, List<ParsedRow> equipment,
         if (sheet.equipment().isEmpty() && sheet.criticalSpares().isEmpty() && sheet.vessel().isEmpty()) {
             throw new ValidationException("Nothing could be read from this file. "
                     + "It needs a heading row naming its columns - an equipment list, a minimum-spares "
-                    + "form, or the SeaStella template.");
+                    + "form, or the Thawe Marine template.");
         }
         return new SheetSource(sheet.vessel().isEmpty() ? null : sheet.vessel(),
                 asParsedRows(sheet), sheet.criticalSpares(), sheet.notes());
@@ -53,14 +53,23 @@ record SheetSource(VesselDetails vessel, List<ParsedRow> equipment,
      * refused rather than quietly redirected.
      */
     SheetSource intoVessel(String imo, String vesselName) {
+        return intoVessel(imo, vesselName, false);
+    }
+
+    /**
+     * As above; with {@code adopt} the person has already confirmed this file
+     * is that vessel's - they added the vessel from it, or said so when told the
+     * IMOs differ - and the file's own IMO is set aside rather than refused.
+     */
+    SheetSource intoVessel(String imo, String vesselName, boolean adopt) {
         String stated = vessel == null ? null : vessel.imoNumber();
-        if (stated != null && !stated.equals(imo)) {
+        if (!adopt && stated != null && !stated.equals(imo)) {
             throw new ValidationException(mismatch(stated, imo, vesselName));
         }
         List<ParsedRow> rows = new ArrayList<>();
         for (ParsedRow row : equipment) {
             String rowImo = row.get(Column.IMO);
-            if (rowImo != null && !rowImo.equals(imo)) {
+            if (!adopt && rowImo != null && !rowImo.equals(imo)) {
                 throw new ValidationException(mismatch(rowImo, imo, vesselName));
             }
             Map<Column, String> text = new LinkedHashMap<>(row.text());

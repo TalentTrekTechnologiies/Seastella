@@ -286,7 +286,7 @@ class ProvisioningService {
     }
 
     private String actorName(AccessScope actor) {
-        return users.findById(actor.userId()).map(AppUser::getFullName).orElse("SeaStella");
+        return users.findById(actor.userId()).map(AppUser::getFullName).orElse("Thawe Marine");
     }
 
     /** A password nobody knows, so an invited account cannot be signed into before it is accepted. */

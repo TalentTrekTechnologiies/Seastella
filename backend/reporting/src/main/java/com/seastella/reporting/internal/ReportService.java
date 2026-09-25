@@ -1,6 +1,7 @@
 package com.seastella.reporting.internal;
 
 import com.seastella.core.api.error.ForbiddenException;
+import com.seastella.core.api.error.NotFoundException;
 import com.seastella.fleet.api.DocumentDirectory;
 import com.seastella.fleet.api.FleetMetrics;
 import com.seastella.identity.api.AccessScope;
@@ -82,11 +83,22 @@ class ReportService {
 
     @Transactional(readOnly = true)
     ReportTable build(ReportCatalogue report) {
+        return build(report, null);
+    }
+
+    /** The report for one vessel of the caller's, when {@code vesselId} is given. */
+    @Transactional(readOnly = true)
+    ReportTable build(ReportCatalogue report, Long vesselId) {
         AccessScope scope = support.scope();
         if (!report.availableTo(scope.role())) {
             throw ForbiddenException.ofAction("run the " + report.title().toLowerCase(Locale.ENGLISH) + " report");
         }
         Set<Long> vesselIds = scope.vesselIds();
+        if (vesselId != null) {
+            // Another fleet's vessel reads as not found, never as forbidden.
+            if (!vesselIds.contains(vesselId)) throw NotFoundException.ofResource("Vessel", vesselId);
+            vesselIds = Set.of(vesselId);
+        }
         return switch (report) {
             case VESSEL_SPARES -> vesselSpares(scope, vesselIds);
             case SERVICE_DUE -> serviceDue(scope, vesselIds);
@@ -95,6 +107,7 @@ class ReportService {
             case INVOICES -> invoices(scope, vesselIds);
             case FLEET_SUMMARY -> fleetSummary(scope, vesselIds);
             case PARTS_INVENTORY -> partsInventory(scope, vesselIds);
+            case SERVICE_HISTORY -> serviceHistory(scope, vesselIds);
         };
     }
 
@@ -264,6 +277,27 @@ class ReportService {
                         new ReportTable.Total("Below minimum", String.valueOf(below))));
     }
 
+    private ReportTable serviceHistory(AccessScope scope, Set<Long> vesselIds) {
+        List<FleetMetrics.ServiceHistoryLine> lines = fleet.serviceHistory(vesselIds, MAX_ROWS);
+
+        List<List<String>> rows = lines.stream().<List<String>>map(l -> List.of(
+                l.serviceDate() == null ? "—" : DATE.format(l.serviceDate()),
+                value(l.vesselName()), value(l.sparePath()), value(l.spareName()), value(l.workPerformed()),
+                value(l.partsUsed()), value(l.performedBy()),
+                l.requestNumber() == null ? "Recorded" : l.requestNumber())).toList();
+
+        long withParts = lines.stream().filter(l -> l.partsUsed() != null && !l.partsUsed().isBlank()).count();
+        long fromRequests = lines.stream().filter(l -> l.requestNumber() != null).count();
+        return table(ReportCatalogue.SERVICE_HISTORY, scope,
+                List.of(ReportTable.text("Date"), ReportTable.text("Vessel"), ReportTable.text("VMP No."),
+                        ReportTable.text("Equipment"), ReportTable.text("Work done"),
+                        ReportTable.text("Parts replaced"), ReportTable.text("Performed by"),
+                        ReportTable.text("Source")),
+                rows, List.of(new ReportTable.Total("Entries", String.valueOf(rows.size())),
+                        new ReportTable.Total("With parts replaced", String.valueOf(withParts)),
+                        new ReportTable.Total("From service requests", String.valueOf(fromRequests))));
+    }
+
     // --------------------------------------------------------------- internals
 
     private static final Set<ServiceRequestStatus> CLOSED = Set.of(
@@ -271,7 +305,7 @@ class ReportService {
 
     private ReportTable table(ReportCatalogue report, AccessScope scope, List<ReportTable.Column> columns,
                               List<List<String>> rows, List<ReportTable.Total> totals) {
-        String who = users.find(scope.userId()).map(UserDirectory.UserRef::fullName).orElse("SeaStella");
+        String who = users.find(scope.userId()).map(UserDirectory.UserRef::fullName).orElse("Thawe Marine");
         return new ReportTable(report.key(), report.title(), report.description(), scopeNote(scope),
                 Instant.now(), who, columns, rows, totals);
     }

@@ -113,7 +113,7 @@ export function ImportPage() {
       <ConsoleHeader
         scope={[{ label: 'Master data' }, { label: 'Import', strong: true }]}
         title="Import vessel equipment"
-        subtitle="Upload your own equipment list or our template. SeaStella shows what each row would do and changes nothing until you confirm."
+        subtitle="Upload your own equipment list or our template. Thawe Marine shows what each row would do and changes nothing until you confirm."
       />
 
       <Plate

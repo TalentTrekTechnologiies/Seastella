@@ -125,7 +125,7 @@ class DocumentService {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         if (type == DocumentType.CERTIFICATE) {
             if (command.expiryDate() == null) {
-                throw new ValidationException("A certificate needs its expiry date, so SeaStella can warn you before it runs out.");
+                throw new ValidationException("A certificate needs its expiry date, so Thawe Marine can warn you before it runs out.");
             }
             if (command.issuedDate() != null && command.issuedDate().isAfter(today)) {
                 throw new ValidationException("The issue date cannot be in the future.");

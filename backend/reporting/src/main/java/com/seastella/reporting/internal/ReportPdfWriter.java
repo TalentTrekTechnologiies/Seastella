@@ -56,7 +56,7 @@ class ReportPdfWriter {
     private final String brand;
     private final String brandSite;
 
-    ReportPdfWriter(@Value("${seastella.notification.email.brand:Seastella}") String brand,
+    ReportPdfWriter(@Value("${seastella.notification.email.brand:Thawe Marine}") String brand,
                     @Value("${seastella.notification.email.brand-site:seastella.in}") String brandSite) {
         this.brand = brand;
         this.brandSite = brandSite;

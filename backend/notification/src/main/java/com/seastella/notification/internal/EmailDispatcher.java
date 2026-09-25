@@ -51,7 +51,7 @@ class EmailDispatcher {
                     ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactions,
                     @Value("${seastella.notification.email.from:SeaStella Maritime Ops <no-reply@seastella.in>}") String from,
                     @Value("${seastella.notification.email.reply-to:team@seastella.in}") String replyTo,
-                    @Value("${seastella.notification.email.brand:Seastella}") String brand,
+                    @Value("${seastella.notification.email.brand:Thawe Marine}") String brand,
                     @Value("${seastella.notification.email.brand-site:seastella.in}") String brandSite,
                     @Value("${seastella.notification.app-base-url:http://localhost:5173}") String appBaseUrl) {
         this.deliveries = deliveries;
@@ -119,7 +119,7 @@ class EmailDispatcher {
     }
 
     private static String subject(Notification n) {
-        return "[SeaStella] " + n.getTitle();
+        return "[Thawe Marine] " + n.getTitle();
     }
 
     private String text(Notification n) {
@@ -128,7 +128,7 @@ class EmailDispatcher {
                 : "/";
         return n.getTitle() + "\n\n"
                 + (n.getBody() == null ? "" : n.getBody() + "\n\n")
-                + "Open in SeaStella: " + appBaseUrl + path + "\n\n"
-                + "--\nThis is an automated alert from SeaStella Maritime Ops. Replies to this address are not read.";
+                + "Open in Thawe Marine: " + appBaseUrl + path + "\n\n"
+                + "--\nThis is an automated alert from Thawe Marine. Replies to this address are not read.";
     }
 }

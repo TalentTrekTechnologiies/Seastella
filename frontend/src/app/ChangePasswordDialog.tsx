@@ -34,7 +34,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
       adoptSession(await changeOwnPassword(current, next));
       setDone(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reach SeaStella. Try again.');
+      setError(err instanceof ApiError ? err.message : 'Could not reach Thawe Marine. Try again.');
     } finally {
       setBusy(false);
     }
@@ -53,7 +53,7 @@ export function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
         }
       >
         <p className="otp__note">
-          Use your new password next time you sign in. SeaStella has signed you out on every other device.
+          Use your new password next time you sign in. Thawe Marine has signed you out on every other device.
         </p>
       </Dialog>
     );

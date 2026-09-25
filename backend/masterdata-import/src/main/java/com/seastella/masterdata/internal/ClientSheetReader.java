@@ -185,7 +185,7 @@ final class ClientSheetReader {
             if (equipment.isEmpty() && spares.isEmpty()) {
                 throw new ValidationException("No equipment or spare rows were found. The sheet needs a heading "
                         + "row naming its columns — a Description, Equipment or Spare Part Name, and ideally an ID "
-                        + "or S.No. Or download the SeaStella template, which has an IMO Number and VMP Ref column "
+                        + "or S.No. Or download the Thawe Marine template, which has an IMO Number and VMP Ref column "
                         + "and is always accepted.");
             }
             if (equipment.size() + spares.size() > SpareSheet.MAX_ROWS) {

@@ -96,6 +96,26 @@ export const fetchAdminVessels = () => api.get<AdminVessel[]>('/api/v1/vessels')
 
 export const createVessel = (body: VesselForm) => api.post<AdminVessel>('/api/v1/vessels', body);
 
+/** Everything deleting a vessel would remove. */
+export interface VesselRemoval {
+  vesselId: number;
+  name: string;
+  imoNumber: string;
+  equipment: number;
+  criticalSpares: number;
+  serviceHistory: number;
+  serviceRequests: number;
+  invoices: number;
+  documents: number;
+  assignedPeople: number;
+}
+
+export const fetchVesselRemoval = (vesselId: number) => api.get<VesselRemoval>(`/api/v1/vessels/${vesselId}/removal`);
+
+/** Deletes the vessel and everything on it. `confirm` must be the vessel's name. */
+export const deleteVessel = (vesselId: number, confirm: string) =>
+  api.del<VesselRemoval>(`/api/v1/vessels/${vesselId}?confirm=${encodeURIComponent(confirm)}`);
+
 export const fetchAccounts = () => api.get<AccountSummary[]>('/api/v1/users');
 
 export const createAccount = (body: {
@@ -232,7 +252,16 @@ export const uploadServiceHistory = (file: File, apply: boolean, vesselId?: numb
   uploadFile<HistoryUpload>('/api/v1/service-history/import', file, { vesselId, apply: String(apply) });
 
 export const downloadServiceHistoryTemplate = () =>
-  downloadFile('/api/v1/service-history/template', 'seastella-service-history.xlsx');
+  downloadFile('/api/v1/service-history/template', 'thawe-marine-service-history-template.xlsx');
+
+/** The history as Excel, in the upload's columns: everything in scope, one vessel, or one item. */
+export const downloadServiceHistoryExcel = (filter: { vesselId?: number; spareId?: number } = {}) => {
+  const q = new URLSearchParams();
+  if (filter.vesselId) q.set('vesselId', String(filter.vesselId));
+  if (filter.spareId) q.set('spareId', String(filter.spareId));
+  const query = q.toString();
+  return downloadFile(`/api/v1/service-history/export${query ? `?${query}` : ''}`, 'thawe-marine-service-history.xlsx');
+};
 
 /** Adding equipment or a component to a vessel by hand (SoW §9). */
 export interface NewSpare {

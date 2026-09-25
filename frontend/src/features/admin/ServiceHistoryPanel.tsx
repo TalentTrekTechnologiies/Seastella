@@ -12,6 +12,7 @@ import { LoadingState } from '@/design-system/States';
 import { Pill } from '@/design-system/StatusBadge';
 import { formatDate } from '@/lib/format';
 import { errorText } from './AdminParts';
+import { downloadServiceHistoryExcel } from '@/api/admin';
 import './service-history.css';
 
 /**
@@ -78,11 +79,22 @@ export function ServiceHistoryPanel({
             ? 'No service has been recorded against this equipment yet.'
             : `${rows.length} service${rows.length === 1 ? '' : 's'} on record, most recent first.`}
         </p>
-        {canRecord && (
-          <Button variant="primary" onClick={() => setAdding(true)}>
-            Add work done
-          </Button>
-        )}
+        <div className="svchist__actions">
+          {rows.length > 0 && (
+            <Button
+              onClick={() =>
+                downloadServiceHistoryExcel({ spareId }).catch((e) => setError(errorText(e, 'The download failed.')))
+              }
+            >
+              Download Excel
+            </Button>
+          )}
+          {canRecord && (
+            <Button variant="primary" onClick={() => setAdding(true)}>
+              Add work done
+            </Button>
+          )}
+        </div>
       </div>
 
       {history.isLoading ? (
@@ -90,7 +102,7 @@ export function ServiceHistoryPanel({
       ) : rows.length === 0 ? (
         <EmptyNote>
           Record any service, repair or part replaced on this equipment — including work done before it was on
-          SeaStella, so the history comes with the vessel.
+          Thawe Marine, so the history comes with the vessel.
         </EmptyNote>
       ) : (
         <ol className="svchist__list">
@@ -99,7 +111,7 @@ export function ServiceHistoryPanel({
               <div className="svchist__when">
                 <b>{formatDate(record.serviceDate)}</b>
                 <Pill size="sm" tone={record.source === 'PLATFORM' ? 'normal' : 'neutral'}>
-                  {record.source === 'PLATFORM' ? 'On SeaStella' : 'Recorded'}
+                  {record.source === 'PLATFORM' ? 'On Thawe Marine' : 'Recorded'}
                 </Pill>
               </div>
               <div className="svchist__what">

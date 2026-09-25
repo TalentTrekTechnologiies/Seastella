@@ -40,7 +40,7 @@ class ReportIT {
 
     private static final String PASSWORD = "SeaStella#Demo2026";
     private static final List<String> ALL_REPORTS = List.of("vessel-spares", "service-due", "certificates",
-            "troubleshooting", "invoices", "fleet-summary", "parts-inventory");
+            "troubleshooting", "invoices", "fleet-summary", "parts-inventory", "service-history");
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper json;
@@ -110,7 +110,7 @@ class ReportIT {
         assertThat(pdf.getResponse().getStatus()).isEqualTo(200);
         assertThat(pdf.getResponse().getContentType()).isEqualTo("application/pdf");
         assertThat(pdf.getResponse().getHeader(HttpHeaders.CONTENT_DISPOSITION))
-                .contains("attachment", "seastella-service-due-");
+                .contains("attachment", "thawe-marine-service-due-");
         byte[] content = pdf.getResponse().getContentAsByteArray();
         assertThat(new String(content, 0, 5, StandardCharsets.US_ASCII)).isEqualTo("%PDF-");
         assertThat(content.length).isGreaterThan(1_000);

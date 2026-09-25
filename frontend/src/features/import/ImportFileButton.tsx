@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadImport } from '@/api/imports';
+import { isOtherVesselsFile, uploadImport } from '@/api/imports';
 import { Button } from '@/design-system/Console';
 import { FormError } from '@/design-system/Dialog';
 import { errorText } from '@/features/admin/AdminParts';
@@ -15,16 +15,21 @@ export function ImportFileButton({ vesselId, label = 'Import from Excel' }: { ve
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<File | null>(null);
 
-  const upload = async (file: File | undefined) => {
+  const upload = async (file: File | undefined, adopt = false) => {
     if (!file) return;
     setBusy(true);
     setError(null);
+    setPending(null);
     try {
-      const batch = await uploadImport(file, vesselId);
+      const batch = await uploadImport(file, vesselId, adopt);
       navigate(`/fleet/import?batch=${batch.id}`);
     } catch (e) {
-      setError(errorText(e, 'The file could not be read.'));
+      const message = errorText(e, 'The file could not be read.');
+      setError(message);
+      // A different IMO is often just a renamed or re-registered ship: ask, do not only refuse.
+      if (isOtherVesselsFile(message)) setPending(file);
       setBusy(false);
     } finally {
       if (input.current) input.current.value = '';
@@ -44,6 +49,11 @@ export function ImportFileButton({ vesselId, label = 'Import from Excel' }: { ve
         {busy ? 'Reading…' : label}
       </Button>
       <FormError message={error} />
+      {pending && (
+        <Button variant="danger" onClick={() => upload(pending, true)} disabled={busy}>
+          It is this vessel — import anyway
+        </Button>
+      )}
     </>
   );
 }

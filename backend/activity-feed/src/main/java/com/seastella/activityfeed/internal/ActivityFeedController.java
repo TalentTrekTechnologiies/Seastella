@@ -64,7 +64,7 @@ class ActivityFeedController {
                     "VESSEL_UNASSIGNED", "USER_STATUS_CHANGED", "PASSWORD_RESET", "ORGANIZATION_ASSIGNED",
                     "CONFIGURATION_CHANGED", "INVITATION_ACCEPTED", "PROBLEM_TYPE_CREATED", "PROBLEM_TYPE_UPDATED",
                     "CHECKS_PUBLISHED", "CHECKS_RETIRED", "VESSEL_UPDATED", "USER_UPDATED", "IMPORT_UPLOADED",
-                    "IMPORT_COMMITTED", "IMPORT_REJECTED", "EQUIPMENT_CATEGORY_CREATED"));
+                    "IMPORT_COMMITTED", "IMPORT_REJECTED", "EQUIPMENT_CATEGORY_CREATED", "VESSEL_DELETED"));
 
     /** SoW s8: invoices are the Ship Manager's, Coordinator's, Technical Head's and Platform Admin's. */
     private static final Set<Role> SEES_INVOICES =
@@ -245,7 +245,7 @@ class ActivityFeedController {
                 at == null ? null : at.toInstant(),
                 categoryOf(action).name(),
                 action,
-                actor == null ? "SeaStella" : actor,
+                actor == null ? "Thawe Marine" : actor,
                 actor == null ? null : roleLabel(rs.getString("actor_role")),
                 summary(action, after, requestNumber, rs.getString("sr_title"), rs.getString("invoice_number"),
                         rs.getString("spare_name"), target, rs.getString("target_role"), vessel,
@@ -338,6 +338,9 @@ class ActivityFeedController {
             case "IMPORT_COMMITTED" -> "applied the import " + text(after, "file") + " (" + text(after, "applied")
                     + " changes" + (text(after, "vessels").isEmpty() ? "" : " to " + text(after, "vessels")) + ")";
             case "IMPORT_REJECTED" -> "discarded the import " + text(after, "file");
+            case "VESSEL_DELETED" -> "deleted vessel " + text(before, "name") + " (IMO " + text(before, "imoNumber")
+                    + ") with its " + text(before, "equipment") + " equipment items, "
+                    + text(before, "serviceRequests") + " service requests and " + text(before, "invoices") + " invoices";
             case "EQUIPMENT_CATEGORY_CREATED" -> "added the equipment type “" + text(after, "name") + "” (VMP block "
                     + text(after, "vmpBlock") + ")" + on;
             case "ORGANIZATION_CREATED" -> "created organization " + firstNonNull(org, text(after, "name"));

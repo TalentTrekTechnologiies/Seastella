@@ -41,6 +41,10 @@ public enum ReportCatalogue {
 
     PARTS_INVENTORY("parts-inventory", "Replacement parts",
             "Parts held on board, with anything below its minimum marked",
+            List.of(Role.PLATFORM_ADMIN, Role.TECHNICAL_HEAD, Role.SHIP_MANAGER, Role.CAPTAIN)),
+
+    SERVICE_HISTORY("service-history", "Service history",
+            "Every service, repair and part replaced, newest first",
             List.of(Role.PLATFORM_ADMIN, Role.TECHNICAL_HEAD, Role.SHIP_MANAGER, Role.CAPTAIN));
 
     private final String key;

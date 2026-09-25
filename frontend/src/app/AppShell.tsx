@@ -7,6 +7,7 @@ import { navigationFor } from './navigation';
 import { useAuth } from './AuthContext';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import './shell.css';
+import './brand.css';
 
 /**
  * The console frame: navigation rail, station bar, working area.
@@ -46,23 +47,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className={`rail${mobileOpen ? ' rail--open' : ''}`}>
-        <div className="rail__brand">
-          <span className="rail__mark" aria-hidden="true">
-            {/* A fix on a chart: crossed bearings through a plotted point. */}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.4" />
-              <circle cx="12" cy="12" r="2" fill="currentColor" />
-              <path
-                d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
+        <div className="rail__brand" aria-label="Thawe Marine Services">
+          <span className="brand-mark" aria-hidden="true">
+            <img src="/thawe-wing.png" alt="" />
           </span>
-          <span className="rail__wordmark">
-            <strong>SeaStella</strong>
-            <span>Maritime Ops</span>
+          <span className="rail__wordmark" aria-hidden="true">
+            <strong className="brand-name">Thawe</strong>
+            <span className="brand-tag">Marine Services</span>
           </span>
         </div>
 
@@ -153,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="stationbar__rule" aria-hidden="true" />
             <span className="stationbar__holding">{holding(user.vesselIds.length, user.role)}</span>
             {DEMO_MODE && (
-              <span className="demo-pill" title="Sample data captured from the SeaStella seed — no live backend">
+              <span className="demo-pill" title="Sample data captured from the Thawe Marine seed — no live backend">
                 Demo data
               </span>
             )}

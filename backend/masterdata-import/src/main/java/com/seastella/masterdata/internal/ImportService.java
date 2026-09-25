@@ -112,7 +112,7 @@ class ImportService {
      */
     @Transactional
     BatchView upload(String fileName, byte[] content) {
-        return upload(fileName, content, null);
+        return upload(fileName, content, null, false);
     }
 
     /**
@@ -121,7 +121,7 @@ class ImportService {
      * are refused.
      */
     @Transactional
-    BatchView upload(String fileName, byte[] content, Long vesselId) {
+    BatchView upload(String fileName, byte[] content, Long vesselId, boolean adoptFile) {
         AccessScope actor = scopes.currentScope();
         if (content == null || content.length == 0) throw new ValidationException("Choose a file to upload.");
         if (fileName == null || !fileName.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
@@ -135,7 +135,7 @@ class ImportService {
             VesselRef target = fleetGateway.vessel(vesselId)
                     .filter(v -> inScope(actor, v.organizationId()))
                     .orElseThrow(() -> NotFoundException.ofResource("Vessel", vesselId));
-            source = source.intoVessel(target.imoNumber(), target.name());
+            source = source.intoVessel(target.imoNumber(), target.name(), adoptFile);
         }
         Staging staging = new Staging(actor);
         List<ImportRow> staged = new ArrayList<>();
@@ -391,7 +391,7 @@ class ImportService {
             if (existing == null) {
                 if (category == null && row.get(Column.CATEGORY) == null) {
                     problems.add("This equipment is new and its category could not be worked out from its name "
-                            + "or its parent. Add an Equipment Category column, or use the SeaStella template.");
+                            + "or its parent. Add an Equipment Category column, or use the Thawe Marine template.");
                 }
                 if (name == null) problems.add("This spare is new, so Spare / Description is required.");
                 parentProblem(vessel.id(), ref).ifPresent(problems::add);
@@ -636,7 +636,7 @@ class ImportService {
             if (value == null) return null;
             FleetDirectory.CategoryRef category = categories.get(key(value));
             if (category == null) {
-                problems.add("\"" + value + "\" is not an equipment category in SeaStella.");
+                problems.add("\"" + value + "\" is not an equipment category in Thawe Marine.");
             }
             return category;
         }

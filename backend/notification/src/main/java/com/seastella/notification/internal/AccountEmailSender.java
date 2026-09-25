@@ -50,7 +50,7 @@ class AccountEmailSender implements AccountEmails {
                        NotificationDeliveryRepository deliveries, PlatformTransactionManager transactions,
                        @Value("${seastella.notification.email.from:SeaStella Maritime Ops <no-reply@seastella.in>}") String from,
                        @Value("${seastella.notification.email.reply-to:team@seastella.in}") String replyTo,
-                       @Value("${seastella.notification.email.brand:Seastella}") String brand,
+                       @Value("${seastella.notification.email.brand:Thawe Marine}") String brand,
                        @Value("${seastella.notification.email.brand-site:seastella.in}") String brandSite) {
         this.mailSender = mailSender;
         this.notifications = notifications;
@@ -64,27 +64,27 @@ class AccountEmailSender implements AccountEmails {
 
     @Override
     public Delivery sendInvitation(Recipient to, String invitedBy, String roleLabel, String link, Instant expiresAt) {
-        String subject = "Your SeaStella Maritime Ops account";
+        String subject = "Your Thawe Marine account";
         String text = "Hello " + to.fullName() + ",\n\n"
-                + invitedBy + " has created a SeaStella Maritime Ops account for you as " + roleLabel + ".\n\n"
+                + invitedBy + " has created a Thawe Marine account for you as " + roleLabel + ".\n\n"
                 + "Choose your password to activate it:\n" + link + "\n\n"
                 + "The link works once and expires " + EXPIRY.format(expiresAt) + ". "
                 + "If it has expired, ask " + invitedBy + " to send a new invitation.\n\n"
                 + "If you were not expecting this email you can ignore it. The account cannot be used until "
                 + "a password is chosen from this link.\n\n"
                 + footer();
-        return send(to, INVITATION, "Invitation to SeaStella sent to " + to.email(),
+        return send(to, INVITATION, "Invitation to Thawe Marine sent to " + to.email(),
                 "Sent by " + invitedBy + " for the " + roleLabel + " account.", subject, text);
     }
 
     @Override
     public Delivery sendPasswordReset(Recipient to, String link, Instant expiresAt) {
-        String subject = "Reset your SeaStella password";
+        String subject = "Reset your Thawe Marine password";
         String text = "Hello " + to.fullName() + ",\n\n"
-                + "A password reset was requested for your SeaStella Maritime Ops account (" + to.email() + ").\n\n"
+                + "A password reset was requested for your Thawe Marine account (" + to.email() + ").\n\n"
                 + "Choose a new password here:\n" + link + "\n\n"
                 + "The link works once and expires " + EXPIRY.format(expiresAt) + ". "
-                + "Using it signs you out of SeaStella on every other device.\n\n"
+                + "Using it signs you out of Thawe Marine on every other device.\n\n"
                 + "If you did not ask for this, ignore this email: your current password keeps working.\n\n"
                 + footer();
         return send(to, PASSWORD_RESET, "Password reset link sent to " + to.email(), null, subject, text);
@@ -141,6 +141,6 @@ class AccountEmailSender implements AccountEmails {
     }
 
     private String footer() {
-        return "--\nSeaStella Maritime Ops. This mailbox is not monitored.";
+        return "--\nThawe Marine. This mailbox is not monitored.";
     }
 }

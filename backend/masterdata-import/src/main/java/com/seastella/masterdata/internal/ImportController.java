@@ -51,10 +51,13 @@ class ImportController {
 
     @PostMapping
     ResponseEntity<ImportService.BatchView> upload(@RequestParam("file") MultipartFile file,
-                                                  @RequestParam(required = false) Long vesselId) throws IOException {
+                                                  @RequestParam(required = false) Long vesselId,
+                                                  @RequestParam(defaultValue = "false") boolean adoptFile)
+            throws IOException {
         byte[] content = file == null ? new byte[0] : file.getBytes();
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(imports.upload(safeName(file == null ? null : file.getOriginalFilename()), content, vesselId));
+                .body(imports.upload(safeName(file == null ? null : file.getOriginalFilename()), content, vesselId,
+                        vesselId != null && adoptFile));
     }
 
     /**

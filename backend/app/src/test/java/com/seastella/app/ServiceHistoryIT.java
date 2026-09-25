@@ -229,6 +229,47 @@ class ServiceHistoryIT {
 
     // ---------------------------------------------------------------- helpers
 
+    @Test
+    @DisplayName("history downloads as Excel and PDF, and a downloaded file uploads back without duplicates")
+    void historyDownloadsAndRoundTrips() throws Exception {
+        long spareId = addTopLevel("Speed Log (download test)");
+        record(spareId, LocalDate.now().minusMonths(3), "Log calibrated; sensor replaced.");
+
+        // Excel for the one item, in the upload's columns.
+        MvcResult xlsx = fetch("/api/v1/service-history/export?spareId=" + spareId, head);
+        assertThat(xlsx.getResponse().getStatus()).isEqualTo(200);
+        byte[] file = xlsx.getResponse().getContentAsByteArray();
+        try (org.apache.poi.ss.usermodel.Workbook book =
+                     new org.apache.poi.xssf.usermodel.XSSFWorkbook(new java.io.ByteArrayInputStream(file))) {
+            org.apache.poi.ss.usermodel.Sheet sheet = book.getSheetAt(0);
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("IMO Number");
+            assertThat(sheet.getLastRowNum()).isEqualTo(1);
+            assertThat(sheet.getRow(1).getCell(3).getStringCellValue()).isEqualTo("Log calibrated; sensor replaced.");
+        }
+
+        // Uploading it straight back adds nothing: the entry is already there.
+        MvcResult check = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/v1/service-history/import")
+                        .file(new org.springframework.mock.web.MockMultipartFile("file", "history.xlsx",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file))
+                        .param("apply", "false")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + head))
+                .andReturn();
+        JsonNode result = body(check, 200);
+        assertThat(result.path("errorCount").asInt()).as(result.toString()).isZero();
+        assertThat(result.path("addCount").asInt()).isZero();
+        assertThat(result.path("skipCount").asInt()).isEqualTo(1);
+
+        // The same history as a PDF report, for this vessel.
+        MvcResult pdf = fetch("/api/v1/reports/service-history/pdf?vesselId=" + vesselId, head);
+        assertThat(pdf.getResponse().getStatus()).isEqualTo(200);
+        assertThat(new String(pdf.getResponse().getContentAsByteArray(), 0, 5)).isEqualTo("%PDF-");
+
+        // Another fleet cannot download it.
+        assertThat(fetch("/api/v1/service-history/export?spareId=" + spareId, otherHead).getResponse().getStatus())
+                .isEqualTo(404);
+    }
+
     private long addTopLevel(String name) throws Exception {
         return body(postJson("/api/v1/vessels/" + vesselId + "/spares", head, Map.of(
                 "name", name, "equipmentCategoryId", categoryId())), 201).path("id").asLong();

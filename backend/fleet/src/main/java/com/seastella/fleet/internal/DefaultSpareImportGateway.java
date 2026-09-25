@@ -38,16 +38,36 @@ class DefaultSpareImportGateway implements SpareImportGateway {
     private final ReplacementPartRepository parts;
     private final ScopeResolver scopes;
     private final DomainEventPublisher events;
+    private final SpareServiceRecordRepository history;
 
     DefaultSpareImportGateway(VesselRepository vessels, SpareRepository spares,
                               EquipmentCategoryRepository categories, ReplacementPartRepository parts,
-                              ScopeResolver scopes, DomainEventPublisher events) {
+                              ScopeResolver scopes, DomainEventPublisher events,
+                              SpareServiceRecordRepository history) {
         this.vessels = vessels;
         this.spares = spares;
         this.categories = categories;
         this.parts = parts;
         this.scopes = scopes;
         this.events = events;
+        this.history = history;
+    }
+
+    /**
+     * A last-service date from a spreadsheet is a service that happened: it goes
+     * into the spare's history as well as onto the spare, so the due date on the
+     * dashboard always has an entry behind it. Once per date.
+     */
+    private void recordImportedService(Spare spare, LocalDate serviced) {
+        if (serviced == null) return;
+        if (history.findBySpareIdOrderByServiceDateDescIdDesc(spare.getId()).stream()
+                .anyMatch(r -> serviced.equals(r.getServiceDate()))) {
+            return;
+        }
+        Long actor = scopes.currentScope().userId();
+        if (actor == null) return;
+        history.save(SpareServiceRecord.recorded(spare.getId(), spare.getVesselId(), serviced,
+                "Annual service", null, null, "Brought in with the equipment list import.", actor));
     }
 
     @Override
@@ -96,6 +116,7 @@ class DefaultSpareImportGateway implements SpareImportGateway {
         parentOf(vesselId, vmpRef).ifPresent(parent -> spare.setParentSpareId(parent.getId()));
         apply(spare, values);
         Spare saved = spares.save(spare);
+        recordImportedService(saved, values.lastAnnualServiceDate());
         publishServiceDate(saved, null, values.lastAnnualServiceDate());
         return saved.getId();
     }
@@ -108,6 +129,7 @@ class DefaultSpareImportGateway implements SpareImportGateway {
         if (equipmentCategoryId != null) spare.setEquipmentCategoryId(equipmentCategoryId);
         apply(spare, values);
         spares.save(spare);
+        recordImportedService(spare, values.lastAnnualServiceDate());
         publishServiceDate(spare, before, spare.getLastAnnualServiceDate());
     }
 
