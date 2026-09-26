@@ -9,10 +9,18 @@
 # See docs/09-deployment.md.
 name: thawemarine
 
+# Container logs rotate at 5 x 10 MB instead of growing until the disk fills.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_DB: thawemarine
       POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
@@ -28,6 +36,10 @@ services:
   backend:
     build: ../backend
     restart: unless-stopped
+    logging: *logging
+    # The VPS is shared with other sites: cap the backend, and size the Java
+    # heap from the cap (60% of 2 GB) rather than from the whole machine.
+    mem_limit: 2g
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +53,7 @@ services:
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
-      # Certificates, manuals and photos. The only copy: back it up (docs/09 s5).
+      # Certificates, manuals and photos. The only copy: back it up (backup.sh).
       - uploads:/var/seastella/documents
 
 volumes:

@@ -51,6 +51,11 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    # Health is the app and its database. An unreachable mail server is
+    # recorded per delivery (FAILED), not reported as the app being down.
+    mail:
+      enabled: false
 
 springdoc:
   swagger-ui:

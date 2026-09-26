@@ -92,7 +92,7 @@ class AccountEmailSender implements AccountEmails {
 
     private Delivery send(Recipient to, String eventType, String logTitle, String logBody,
                           String subject, String text) {
-        JavaMailSender sender = mailSender.getIfAvailable();
+        JavaMailSender sender = MailSenders.usable(mailSender);
         Delivery outcome;
         String error = null;
         if (sender == null) {

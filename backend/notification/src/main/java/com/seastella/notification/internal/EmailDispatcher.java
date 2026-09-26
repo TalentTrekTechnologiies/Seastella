@@ -83,7 +83,7 @@ class EmailDispatcher {
                         pending.stream().map(NotificationDelivery::getNotificationId).toList())
                 .stream().collect(Collectors.toMap(Notification::getId, Function.identity()));
 
-        JavaMailSender sender = mailSender.getIfAvailable();
+        JavaMailSender sender = MailSenders.usable(mailSender);
         Instant now = Instant.now();
         int sent = 0;
 

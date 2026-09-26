@@ -126,7 +126,11 @@ in the backup set, because Flyway rebuilds it from the migrations in the jar.
 | Upload volume (`thawemarine_uploads`) | `rclone sync` of the volume to object storage | nightly | 30 daily |
 | `deploy/.env` | the password manager, not the backup bucket | on change | current + previous |
 
-A nightly dump on the VPS (for cron), from the database container:
+`deploy/backup.sh` does both each night, keeping 30 days in
+`/var/backups/thawemarine`; its header has the one-line cron install. Those
+copies sit on the same VPS, so copy the folder off it as well.
+
+The dump it takes, if you need one by hand:
 
 ```bash
 docker compose -f /opt/thawemarine/deploy/docker-compose.yml exec -T db \
