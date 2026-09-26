@@ -60,6 +60,12 @@ seastella:
   # Where people open the app. Links in emails - alerts, invitations, password
   # resets - point here, so in production it must be the public HTTPS address.
   app-base-url: ${APP_BASE_URL:http://localhost:5173}
+  # The first Platform Admin on an empty database; ignored once one exists.
+  # Every other account is created in the app. See FirstAdminBootstrap.
+  bootstrap:
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-name: ${BOOTSTRAP_ADMIN_NAME:Platform Administrator}
   security:
     jwt:
       issuer: seastella-platform

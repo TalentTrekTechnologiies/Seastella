@@ -27,6 +27,8 @@ RUN mvn -B -Djava.version=17 -DskipTests package -pl app -am
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 RUN useradd --system --uid 10001 seastella
+# The upload volume mounts here; created now so it belongs to the app user.
+RUN mkdir -p /var/seastella/documents && chown seastella /var/seastella/documents
 COPY --from=build /src/app/target/seastella.jar /app/seastella.jar
 USER seastella
 EXPOSE 8080

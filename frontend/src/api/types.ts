@@ -251,7 +251,6 @@ export interface PlatformAdminDashboard {
     users: number;
     openRequests: number;
     auditEntries: number;
-    seedDataPresent: boolean;
   };
 }
 

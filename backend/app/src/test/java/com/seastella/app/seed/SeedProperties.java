@@ -3,7 +3,8 @@ package com.seastella.app.seed;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Controls demo-data loading. Disabled in the prod profile (NFR-11).
+ * Controls the test fixture dataset. Test sources only: the application ships
+ * with no demo data, and integration tests turn it on per class.
  *
  * <p>Every seeded row carries {@code seed_marker = 'SEED'} so demo data is
  * distinguishable from real client data at the database level, not just by

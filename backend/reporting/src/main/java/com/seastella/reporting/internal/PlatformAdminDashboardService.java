@@ -63,7 +63,6 @@ class PlatformAdminDashboardService {
         long users = scalar("select count(*) from app_user");
         long auditEntries = scalar("select count(*) from audit_entry");
         long openRequests = scalar("select count(*) from service_request where closed_at is null");
-        boolean seeded = scalar("select count(*) from organization where seed_marker = 'SEED'") > 0;
 
         List<Kpi> kpis = List.of(
                 Kpi.of("organizations", "Organizations", organizations.size()),
@@ -91,7 +90,7 @@ class PlatformAdminDashboardService {
                         accepted.count(), accepted.total(), "USD"),
                 new PlatformAdminDashboard.SystemStatus(
                         organizations.size(), vessels, spares, users,
-                        openRequests, auditEntries, seeded));
+                        openRequests, auditEntries));
     }
 
     private List<PlatformAdminDashboard.UserRoleCount> usersByRole() {

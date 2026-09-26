@@ -8,33 +8,14 @@
  * without parsing prose.
  */
 
-const TOKEN_KEY = 'seastella.token';
-
-export const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
-
-const isLocalDevHost = () => {
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname;
-  return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
-};
-
-const withApiBase = (path: string) => {
-  const normalized = path.startsWith('/') ? path : `/${path}`;
-  if (!DEMO_MODE && !API_ORIGIN && !isLocalDevHost()) {
-    throw new Error(
-      'SeaStella API configuration error: VITE_API_URL is not set. Set it to the backend origin, e.g. https://seastella.onrender.com.',
-    );
-  }
-  return API_ORIGIN ? `${API_ORIGIN}${normalized}` : normalized;
-};
-
 /**
- * Frontend-only demo build (`VITE_DEMO_MODE=true`): requests are answered in
- * the browser from captured seed data instead of the network. A build-time
- * constant, so in every normal build the demo branch and its fixtures are
- * removed entirely.
+ * The API is same-origin, under the path the app itself is served from:
+ * /api/... in production, where nginx forwards it to
+ * the backend. Call sites keep writing '/api/v1/...'; the prefix is added here.
  */
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+const API_PREFIX = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
+const withApiBase = (path: string) => `${API_PREFIX}${path.startsWith('/') ? path : `/${path}`}`;
 
 export class ApiError extends Error {
   constructor(
@@ -63,44 +44,21 @@ export class ApiError extends Error {
 }
 
 /**
- * Where the access token lives.
- *
- * <p>Against the real backend it is held in memory only: script injected into
- * the page cannot read it out of storage, and a reload restores the session
- * through the httpOnly refresh cookie instead. The frontend-only demo build has
- * no refresh endpoint, so there it stays in localStorage as before.
+ * Where the access token lives: in memory only. Script injected into the page
+ * cannot read it out of storage, and a reload restores the session through
+ * the httpOnly refresh cookie instead.
  */
 let memoryToken: string | null = null;
 
 export const tokenStore = {
   get(): string | null {
-    if (!DEMO_MODE) return memoryToken;
-    try {
-      return localStorage.getItem(TOKEN_KEY);
-    } catch {
-      // Private windows and blocked site data both throw here. A missing
-      // token is a valid state: the user is simply signed out.
-      return null;
-    }
+    return memoryToken;
   },
   set(token: string) {
-    if (!DEMO_MODE) {
-      memoryToken = token;
-      return;
-    }
-    try {
-      localStorage.setItem(TOKEN_KEY, token);
-    } catch {
-      /* session-only sign-in is an acceptable fallback */
-    }
+    memoryToken = token;
   },
   clear() {
     memoryToken = null;
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* nothing to clear */
-    }
   },
 };
 
@@ -120,7 +78,7 @@ function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, time
   return fetch(input, {
     ...init,
     signal: controller.signal,
-    credentials: init.credentials ?? (API_ORIGIN ? 'include' : 'same-origin'),
+    credentials: init.credentials ?? 'same-origin',
   }).finally(() => window.clearTimeout(timer));
 }
 
@@ -129,7 +87,6 @@ function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, time
  * request, so a burst of expired calls rotates the token once, not ten times.
  */
 export function refreshSession(): Promise<LoginSession | null> {
-  if (DEMO_MODE) return Promise.resolve(null);
   if (!refreshing) {
     refreshing = fetchWithTimeout(withApiBase('/api/v1/auth/refresh'), {
       method: 'POST',
@@ -152,7 +109,6 @@ export function refreshSession(): Promise<LoginSession | null> {
 /** Ends the session on the server too, so the refresh cookie cannot be used again. */
 export async function endSession(): Promise<void> {
   tokenStore.clear();
-  if (DEMO_MODE) return;
   try {
     await fetchWithTimeout(withApiBase('/api/v1/auth/logout'), {
       method: 'POST',
@@ -174,7 +130,7 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
   if (init.body) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const { status, body } = await send(path, { ...init, headers }, token);
+  const { status, body } = await send(path, { ...init, headers });
 
   if (status === 204) return undefined as T;
 
@@ -198,13 +154,7 @@ async function request<T>(path: string, init: RequestInit = {}, retried = false)
   return body as T;
 }
 
-/** The transport: the network normally, the in-browser demo API in a demo build. */
-async function send(path: string, init: RequestInit, token: string | null): Promise<{ status: number; body: any }> {
-  if (DEMO_MODE) {
-    const { demoFetch } = await import('@/demo/demoApi');
-    return demoFetch(path, init, token);
-  }
-
+async function send(path: string, init: RequestInit): Promise<{ status: number; body: any }> {
   const response = await fetchWithTimeout(withApiBase(path), init);
   if (response.status === 204) return { status: 204, body: null };
   const text = await response.text();
@@ -302,7 +252,7 @@ async function authorisedFetch(path: string, init: RequestInit = {}): Promise<Re
     return fetchWithTimeout(withApiBase(path), { ...init, headers });
   };
   const first = await send();
-  if (first.status !== 401 || DEMO_MODE) return first;
+  if (first.status !== 401) return first;
   if (!(await refreshSession())) {
     tokenStore.clear();
     window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));

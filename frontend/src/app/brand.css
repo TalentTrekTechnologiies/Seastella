@@ -1,4 +1,9 @@
-/* Thawe Marine brand lockup: the wing on a warm tile, the name in the logo's colours. */
+/*
+ * Thawe Marine brand: the logo exactly as the PNG, on a white plate.
+ * The PNG is split into two layers of the same size - the wing and the
+ * name - stacked on each other, so together they are the original image
+ * and the wing can move on its own.
+ */
 
 :root {
   --brand-orange: #e78023;
@@ -6,109 +11,82 @@
   --brand-navy: #3957a0;
 }
 
-/* ---- the wing tile ---- */
-.brand-mark {
+/* ---- the plate ---- */
+.brand-logo {
   position: relative;
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 38% 34%, rgba(231, 128, 35, 0.34), rgba(231, 128, 35, 0.08) 58%, transparent 76%),
-    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
-  border: 1px solid rgba(231, 128, 35, 0.42);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 8px 22px -8px rgba(231, 128, 35, 0.65);
-}
-.brand-mark img {
   display: block;
-  height: 34px;
-  width: auto;
-  filter: drop-shadow(0 0 6px rgba(245, 160, 74, 0.55));
-  transform-origin: 72% 92%;
+  flex: none;
+  aspect-ratio: 266 / 175;
+  height: 64px;
+  box-sizing: content-box;
+  padding: 8px 14px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(231, 128, 35, 0.35),
+    0 10px 26px -12px rgba(231, 128, 35, 0.7);
+}
+.brand-logo img {
+  position: absolute;
+  inset: 8px 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 16px);
+  display: block;
+}
+.brand-logo__wing {
+  transform-origin: 30% 92%;
   transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-/* A sheen that crosses the tile now and then, like light off water. */
-.brand-mark::after {
+/* A sheen that crosses the plate now and then, like light off water. */
+.brand-logo::after {
   content: '';
   position: absolute;
   inset: -50%;
-  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.28) 50%, transparent 58%);
+  background: linear-gradient(115deg, transparent 44%, rgba(255, 190, 120, 0.35) 50%, transparent 56%);
   transform: translateX(-70%);
-  animation: brand-sheen 7s ease-in-out 1.5s infinite;
+  animation: brand-sheen 7s ease-in-out 2s infinite;
   pointer-events: none;
 }
-.rail__brand:hover .brand-mark img,
-.signin__brand:hover .brand-mark img {
-  transform: rotate(-9deg) scale(1.07);
-}
-
-/* ---- the name ---- */
-.brand-name {
-  display: block;
-  font-family: var(--font-display);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  line-height: 1.05;
-  background: linear-gradient(180deg, #ffffff 0%, #dbe7ff 50%, #9db8ee 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.brand-tag {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.26em;
-  white-space: nowrap;
-  color: var(--brand-orange-2);
-}
-.brand-tag::before {
-  content: '';
-  flex: none;
-  width: 14px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--brand-orange), rgba(231, 128, 35, 0));
+.brand-logo:hover .brand-logo__wing {
+  transform: rotate(-7deg) scale(1.05);
 }
 
 /* ---- in the sidebar ---- */
-.rail__wordmark .brand-name { font-size: 19px; font-weight: 800; letter-spacing: 0.16em; color: transparent; }
-.rail__wordmark .brand-tag { font-size: 9.5px; color: var(--brand-orange-2); letter-spacing: 0.24em; }
+.rail__brand {
+  height: auto;
+  min-height: var(--topbar-h);
+  padding: 12px 16px;
+  justify-content: center;
+}
+.rail__brand .brand-logo {
+  height: 72px;
+  padding: 8px 18px;
+}
+.rail__brand .brand-logo img {
+  inset: 8px 18px;
+  width: calc(100% - 36px);
+}
 
 /* ---- on the sign-in panel: bigger, and it arrives ---- */
-.signin__brand .brand-mark {
-  width: 66px;
-  height: 66px;
-  border-radius: 18px;
-  animation: brand-glow 5s ease-in-out 1.4s infinite;
+.signin__brand .brand-logo {
+  height: 132px;
+  padding: 14px 24px;
+  border-radius: 20px;
+  animation: brand-plate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+             brand-glow 5s ease-in-out 1.8s infinite;
 }
-.signin__brand .brand-mark img {
-  height: 58px;
-  animation: brand-unfold 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.signin__brand .brand-logo img {
+  inset: 14px 24px;
+  width: calc(100% - 48px);
+  height: calc(100% - 28px);
 }
-.signin__brand .brand-name {
-  font-size: 30px;
-  font-weight: 800;
-  color: transparent;
-  letter-spacing: 0.2em;
-  animation: brand-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.35s both;
+.signin__brand .brand-logo__wing {
+  animation: brand-unfold 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.25s both;
 }
-.signin__brand .brand-tag {
-  font-size: 12px;
-  color: var(--brand-orange-2);
-  letter-spacing: 0.32em;
-  animation: brand-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.55s both;
+.signin__brand .brand-logo__name {
+  animation: brand-slide 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
 }
-.signin__brand .brand-tag::before { width: 22px; }
 
 /* A large, faint wing drifting behind the pitch. */
 .signin__ocean::after {
@@ -130,18 +108,24 @@
   0%, 72% { transform: translateX(-70%); }
   100% { transform: translateX(70%); }
 }
+@keyframes brand-plate {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+/* The wing opens upward from its base, feather by feather. */
 @keyframes brand-unfold {
-  from { opacity: 0; transform: rotate(-38deg) scale(0.6); clip-path: inset(100% 0 0 0); }
+  from { opacity: 0; transform: rotate(-34deg) scale(0.7); clip-path: inset(100% 0 0 0); }
   60% { opacity: 1; }
   to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
 }
-@keyframes brand-rise {
-  from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
-  to { opacity: 1; transform: none; filter: none; }
+/* The name comes out from behind the wing. */
+@keyframes brand-slide {
+  from { opacity: 0; transform: translateX(-18px); clip-path: inset(0 0 0 30%); filter: blur(3px); }
+  to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); filter: none; }
 }
 @keyframes brand-glow {
-  0%, 100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 10px 28px -10px rgba(231, 128, 35, 0.6); }
-  50% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 40px -6px rgba(231, 128, 35, 0.95); }
+  0%, 100% { box-shadow: 0 0 0 1px rgba(231, 128, 35, 0.35), 0 12px 30px -12px rgba(231, 128, 35, 0.6); }
+  50% { box-shadow: 0 0 0 1px rgba(231, 128, 35, 0.55), 0 14px 44px -8px rgba(231, 128, 35, 0.95); }
 }
 @keyframes brand-drift {
   0%, 100% { transform: rotate(-8deg) translateY(0); }
@@ -149,15 +133,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brand-mark::after,
-  .signin__brand .brand-mark,
-  .signin__brand .brand-mark img,
-  .signin__brand .brand-name,
-  .signin__brand .brand-tag,
+  .brand-logo::after,
+  .signin__brand .brand-logo,
+  .signin__brand .brand-logo__wing,
+  .signin__brand .brand-logo__name,
   .signin__ocean::after { animation: none; }
-  .brand-mark img { transition: none; }
+  .brand-logo__wing { transition: none; }
 }
 
 @media (max-width: 900px) {
+  .signin__brand .brand-logo { height: 96px; }
   .signin__ocean::after { width: 300px; height: 300px; right: -40px; }
 }

@@ -34,6 +34,5 @@ public record PlatformAdminDashboard(
                                 String currency) {}
 
     public record SystemStatus(long organizations, long vessels, long spares,
-                               long users, long openRequests, long auditEntries,
-                               boolean seedDataPresent) {}
+                               long users, long openRequests, long auditEntries) {}
 }

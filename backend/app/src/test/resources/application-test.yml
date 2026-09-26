@@ -15,8 +15,6 @@ spring:
     clean-disabled: false
 
 seastella:
-  seed:
-    enabled: false
   security:
     jwt:
       secret: "test-only-secret-value-at-least-32-bytes-long-0123456789"

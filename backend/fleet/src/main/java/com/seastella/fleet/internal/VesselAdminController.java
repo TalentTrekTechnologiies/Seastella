@@ -167,7 +167,7 @@ class VesselAdminController {
         Map<String, Long> byPath = new HashMap<>();
         int count = 0;
 
-        for (FleetSeedContributor.SpareSpec spec : FleetSeedCatalogue.SPARES) {
+        for (StandardBridgeFit.Item spec : StandardBridgeFit.ITEMS) {
             Long categoryId = categoryIds.get(spec.categoryCode());
             if (categoryId == null) continue;
 

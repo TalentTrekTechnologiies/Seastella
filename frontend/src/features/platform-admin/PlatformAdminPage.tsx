@@ -7,7 +7,6 @@ import { formatMoney } from '@/lib/format';
 import { ActivityList, Chip, ConsoleHeader, Plate, StageBars, StatTile, roleName } from '@/design-system/Console';
 import { Money, RefreshButton } from '@/design-system/ConsoleParts';
 import { ErrorState, LoadingState } from '@/design-system/States';
-import { Pill } from '@/design-system/StatusBadge';
 
 /**
  * GLOBAL MARITIME CONTROL — Platform Administrator (SoW §8.5).
@@ -39,13 +38,6 @@ export function PlatformAdminPage() {
           { label: 'All organizations', strong: true },
           { label: `${data?.systemStatus.organizations ?? 0} organizations` },
         ]}
-        badge={
-          data?.systemStatus.seedDataPresent ? (
-            <Pill tone="approaching" size="sm">
-              Demo data present
-            </Pill>
-          ) : undefined
-        }
         title="Global maritime control"
         subtitle="Client organizations, fleet scale, users and every service event across the platform."
         generatedAt={data?.meta.generatedAt}

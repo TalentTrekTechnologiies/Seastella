@@ -39,8 +39,6 @@ seastella:
   security:
     jwt:
       secret: ${JWT_SECRET}
-  seed:
-    enabled: false                # never seed demo data into production
   upload:
     storage-dir: ${UPLOAD_DIR:/var/seastella/documents}
 

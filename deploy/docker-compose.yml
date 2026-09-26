@@ -1,0 +1,49 @@
+# Thawe Marine on the VPS: PostgreSQL and the backend, both private to the
+# machine. nginx is the only thing facing the internet; it serves the built
+# frontend at https://thawemarine.seastella.in/ and forwards
+# /api/ to the backend on 127.0.0.1 (nginx-thawemarine.conf).
+#
+#   cp .env.example .env    # then fill it in
+#   docker compose up -d --build
+#
+# See docs/09-deployment.md.
+name: thawemarine
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: thawemarine
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d thawemarine"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/thawemarine
+      UPLOAD_DIR: /var/seastella/documents
+      JAVA_OPTS: -XX:MaxRAMPercentage=60
+    # Loopback only: reachable from nginx on this machine, not from outside.
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      # Certificates, manuals and photos. The only copy: back it up (docs/09 s5).
+      - uploads:/var/seastella/documents
+
+volumes:
+  db-data:
+  uploads:

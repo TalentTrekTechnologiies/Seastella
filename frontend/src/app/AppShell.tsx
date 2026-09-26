@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { DEMO_MODE } from '@/api/client';
 import { Icon } from '@/design-system/Icon';
 import { NotificationBell } from '@/features/alerts/NotificationBell';
 import { navigationFor } from './navigation';
@@ -47,13 +46,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className={`rail${mobileOpen ? ' rail--open' : ''}`}>
-        <div className="rail__brand" aria-label="Thawe Marine Services">
-          <span className="brand-mark" aria-hidden="true">
-            <img src="/thawe-wing.png" alt="" />
-          </span>
-          <span className="rail__wordmark" aria-hidden="true">
-            <strong className="brand-name">Thawe</strong>
-            <span className="brand-tag">Marine Services</span>
+        <div className="rail__brand">
+          <span className="brand-logo" role="img" aria-label="Thawe Marine Services">
+            <img className="brand-logo__wing" src={`${import.meta.env.BASE_URL}thawe-logo-wing.png`} alt="" />
+            <img className="brand-logo__name" src={`${import.meta.env.BASE_URL}thawe-logo-name.png`} alt="" />
           </span>
         </div>
 
@@ -96,11 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="rail__station">
             <b>{user.fullName}</b>
             <span>{user.roleLabel}</span>
-            {!DEMO_MODE && (
-              <button type="button" className="rail__account" onClick={() => setChangingPassword(true)}>
-                Change password
-              </button>
-            )}
+            <button type="button" className="rail__account" onClick={() => setChangingPassword(true)}>
+              Change password
+            </button>
           </div>
           <div className="rail__actions">
             <button
@@ -143,11 +137,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="stationbar__role">{user.roleLabel}</span>
             <span className="stationbar__rule" aria-hidden="true" />
             <span className="stationbar__holding">{holding(user.vesselIds.length, user.role)}</span>
-            {DEMO_MODE && (
-              <span className="demo-pill" title="Sample data captured from the Thawe Marine seed — no live backend">
-                Demo data
-              </span>
-            )}
           </div>
 
           <div className="stationbar__right">

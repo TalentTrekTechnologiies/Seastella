@@ -31,7 +31,7 @@ import { ActivityHistoryPage } from '@/features/history/ActivityHistoryPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import type { Role } from '@/api/types';
 import { ErrorState } from '@/design-system/States';
-import { ApiError, DEMO_MODE } from '@/api/client';
+import { ApiError } from '@/api/client';
 
 /**
  * Routing.
@@ -46,7 +46,6 @@ import { ApiError, DEMO_MODE } from '@/api/client';
  * signs that person in.
  */
 export function App() {
-  if (DEMO_MODE) return <Console />;
   return (
     <Routes>
       <Route path="/invite/:token" element={<AcceptInvitationPage />} />

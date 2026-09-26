@@ -22,8 +22,8 @@ import java.util.List;
  * requests whose invoices failed to write - would make the dashboards display
  * figures that are wrong rather than empty, which is harder to notice.
  *
- * <p>Disabled unless {@code seastella.seed.enabled} is true, and that property
- * is false in the prod profile (NFR-11).
+ * <p>Test sources only, and disabled unless {@code seastella.seed.enabled} is
+ * true: the application itself ships with no demo data.
  */
 @Component
 @ConditionalOnProperty(prefix = "seastella.seed", name = "enabled", havingValue = "true")

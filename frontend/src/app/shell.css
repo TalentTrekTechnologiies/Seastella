@@ -184,16 +184,6 @@
 .stationbar__role { font-size: 14px; font-weight: 600; color: var(--sbs-ink); }
 .stationbar__rule { width: 1px; height: 16px; background: var(--sbs-line); }
 .stationbar__holding { font-size: 14px; color: var(--sbs-ink-2); }
-.demo-pill {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-  background: var(--c-approaching-weak);
-  color: var(--c-approaching);
-  border: 1px solid color-mix(in srgb, var(--c-approaching) 35%, transparent);
-  white-space: nowrap;
-}
 
 .stationbar__right { display: flex; align-items: center; gap: 14px; flex: none; }
 .watch { display: grid; justify-items: end; gap: 1px; }

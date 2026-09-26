@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, AUTH_EXPIRED_EVENT, DEMO_MODE, endSession, refreshSession, tokenStore } from '@/api/client';
+import { api, AUTH_EXPIRED_EVENT, endSession, refreshSession, tokenStore } from '@/api/client';
 import type { LoginResponse, UserProfile } from '@/api/types';
 
 /**
@@ -39,43 +39,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    if (!DEMO_MODE) {
-      // The access token is never persisted; the refresh cookie brings the
-      // session back after a reload, or the user signs in again.
-      refreshSession().then((session) => {
-        if (cancelled) return;
-        if (session) {
-          setUser(session.user as UserProfile);
-          setStatus('authenticated');
-        } else {
-          // Unless a session was adopted meanwhile (an invitation accepted
-          // while this check was still in flight).
-          setStatus((s) => (s === 'checking' ? 'anonymous' : s));
-        }
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    if (!tokenStore.get()) {
-      setStatus('anonymous');
-      return;
-    }
-
-    api
-      .get<UserProfile>('/api/v1/auth/me')
-      .then((profile) => {
-        if (cancelled) return;
-        setUser(profile);
+    // The access token is never persisted; the refresh cookie brings the
+    // session back after a reload, or the user signs in again.
+    refreshSession().then((session) => {
+      if (cancelled) return;
+      if (session) {
+        setUser(session.user as UserProfile);
         setStatus('authenticated');
-      })
-      .catch(() => {
-        if (cancelled) return;
-        tokenStore.clear();
-        setStatus('anonymous');
-      });
-
+      } else {
+        // Unless a session was adopted meanwhile (an invitation accepted
+        // while this check was still in flight).
+        setStatus((s) => (s === 'checking' ? 'anonymous' : s));
+      }
+    });
     return () => {
       cancelled = true;
     };
