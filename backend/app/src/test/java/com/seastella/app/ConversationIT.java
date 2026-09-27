@@ -249,6 +249,13 @@ class ConversationIT {
         assertThat(captainView.path("unreadCount").asLong()).isGreaterThan(0);
         assertThat(captainView.path("readByOthersMessageId").asLong()).isEqualTo(latest);
 
+        // ...and who, by name and role: the "seen by" on each message.
+        assertThat(captainView.path("readers").size()).isEqualTo(1);
+        JsonNode reader = captainView.path("readers").get(0);
+        assertThat(reader.path("name").asText()).isEqualTo("Sofia Marchetti");
+        assertThat(reader.path("role").asText()).isEqualTo("SERVICE_COORDINATOR");
+        assertThat(reader.path("lastReadMessageId").asLong()).isEqualTo(latest);
+
         // A message id from another conversation cannot mark this one read.
         long otherRequest = escalatedRequest("Speed log reading high");
         long elsewhere = body(getJson("/api/v1/service-requests/" + otherRequest + "/conversation", captain), 200)

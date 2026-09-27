@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, fetchObjectUrl } from '@/api/client';
 import {
@@ -11,6 +11,7 @@ import {
   sendChatMessage,
   type ChatAttachment,
   type ChatMessage,
+  type ChatReader,
   type ChatView,
 } from '@/api/conversation';
 import { Button, Plate, roleName } from '@/design-system/Console';
@@ -164,6 +165,8 @@ export function LiveChat({
 
   const live = view.status === 'LIVE';
   const closed = view.status === 'CLOSED';
+  const people = participants(view);
+  const tones = tonesFor(view.messages);
   const inputId = `chat-input-${variant}-${requestId}`;
 
   const body = (
@@ -185,17 +188,38 @@ export function LiveChat({
           </p>
         )}
 
+        {people.length > 0 && (
+          <p className="chat__people">
+            <b>In this chat:</b> {people.join(', ')}
+          </p>
+        )}
+
         <ol className="chat__thread" ref={thread} aria-live="polite" aria-label="Messages">
           {view.messages.length === 0 && (
             <li className="chat__empty">No messages yet. Ask a question or share an update on this request.</li>
           )}
-          {view.messages.map((m) => (
-            <Message
-              key={m.id}
-              message={m}
-              highlighted={m.id === highlight}
-              seen={m.mine && view.readByOthersMessageId !== undefined && view.readByOthersMessageId >= m.id}
-            />
+          {view.messages.map((m, i) => (
+            <Fragment key={m.id}>
+              {dayOf(m.sentAt) !== (i > 0 ? dayOf(view.messages[i - 1].sentAt) : null) && (
+                <li className="chat__day" aria-hidden="true">
+                  <span>{dayLabel(m.sentAt)}</span>
+                </li>
+              )}
+              <Message
+                message={m}
+                tone={tones.get(m.senderName ?? '') ?? 0}
+                highlighted={m.id === highlight}
+                seenBy={m.mine ? (view.readers ?? []).filter((r) => r.lastReadMessageId >= m.id) : []}
+                continued={
+                  i > 0 &&
+                  view.messages[i - 1].kind === 'USER' &&
+                  m.kind === 'USER' &&
+                  view.messages[i - 1].senderName === m.senderName &&
+                  view.messages[i - 1].mine === m.mine &&
+                  dayOf(view.messages[i - 1].sentAt) === dayOf(m.sentAt)
+                }
+              />
+            </Fragment>
           ))}
         </ol>
 
@@ -287,41 +311,163 @@ export function LiveChat({
   );
 }
 
-function Message({ message: m, highlighted, seen }: { message: ChatMessage; highlighted: boolean; seen: boolean }) {
+function Message({
+  message: m,
+  tone,
+  highlighted,
+  seenBy,
+  continued,
+}: {
+  message: ChatMessage;
+  tone: number;
+  highlighted: boolean;
+  seenBy: ChatReader[];
+  continued: boolean;
+}) {
+  const [showSeen, setShowSeen] = useState(false);
+
   if (m.kind === 'SYSTEM') {
     return (
       <li className={`chat__system${highlighted ? ' chat__hit' : ''}`} id={`chat-msg-${m.id}`}>
         <span>{m.body}</span>
-        <time dateTime={m.sentAt}>{formatDateTime(m.sentAt)}</time>
+        <time dateTime={m.sentAt}>{timeOf(m.sentAt)}</time>
       </li>
     );
   }
   if (m.kind === 'ASSISTANT') {
     return (
-      <li className={`chat__msg chat__msg--assistant${highlighted ? ' chat__hit' : ''}`} id={`chat-msg-${m.id}`}>
-        <div className="chat__meta">
-          <b>Guided checks</b>
-          <time dateTime={m.sentAt}>{formatDateTime(m.sentAt)}</time>
+      <li className={`chat__row chat__row--assistant${highlighted ? ' chat__hit' : ''}`} id={`chat-msg-${m.id}`}>
+        <span className="chat__avatar chat__avatar--assistant" aria-hidden="true">
+          <Icon name="check" size={14} />
+        </span>
+        <div className="chat__bubble chat__bubble--assistant">
+          <span className="chat__who">Guided checks</span>
+          <p className="chat__text">{m.body}</p>
+          <span className="chat__stamp">
+            <time dateTime={m.sentAt}>{timeOf(m.sentAt)}</time>
+          </span>
         </div>
-        <p className="chat__bubble">{m.body}</p>
       </li>
     );
   }
+
+  if (m.mine) {
+    const seen = seenBy.length > 0;
+    return (
+      <li className={`chat__row chat__row--mine${continued ? ' chat__row--cont' : ''}${highlighted ? ' chat__hit' : ''}`} id={`chat-msg-${m.id}`}>
+        <div className="chat__bubble chat__bubble--mine">
+          {m.attachment && <Attachment attachment={m.attachment} />}
+          {(!m.attachment || m.body !== m.attachment.fileName) && <p className="chat__text">{m.body}</p>}
+          <button
+            type="button"
+            className="chat__stamp chat__stamp--button"
+            onClick={() => setShowSeen((v) => !v)}
+            aria-expanded={showSeen}
+            title={seen ? `Seen by ${seenBy.map((r) => r.name).join(', ')}` : 'Sent, not seen yet'}
+          >
+            <time dateTime={m.sentAt}>{timeOf(m.sentAt)}</time>
+            <span className={`chat__ticks${seen ? ' chat__ticks--seen' : ''}`} aria-label={seen ? 'Seen' : 'Sent'}>
+              {seen ? '✓✓' : '✓'}
+            </span>
+          </button>
+        </div>
+        {showSeen && (
+          <div className="chat__seenby" role="status">
+            {seen ? (
+              <>
+                <b>Seen by</b>
+                {seenBy.map((r) => (
+                  <span key={r.userId}>
+                    {r.name ?? 'Someone'}
+                    {r.role && <em> · {roleName(r.role)}</em>}
+                  </span>
+                ))}
+              </>
+            ) : (
+              <span>Sent. Nobody has seen it yet.</span>
+            )}
+          </div>
+        )}
+      </li>
+    );
+  }
+
   return (
-    <li
-      className={`chat__msg${m.mine ? ' chat__msg--mine' : ''}${highlighted ? ' chat__hit' : ''}`}
-      id={`chat-msg-${m.id}`}
-    >
-      <div className="chat__meta">
-        <b>{m.mine ? 'You' : m.senderName}</b>
-        {m.senderRole && !m.mine && <span>{roleName(m.senderRole)}</span>}
-        <time dateTime={m.sentAt}>{formatDateTime(m.sentAt)}</time>
+    <li className={`chat__row${continued ? ' chat__row--cont' : ''}${highlighted ? ' chat__hit' : ''}`} id={`chat-msg-${m.id}`}>
+      <span className={`chat__avatar chat__tone--${tone}`} aria-hidden="true">
+        {continued ? '' : initialsOf(m.senderName)}
+      </span>
+      <div className="chat__bubble">
+        {!continued && (
+          <span className={`chat__who chat__tone--${tone}`}>
+            {m.senderName ?? 'Someone'}
+            {m.senderRole && <em>{roleName(m.senderRole)}</em>}
+          </span>
+        )}
+        {m.attachment && <Attachment attachment={m.attachment} />}
+        {(!m.attachment || m.body !== m.attachment.fileName) && <p className="chat__text">{m.body}</p>}
+        <span className="chat__stamp">
+          <time dateTime={m.sentAt}>{timeOf(m.sentAt)}</time>
+        </span>
       </div>
-      <p className="chat__bubble">{m.body}</p>
-      {m.attachment && <Attachment attachment={m.attachment} />}
-      {seen && <span className="chat__seen">Seen</span>}
     </li>
   );
+}
+
+/** Everyone who has written or read here, "You" first: who the thread is between. */
+function participants(view: ChatView): string[] {
+  const names = new Map<string, string | undefined>();
+  let me = false;
+  for (const m of view.messages) {
+    if (m.kind !== 'USER') continue;
+    if (m.mine) me = true;
+    else if (m.senderName) names.set(m.senderName, m.senderRole);
+  }
+  for (const r of view.readers ?? []) {
+    if (r.name && !names.has(r.name)) names.set(r.name, r.role);
+  }
+  const list = [...names.entries()].map(([name, role]) => (role ? `${name} (${roleName(role)})` : name));
+  return me || list.length > 0 ? (me ? ['You', ...list] : list) : [];
+}
+
+const TONES = 6;
+
+/**
+ * One colour per person in this thread, in the order they first wrote, so the
+ * first six people in a conversation never share a colour.
+ */
+function tonesFor(messages: ChatMessage[]) {
+  const tones = new Map<string, number>();
+  for (const m of messages) {
+    if (m.kind !== 'USER' || m.mine || !m.senderName || tones.has(m.senderName)) continue;
+    tones.set(m.senderName, tones.size % TONES);
+  }
+  return tones;
+}
+
+function initialsOf(name?: string) {
+  const parts = (name ?? '?').trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function dayOf(iso: string) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/** "Today", "Yesterday", or the date: the line between days, as in a messaging app. */
+function dayLabel(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (dayOf(iso) === dayOf(today.toISOString())) return 'Today';
+  if (dayOf(iso) === dayOf(yesterday.toISOString())) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function timeOf(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
 /**

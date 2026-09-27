@@ -137,11 +137,11 @@ class LiveChatService {
             // Nothing written yet. An open request's thread is there to start;
             // a finished one that never had a word said has nothing to show.
             if (request.status().isTerminal()) {
-                return new ChatView("NONE", false, null, null, null, 0, null, null, List.of());
+                return new ChatView("NONE", false, null, null, null, 0, null, null, List.of(), List.of());
             }
             boolean live = request.status() == ServiceRequestStatus.LIVE_AGENT_ESCALATED;
             return new ChatView(live ? Conversation.LIVE : Conversation.OPEN, WRITERS.contains(scope.role()),
-                    null, null, null, 0, null, null, List.of());
+                    null, null, null, 0, null, null, List.of(), List.of());
         }
 
         List<ConversationMessage> found = messages.findByConversationIdAndIdGreaterThanOrderByIdAsc(
@@ -150,13 +150,25 @@ class LiveChatService {
         Long lastRead = reads.findByConversationIdAndUserId(c.getId(), scope.userId())
                 .map(ConversationRead::getLastReadMessageId).orElse(0L);
         long unread = messages.countUnreadFor(c.getId(), lastRead, scope.userId());
-        Long readByOthers = reads.findByConversationId(c.getId()).stream()
+        // Everyone else's read mark, named: "seen by" on each message is read from these.
+        List<ConversationRead> others = reads.findByConversationId(c.getId()).stream()
                 .filter(r -> !Objects.equals(r.getUserId(), scope.userId()))
+                .toList();
+        Map<Long, UserDirectory.UserRef> readerNames = users.findAll(
+                others.stream().map(ConversationRead::getUserId).toList());
+        List<Reader> readers = others.stream()
+                .map(r -> {
+                    UserDirectory.UserRef who = readerNames.get(r.getUserId());
+                    return new Reader(r.getUserId(), who == null ? null : who.fullName(),
+                            who == null ? null : who.role().name(), r.getLastReadMessageId(), r.getReadAt());
+                })
+                .toList();
+        Long readByOthers = others.stream()
                 .map(ConversationRead::getLastReadMessageId)
                 .max(Long::compareTo).orElse(null);
 
         return new ChatView(c.getStatus(), canSend(scope, c, request), c.getOpenedAt(), c.getEscalatedAt(),
-                c.getClosedAt(), unread, lastRead == 0L ? null : lastRead, readByOthers, views(found, scope));
+                c.getClosedAt(), unread, lastRead == 0L ? null : lastRead, readByOthers, views(found, scope), readers);
     }
 
     /** Find a word in this thread (CHT-09). Search is scoped to one request. */
@@ -373,7 +385,10 @@ class LiveChatService {
 
     record ChatView(String status, boolean canSend, Instant openedAt, Instant escalatedAt, Instant closedAt,
                     long unreadCount, Long lastReadMessageId, Long readByOthersMessageId,
-                    List<MessageView> messages) {}
+                    List<MessageView> messages, List<Reader> readers) {}
+
+    /** How far another person has read: every message up to this id is seen by them. */
+    record Reader(Long userId, String name, String role, Long lastReadMessageId, Instant readAt) {}
 
     record MessageView(Long id, String kind, String senderName, String senderRole, String body, Instant sentAt,
                        boolean mine, AttachmentView attachment) {}

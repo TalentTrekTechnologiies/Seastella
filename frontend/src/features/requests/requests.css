@@ -393,3 +393,106 @@
 .raise__files { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 4px; }
 .raise__files li { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; color: var(--sbs-ink-2); }
 .raise__filesize { color: var(--sbs-ink-3); flex: none; }
+
+/* ---- messages, messaging-app style: who sent it, when, and who has seen it ---- */
+.chat__thread { gap: 6px; }
+.chat__row { display: flex; align-items: flex-end; gap: 8px; max-width: 86%; justify-self: start; }
+.chat__row + .chat__row:not(.chat__row--cont) { margin-top: 6px; }
+.chat__row--mine { align-self: flex-end; justify-self: end; flex-direction: column; align-items: flex-end; gap: 4px; }
+.chat__row--assistant { justify-self: start; }
+
+.chat__avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--who);
+}
+.chat__row--cont .chat__avatar { background: transparent; }
+.chat__avatar--assistant { background: var(--sbs-plate); color: var(--sbs-ink-2); border: 1px dashed var(--sbs-line); }
+
+.chat__bubble {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  min-width: 96px;
+  margin: 0;
+  padding: 7px 10px 6px;
+  border-radius: 4px 14px 14px 14px;
+  background: var(--sbs-plate);
+  border: 1px solid var(--sbs-line);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.chat__row--cont .chat__bubble { border-radius: 14px; }
+.chat__bubble--mine {
+  border-radius: 14px 4px 14px 14px;
+  background: var(--sbs-signal-weak);
+  border-color: var(--sbs-signal-line);
+  color: var(--sbs-ink);
+}
+.chat__row--mine.chat__row--cont .chat__bubble--mine { border-radius: 14px; }
+.chat__bubble--assistant { border-style: dashed; background: var(--sbs-plate-sunk); color: var(--sbs-ink-2); }
+
+.chat__who { display: flex; align-items: baseline; gap: 6px; font-size: 13px; font-weight: 700; color: var(--who); }
+.chat__who em { font-style: normal; font-weight: 500; font-size: 11.5px; color: var(--sbs-ink-3); }
+.chat__text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat__stamp {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--sbs-ink-3);
+}
+.chat__stamp--button { background: none; border: none; padding: 0; cursor: pointer; font: inherit; font-size: 11px; color: var(--sbs-ink-3); }
+.chat__ticks { font-size: 12px; letter-spacing: -3px; padding-right: 3px; color: var(--sbs-ink-3); }
+.chat__ticks--seen { color: #2f9be0; }
+.chat__seenby {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  font-size: 12px;
+  color: var(--sbs-ink-2);
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--sbs-plate);
+  border: 1px solid var(--sbs-line);
+}
+.chat__seenby b { font-size: 11.5px; color: var(--sbs-ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.chat__seenby em { font-style: normal; color: var(--sbs-ink-3); }
+.chat__bubble .chat__file { margin-top: 2px; }
+
+.chat__day { list-style: none; display: flex; justify-content: center; margin: 8px 0 2px; }
+.chat__day span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sbs-ink-2);
+  padding: 3px 12px;
+  border-radius: var(--r-pill);
+  background: var(--sbs-plate);
+  border: 1px solid var(--sbs-line);
+}
+.chat__people { margin: 0; font-size: 13px; color: var(--sbs-ink-3); line-height: 1.4; }
+.chat__people b { color: var(--sbs-ink-2); font-weight: 600; }
+
+/* One colour per person (--who), readable on both grounds. */
+.chat__tone--0 { --who: #b4561b; }
+.chat__tone--1 { --who: #1f7a4d; }
+.chat__tone--2 { --who: #a3336a; }
+.chat__tone--3 { --who: #3056b8; }
+.chat__tone--4 { --who: #7442b0; }
+.chat__tone--5 { --who: #0f7285; }
+:root[data-theme='dark'] .chat__tone--0 { --who: #f0a45e; }
+:root[data-theme='dark'] .chat__tone--1 { --who: #5fcf95; }
+:root[data-theme='dark'] .chat__tone--2 { --who: #f07eb0; }
+:root[data-theme='dark'] .chat__tone--3 { --who: #86a8ff; }
+:root[data-theme='dark'] .chat__tone--4 { --who: #c39bff; }
+:root[data-theme='dark'] .chat__tone--5 { --who: #5ccde0; }
+:root[data-theme='dark'] .chat__avatar { color: #0d1f29; }
+:root[data-theme='dark'] .chat__avatar--assistant { color: var(--sbs-ink-2); }

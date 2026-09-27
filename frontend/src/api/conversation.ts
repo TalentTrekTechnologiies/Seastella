@@ -41,6 +41,16 @@ export interface ChatView {
   /** How far the other side has read — the "seen" mark on your own last line. */
   readByOthersMessageId?: number;
   messages: ChatMessage[];
+  /** Everyone else's read mark: a message is seen by each reader whose mark is at or past it. */
+  readers: ChatReader[];
+}
+
+export interface ChatReader {
+  userId: number;
+  name?: string;
+  role?: string;
+  lastReadMessageId: number;
+  readAt: string;
 }
 
 export interface ReadState {
