@@ -40,14 +40,10 @@ const PLANNED: Record<Role, NavItem[]> = {
   PLATFORM_ADMIN: [],
   // Equipment is browsed inside a vessel, from Vessels & managers.
   TECHNICAL_HEAD: [],
-  SHIP_MANAGER: [{ label: 'Invoices', icon: 'invoice', planned: true }],
+  SHIP_MANAGER: [],
   CAPTAIN: [],
-  SERVICE_COORDINATOR: [
-    // Live chats are answered on the request; the list filters to them.
-    { label: 'Invoices', icon: 'invoice', planned: true },
-    { label: 'Engineers', icon: 'users', planned: true },
-  ],
-  SERVICE_ENGINEER: [{ label: 'Job history', icon: 'history', planned: true }],
+  SERVICE_COORDINATOR: [],
+  SERVICE_ENGINEER: [],
 };
 
 /** Setting up the fleet, down the SoW §4.1 chain. */
@@ -63,16 +59,24 @@ const SETUP: Partial<Record<Role, NavItem[]>> = {
     { label: 'Audit trail', to: '/platform/audit', icon: 'audit' },
     { label: 'Data import', to: '/fleet/import', icon: 'report' },
     { label: 'Service history', to: '/fleet/history', icon: 'history' },
+    { label: 'Invoices', to: '/invoices', icon: 'invoice' },
   ],
   TECHNICAL_HEAD: [
     { label: 'Vessels & managers', to: '/fleet/setup', icon: 'ship' },
     { label: 'Service history', to: '/fleet/history', icon: 'history' },
+    { label: 'Invoices', to: '/invoices', icon: 'invoice' },
     { label: 'Data import', to: '/fleet/import', icon: 'report' },
   ],
   SHIP_MANAGER: [
+    { label: 'Invoices', to: '/invoices', icon: 'invoice' },
     { label: 'Captains', to: '/vessels/captains', icon: 'users' },
     { label: 'Service history', to: '/fleet/history', icon: 'history' },
   ],
+  SERVICE_COORDINATOR: [
+    { label: 'Invoices', to: '/invoices', icon: 'invoice' },
+    { label: 'Engineers', to: '/engineers', icon: 'users' },
+  ],
+  SERVICE_ENGINEER: [{ label: 'Job history', to: '/jobs/history', icon: 'history' }],
   // Running hours are recorded on the vessel page beside the meters; the live
   // chat is on each request. Equipment is the one thing that needs its own page.
   CAPTAIN: [{ label: 'Equipment', to: '/vessel/equipment', icon: 'spare' }],

@@ -46,6 +46,7 @@ class RateLimitIT {
     @DisplayName("password guessing from one address is cut off, with Retry-After")
     void signInIsCapped() throws Exception {
         String ip = "203.0.113.10";
+        startInAFreshMinute();
         for (int attempt = 1; attempt <= 4; attempt++) {
             assertThat(login("admin@seastella.example", "not-the-password", ip).getResponse().getStatus())
                     .as("attempt " + attempt)
@@ -124,6 +125,17 @@ class RateLimitIT {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .with(r -> { r.setRemoteAddr(ip); return r; }))
                 .andReturn();
+    }
+
+    /**
+     * The limiter estimates the last sixty seconds from this minute's count and
+     * a share of the previous one. Five slow sign-ins (password hashing is slow
+     * by design) that straddle a minute boundary can therefore read just under
+     * the limit, so the attempts start where a whole burst fits in one minute.
+     */
+    private static void startInAFreshMinute() throws InterruptedException {
+        long second = java.time.Instant.now().getEpochSecond() % 60;
+        if (second > 40) Thread.sleep((61 - second) * 1000L);
     }
 
     private MvcResult login(String email, String password, String ip) throws Exception {

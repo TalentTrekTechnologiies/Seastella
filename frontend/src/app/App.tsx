@@ -29,9 +29,10 @@ import { ImportPage } from '@/features/import/ImportPage';
 import { ServiceHistoryPage } from '@/features/history/ServiceHistoryPage';
 import { ActivityHistoryPage } from '@/features/history/ActivityHistoryPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { InvoicesPage } from '@/features/registers/InvoicesPage';
+import { EngineersPage } from '@/features/registers/EngineersPage';
+import { JobHistoryPage } from '@/features/registers/JobHistoryPage';
 import type { Role } from '@/api/types';
-import { ErrorState } from '@/design-system/States';
-import { ApiError } from '@/api/client';
 
 /**
  * Routing.
@@ -106,24 +107,31 @@ function Console() {
         <Route
           path="/fleet/history"
           element={
-            user.role === 'PLATFORM_ADMIN' || user.role === 'TECHNICAL_HEAD' || user.role === 'SHIP_MANAGER' ? (
+            <Guard role={['PLATFORM_ADMIN', 'TECHNICAL_HEAD', 'SHIP_MANAGER']} user={user.role}>
               <ServiceHistoryPage role={user.role} />
-            ) : (
-              <ErrorState error={new ApiError(403, 'FORBIDDEN', 'Not permitted')} />
-            )
+            </Guard>
           }
         />
         {/* VMP master-data import (SoW §10): Platform Admin and Technical Head. */}
         <Route
           path="/fleet/import"
           element={
-            user.role === 'PLATFORM_ADMIN' || user.role === 'TECHNICAL_HEAD' ? (
+            <Guard role={['PLATFORM_ADMIN', 'TECHNICAL_HEAD']} user={user.role}>
               <ImportPage />
-            ) : (
-              <ErrorState error={new ApiError(403, 'FORBIDDEN', 'Not permitted')} />
-            )
+            </Guard>
           }
         />
+        {/* Invoices: only the roles that may see money (SoW §8). */}
+        <Route
+          path="/invoices"
+          element={
+            <Guard role={['SHIP_MANAGER', 'SERVICE_COORDINATOR', 'TECHNICAL_HEAD', 'PLATFORM_ADMIN']} user={user.role}>
+              <InvoicesPage />
+            </Guard>
+          }
+        />
+        <Route path="/engineers" element={<Guard role="SERVICE_COORDINATOR" user={user.role}><EngineersPage /></Guard>} />
+        <Route path="/jobs/history" element={<Guard role="SERVICE_ENGINEER" user={user.role}><JobHistoryPage /></Guard>} />
         {/* Reports: the list a role may run is decided server-side (SoW §7). */}
         <Route path="/history" element={<ActivityHistoryPage role={user.role} />} />
         <Route path="/reports" element={<ReportsPage />} />
@@ -137,21 +145,25 @@ function Console() {
 }
 
 /**
- * Renders the "not permitted" state rather than redirecting, so a user who
- * follows a link meant for another role is told why instead of being bounced
- * somewhere unexplained.
+ * A page that belongs to another role sends the user to their own dashboard.
+ *
+ * <p>The usual way to arrive on one is to sign out and sign in as someone
+ * else in the same tab, still on the last person's page; a "not permitted"
+ * dead end there reads as a fault. The server re-checks every request anyway,
+ * so this decides only what to show.
  */
 function Guard({
   role,
   user,
   children,
 }: {
-  role: Role;
+  role: Role | Role[];
   user: Role;
   children: React.ReactNode;
 }) {
-  if (role !== user) {
-    return <ErrorState error={new ApiError(403, 'FORBIDDEN', 'Not permitted')} />;
+  const allowed = Array.isArray(role) ? role.includes(user) : role === user;
+  if (!allowed) {
+    return <Navigate to={dashboardPathFor(user)} replace />;
   }
   return <>{children}</>;
 }

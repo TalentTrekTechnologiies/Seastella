@@ -43,6 +43,9 @@ public interface InvoiceMetrics {
     /** Every invoice raised for these vessels, newest first, for the cost report (RPT-04). */
     List<InvoiceSummary> forVessels(Set<Long> vesselIds, int limit);
 
+    /** Every invoice on the platform, newest first: the Platform Admin's register. */
+    List<InvoiceSummary> all(int limit);
+
     record Aggregate(long count, BigDecimal total) {}
 
     record InvoiceSummary(

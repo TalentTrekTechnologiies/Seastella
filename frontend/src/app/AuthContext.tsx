@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, AUTH_EXPIRED_EVENT, endSession, refreshSession, tokenStore } from '@/api/client';
 import type { LoginResponse, UserProfile } from '@/api/types';
 
@@ -80,11 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [adoptSession],
   );
 
+  const navigate = useNavigate();
+
+  // Back to the start, so whoever signs in next lands on their own dashboard
+  // rather than on the page the last person left open.
   const signOut = useCallback(() => {
     void endSession();
     setUser(null);
     setStatus('anonymous');
-  }, []);
+    navigate('/', { replace: true });
+  }, [navigate]);
 
   const value = useMemo(
     () => ({ user, status, signIn, adoptSession, signOut }),

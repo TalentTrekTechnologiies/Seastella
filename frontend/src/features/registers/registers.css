@@ -1,0 +1,65 @@
+/* ---- registers: invoices, engineers, job history ---- */
+.reg__tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.reg__tools { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 20px 14px; }
+
+.reg__list { list-style: none; margin: 0; padding: 0; }
+.reg__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 20px;
+  border-top: 1px solid var(--sbs-line);
+}
+.reg__item--stack { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.reg__main { display: grid; gap: 6px; min-width: 0; }
+.reg__top { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; }
+.reg__top b { font-size: 15px; }
+.reg__desc { margin: 0; font-size: 15px; color: var(--sbs-ink); line-height: 1.45; }
+.reg__meta { margin: 0; font-size: 13.5px; color: var(--sbs-ink-3); line-height: 1.5; }
+.reg__note { margin: 0; font-size: 14px; font-style: italic; color: var(--sbs-ink-2); }
+.reg__side { display: grid; justify-items: end; gap: 10px; }
+.reg__amount { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--sbs-ink); }
+
+.reg__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--sbs-signal-weak);
+  color: var(--sbs-signal);
+  flex: none;
+}
+.reg__who { display: grid; flex: 1; min-width: 0; }
+.reg__who b { font-size: 15.5px; }
+.reg__who span { font-size: 13px; color: var(--sbs-ink-3); overflow: hidden; text-overflow: ellipsis; }
+.reg__jobs { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.reg__jobs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--sbs-plate-sunk);
+  border: 1px solid var(--sbs-line);
+  font-size: 14px;
+}
+.reg__jobname { flex: 1; min-width: 160px; color: var(--sbs-ink-2); font-size: 14px; }
+.reg__since { font-size: 12.5px; color: var(--sbs-ink-3); }
+
+.reg__report { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 2px 0; font-size: 14px; }
+.reg__report dt { color: var(--sbs-ink-3); }
+.reg__report dd { margin: 0; color: var(--sbs-ink); white-space: pre-wrap; }
+
+@media (max-width: 900px) {
+  .reg__tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .reg__item { grid-template-columns: minmax(0, 1fr); }
+  .reg__side { justify-items: start; grid-auto-flow: column; align-items: center; }
+  .reg__report { grid-template-columns: minmax(0, 1fr); }
+}

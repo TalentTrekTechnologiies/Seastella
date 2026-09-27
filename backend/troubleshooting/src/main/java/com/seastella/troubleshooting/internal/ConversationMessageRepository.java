@@ -21,9 +21,13 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
     /** Unread is counted, not derived from a client's idea of what it has seen (CHT-07). */
     long countByConversationIdAndIdGreaterThan(Long conversationId, Long afterId);
 
-    /** Unread for one reader: what arrived after their read mark, less what they wrote. */
+    /**
+     * Unread for one reader: messages from other people after their read mark.
+     * The platform's own notes and the guided checks' questions are part of the
+     * transcript but are not messages waiting on anyone, so they are not counted.
+     */
     @Query("select count(m) from ConversationMessage m where m.conversationId = :conversationId "
-            + "and m.id > :afterId and (m.senderUserId is null or m.senderUserId <> :readerId)")
+            + "and m.id > :afterId and m.senderKind = 'USER' and m.senderUserId <> :readerId")
     long countUnreadFor(@Param("conversationId") Long conversationId, @Param("afterId") Long afterId,
                         @Param("readerId") Long readerId);
 

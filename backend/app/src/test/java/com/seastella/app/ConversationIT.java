@@ -224,10 +224,17 @@ class ConversationIT {
         body(postJson("/api/v1/service-requests/" + requestId + "/conversation/messages", captain,
                 Map.of("body", "Picture breaks up above twelve miles.")), 201);
 
-        // The Coordinator has read none of it.
+        // The Coordinator has read none of it. Unread counts people's messages
+        // only: the platform's notes and the checks' questions are not waiting on anyone.
         JsonNode unread = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", coordinator), 200);
         long total = unread.path("messages").size();
-        assertThat(unread.path("unreadCount").asLong()).isEqualTo(total);
+        long fromPeople = 0;
+        for (JsonNode m : unread.path("messages")) {
+            if ("USER".equals(m.path("kind").asText()) && !m.path("mine").asBoolean()) fromPeople++;
+        }
+        assertThat(fromPeople).isGreaterThan(0);
+        assertThat(fromPeople).as("system and assistant lines are not unread").isLessThan(total);
+        assertThat(unread.path("unreadCount").asLong()).isEqualTo(fromPeople);
         assertThat(unread.hasNonNull("lastReadMessageId")).as("nothing read yet").isFalse();
 
         long latest = unread.path("messages").get((int) total - 1).path("id").asLong();
@@ -246,7 +253,7 @@ class ConversationIT {
         // The Captain's own count is their own, and they can see how far the
         // other side has read.
         JsonNode captainView = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", captain), 200);
-        assertThat(captainView.path("unreadCount").asLong()).isGreaterThan(0);
+        assertThat(captainView.path("unreadCount").asLong()).as("nobody else has written yet").isZero();
         assertThat(captainView.path("readByOthersMessageId").asLong()).isEqualTo(latest);
 
         // ...and who, by name and role: the "seen by" on each message.
