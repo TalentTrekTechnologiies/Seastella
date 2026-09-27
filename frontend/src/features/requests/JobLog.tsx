@@ -6,7 +6,7 @@ import { attachmentPath } from '@/api/conversation';
 import { Button, EmptyNote, Plate } from '@/design-system/Console';
 import { Field, FormError } from '@/design-system/Dialog';
 import { Icon } from '@/design-system/Icon';
-import { formatDateTime } from '@/lib/format';
+import { APP_TIME_LABEL, formatDateTime, fromInput, nowInput } from '@/lib/format';
 
 /** What each step is called, and the mark beside it on the timeline. */
 const STEP: Record<JobLogKind, { label: string; mark: string }> = {
@@ -161,7 +161,7 @@ function EntryForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const [when, setWhen] = useState(localNow());
+  const [when, setWhen] = useState(nowInput());
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -173,7 +173,7 @@ function EntryForm({
     setBusy(true);
     setError(null);
     try {
-      await addJobLogEntry(requestId, { kind, occurredAt: new Date(when).toISOString(), note: note.trim() || undefined }, photo);
+      await addJobLogEntry(requestId, { kind, occurredAt: fromInput(when), note: note.trim() || undefined }, photo);
       onSaved();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not save. Try again.');
@@ -187,7 +187,7 @@ function EntryForm({
       <p className="joblog__formtitle">
         <span aria-hidden="true">{STEP[kind].mark}</span> {STEP[kind].label}
       </p>
-      <Field label="When" htmlFor="joblog-when">
+      <Field label={`When (${APP_TIME_LABEL})`} htmlFor="joblog-when">
         <input id="joblog-when" className="input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
       </Field>
       <Field
@@ -290,9 +290,3 @@ function laterThan(recorded: string, occurred: string) {
   return new Date(recorded).getTime() - new Date(occurred).getTime() > 15 * 60000;
 }
 
-/** Now, as a datetime-local input wants it: local time, to the minute. */
-function localNow() {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-}

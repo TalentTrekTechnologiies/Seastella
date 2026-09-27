@@ -1,5 +1,6 @@
 package com.seastella.reporting.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -44,7 +45,7 @@ import java.util.stream.Collectors;
 class ReportPdfWriter {
 
     private static final DateTimeFormatter STAMP =
-            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm 'UTC'", Locale.ENGLISH).withZone(ZoneOffset.UTC);
+            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm '" + BusinessTime.LABEL + "'", Locale.ENGLISH).withZone(BusinessTime.ZONE);
 
     private static final Color INK = new Color(15, 33, 45);
     private static final Color MUTED = new Color(95, 115, 128);

@@ -1,5 +1,6 @@
 package com.seastella.invoice.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -21,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
@@ -219,8 +220,8 @@ class InvoiceCommandService {
             throw new ValidationException("That is more than the " + outstanding.toPlainString() + " "
                     + invoice.getCurrency() + " still due on this invoice.");
         }
-        LocalDate on = receivedOn == null ? LocalDate.now(ZoneOffset.UTC) : receivedOn;
-        if (on.isAfter(LocalDate.now(ZoneOffset.UTC).plusDays(1))) {
+        LocalDate on = receivedOn == null ? BusinessTime.today() : receivedOn;
+        if (on.isAfter(BusinessTime.today().plusDays(1))) {
             throw new ValidationException("The date received cannot be in the future.");
         }
         InvoicePayment.Method how;
@@ -285,7 +286,7 @@ class InvoiceCommandService {
     }
 
     private static void checkedDueDate(LocalDate due) {
-        if (due != null && due.isBefore(LocalDate.now(ZoneOffset.UTC).minusYears(1))) {
+        if (due != null && due.isBefore(BusinessTime.today().minusYears(1))) {
             throw new ValidationException("Choose a payment due date that is not more than a year in the past.");
         }
     }
@@ -298,7 +299,7 @@ class InvoiceCommandService {
     }
 
     private String nextInvoiceNumber(String orgCode) {
-        String prefix = "INV-" + orgCode + "-" + LocalDate.now(ZoneOffset.UTC).format(MONTH) + "-";
+        String prefix = "INV-" + orgCode + "-" + BusinessTime.today().format(MONTH) + "-";
         long seq = invoices.countByInvoiceNumberStartingWith(prefix) + 1;
         String number = prefix + String.format("%04d", seq);
         while (invoices.existsByInvoiceNumber(number)) {

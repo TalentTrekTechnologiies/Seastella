@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.util.Objects;
 
 /**
@@ -65,7 +66,7 @@ class SpareMasterController {
         scopeGuard.assertVessel(spare.getVesselId());
         if (body == null) throw new ValidationException("Enter the spare's details.");
 
-        LocalDate today = LocalDate.now(ZoneOffset.UTC).plusDays(1);
+        LocalDate today = BusinessTime.today().plusDays(1);
         if (body.installationDate() != null && body.installationDate().isAfter(today)) {
             throw new ValidationException("The installation date cannot be in the future.");
         }

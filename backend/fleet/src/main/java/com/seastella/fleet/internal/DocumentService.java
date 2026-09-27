@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -21,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +123,7 @@ class DocumentService {
 
         DocumentType type = command.documentType() == null ? DocumentType.OTHER : command.documentType();
         String title = required(command.title(), 200);
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = BusinessTime.today();
         if (type == DocumentType.CERTIFICATE) {
             if (command.expiryDate() == null) {
                 throw new ValidationException("A certificate needs its expiry date, so Thawe Marine can warn you before it runs out.");
@@ -307,7 +308,7 @@ class DocumentService {
                 .stream().collect(java.util.stream.Collectors.toMap(Spare::getId, Spare::getName));
         Map<Long, UserDirectory.UserRef> people = users.findAll(
                 found.stream().map(Document::getUploadedByUserId).distinct().toList());
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = BusinessTime.today();
 
         return found.stream().map(d -> new DocumentView(
                 d.getId(), d.getVesselId(), vesselNames.get(d.getVesselId()), d.getOwnerType().name(), d.getOwnerId(),

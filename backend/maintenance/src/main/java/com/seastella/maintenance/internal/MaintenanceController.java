@@ -1,5 +1,6 @@
 package com.seastella.maintenance.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.identity.api.ScopeGuard;
 import com.seastella.maintenance.api.DueAssessment;
 import com.seastella.maintenance.api.MaintenanceStatusEngine;
@@ -41,7 +42,7 @@ class MaintenanceController {
         Set<Long> spareIds = new LinkedHashSet<>();
         rules.findByVesselIdInAndActiveTrue(Set.of(vesselId)).forEach(r -> spareIds.add(r.getSpareId()));
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         return ResponseEntity.ok(spareIds.stream()
                 .map(id -> {
                     DueAssessment a = engine.assess(id, today);

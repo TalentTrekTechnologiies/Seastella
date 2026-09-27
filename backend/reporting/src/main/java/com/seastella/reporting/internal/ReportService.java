@@ -1,5 +1,6 @@
 package com.seastella.reporting.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.error.ForbiddenException;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.fleet.api.DocumentDirectory;
@@ -20,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -157,7 +158,7 @@ class ReportService {
     }
 
     private ReportTable certificates(AccessScope scope, Set<Long> vesselIds) {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = BusinessTime.today();
         List<DocumentDirectory.CertificateRef> certificates = documents.certificatesForVessels(List.copyOf(vesselIds));
 
         List<List<String>> rows = certificates.stream().<List<String>>map(c -> {
@@ -191,7 +192,7 @@ class ReportService {
                 String.valueOf(s.answerCount()),
                 s.outcome() == null ? "In progress" : s.outcome().label(),
                 value(s.rootCauseNote()), value(s.temporaryFixNote()), value(s.runBy()),
-                s.startedAt() == null ? "—" : DATE.format(s.startedAt().atZone(ZoneOffset.UTC)))).toList();
+                s.startedAt() == null ? "—" : DATE.format(s.startedAt().atZone(BusinessTime.ZONE)))).toList();
 
         long resolved = sessions.stream().filter(s -> s.outcome() != null
                 && s.outcome() == com.seastella.troubleshooting.api.TroubleshootingOutcome.RESOLVED).count();
@@ -210,9 +211,9 @@ class ReportService {
         List<List<String>> rows = found.stream().<List<String>>map(i -> List.of(
                 value(i.invoiceNumber()), value(i.requestNumber()), value(i.vesselName()),
                 value(i.statusLabel()), money(i.amount(), i.currency()), value(i.raisedByName()),
-                i.raisedAt() == null ? "—" : DATE.format(i.raisedAt().atZone(ZoneOffset.UTC)),
+                i.raisedAt() == null ? "—" : DATE.format(i.raisedAt().atZone(BusinessTime.ZONE)),
                 value(i.decidedByName()),
-                i.decidedAt() == null ? "—" : DATE.format(i.decidedAt().atZone(ZoneOffset.UTC)))).toList();
+                i.decidedAt() == null ? "—" : DATE.format(i.decidedAt().atZone(BusinessTime.ZONE)))).toList();
 
         BigDecimal accepted = found.stream().filter(i -> i.status() == InvoiceStatus.ACCEPTED)
                 .map(InvoiceMetrics.InvoiceSummary::amount).reduce(BigDecimal.ZERO, BigDecimal::add);

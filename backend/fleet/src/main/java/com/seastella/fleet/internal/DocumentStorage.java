@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.core.api.upload.UploadProperties;
 import org.slf4j.Logger;
@@ -13,7 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.util.HexFormat;
 
 /**
@@ -40,7 +41,7 @@ class DocumentStorage {
 
     /** @return the storage key to record against the document. */
     String write(byte[] content) {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = BusinessTime.today();
         byte[] name = new byte[16];
         RANDOM.nextBytes(name);
         String key = "%d/%02d/%s".formatted(today.getYear(), today.getMonthValue(), HexFormat.of().formatHex(name));

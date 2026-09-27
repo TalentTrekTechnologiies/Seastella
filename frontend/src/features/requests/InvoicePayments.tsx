@@ -10,7 +10,7 @@ import {
 import { Button } from '@/design-system/Console';
 import { Field, FormError } from '@/design-system/Dialog';
 import { Pill } from '@/design-system/StatusBadge';
-import { formatDate, formatMoney } from '@/lib/format';
+import { todayInput, formatDate, formatMoney } from '@/lib/format';
 
 export const PAYMENT_LABEL: Record<string, string> = {
   NOT_DUE: 'Not due yet',
@@ -190,7 +190,7 @@ function PaymentForm({ invoice, onCancel, onSaved }: { invoice: InvoiceView; onC
   const advanceLeft = Math.max(0, Number(p.advanceAmount) - Number(p.received));
   const suggested = !p.advanceReceived && advanceLeft > 0 ? advanceLeft : Number(p.balance);
   const [amount, setAmount] = useState(suggested.toFixed(2));
-  const [receivedOn, setReceivedOn] = useState(new Date().toISOString().slice(0, 10));
+  const [receivedOn, setReceivedOn] = useState(todayInput());
   const [method, setMethod] = useState('BANK_TRANSFER');
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');

@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.util.List;
 import java.util.Map;
 
@@ -95,7 +96,7 @@ class ServiceHistoryController {
         if (body == null || body.serviceDate() == null) {
             throw new ValidationException("Give the date the service was performed.");
         }
-        if (body.serviceDate().isAfter(LocalDate.now(ZoneOffset.UTC))) {
+        if (body.serviceDate().isAfter(BusinessTime.today())) {
             throw new ValidationException("A service date cannot be in the future.");
         }
         if (spare.getInstallationDate() != null && body.serviceDate().isBefore(spare.getInstallationDate())) {

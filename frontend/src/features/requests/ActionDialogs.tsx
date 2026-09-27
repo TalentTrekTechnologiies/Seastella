@@ -13,7 +13,7 @@ import {
 import { ApiError } from '@/api/client';
 import { Button } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
-import { formatMoney } from '@/lib/format';
+import { todayInput, formatMoney } from '@/lib/format';
 import { PaymentTermsFields, paymentWarning } from './InvoicePayments';
 
 /** What the user sees after each step goes through. */
@@ -297,7 +297,7 @@ function CompletionDialog({ requestId, detail, onClose, onDone }: DialogProps) {
   const [workPerformed, setWork] = useState('');
   const [partsUsed, setParts] = useState('');
   const [outcome, setOutcome] = useState('');
-  const [serviceDate, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [serviceDate, setDate] = useState(() => todayInput());
   const { busy, error, run } = useSubmit(onDone);
   const valid = workPerformed.trim().length > 0 && outcome.trim().length > 0;
 

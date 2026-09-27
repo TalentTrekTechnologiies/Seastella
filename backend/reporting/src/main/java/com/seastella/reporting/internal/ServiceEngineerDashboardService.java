@@ -1,5 +1,6 @@
 package com.seastella.reporting.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.fleet.api.FleetMetrics;
 import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -77,13 +78,13 @@ class ServiceEngineerDashboardService {
         }
 
         // "Today" is anything assigned on or before today that is not yet done.
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         List<ServiceEngineerDashboard.Job> todays = new ArrayList<>();
         List<ServiceEngineerDashboard.Job> upcoming = new ArrayList<>();
         for (ServiceEngineerDashboard.Job job : assigned) {
             LocalDate assignedOn = job.assignedAt() == null
                     ? today
-                    : job.assignedAt().atZone(ZoneOffset.UTC).toLocalDate();
+                    : job.assignedAt().atZone(BusinessTime.ZONE).toLocalDate();
             if (!assignedOn.isAfter(today)) {
                 todays.add(job);
             } else {

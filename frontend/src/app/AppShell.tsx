@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from '@/design-system/Icon';
+import { APP_TIME_LABEL, formatTime } from '@/lib/format';
 import { NotificationBell } from '@/features/alerts/NotificationBell';
 import { navigationFor } from './navigation';
 import { useAuth } from './AuthContext';
@@ -17,7 +18,7 @@ import './brand.css';
  * products rather than one platform.
  *
  * <p>The bar carries operational context, never a greeting: which station is
- * manned, what it holds, and the watch time in UTC — which is the time
+ * manned, what it holds, and the watch time in IST — which is the time
  * everything at sea is agreed in.
  */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -158,8 +159,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * The watch, in UTC. Not decoration and not invented data — it is the
- * browser's own clock, and UTC is the time a bridge actually keeps.
+ * The watch, in Indian Standard Time - the zone every date and time in the
+ * app is shown in. It is the browser's own clock, read in that zone.
  */
 function Watch() {
   const [now, setNow] = useState(() => new Date());
@@ -174,13 +175,9 @@ function Watch() {
   return (
     <span className="watch">
       <b>
-        {now.toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'UTC',
-        })}
+        {formatTime(now)}
       </b>
-      <span>UTC</span>
+      <span>{APP_TIME_LABEL}</span>
     </span>
   );
 }

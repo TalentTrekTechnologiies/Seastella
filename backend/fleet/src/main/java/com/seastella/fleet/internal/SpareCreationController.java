@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -309,7 +310,7 @@ class SpareCreationController {
     }
 
     private static LocalDate notFuture(LocalDate date, String what) {
-        if (date != null && date.isAfter(LocalDate.now(java.time.ZoneOffset.UTC))) {
+        if (date != null && date.isAfter(BusinessTime.today())) {
             throw new ValidationException("The " + what + " cannot be in the future.");
         }
         return date;

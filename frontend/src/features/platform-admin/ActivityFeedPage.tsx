@@ -5,7 +5,7 @@ import { fetchActivity, streamActivity, type ActivityCategory, type ActivityEntr
 import { Button, ConsoleHeader, EmptyNote, Plate, Segmented } from '@/design-system/Console';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { Icon } from '@/design-system/Icon';
-import { formatDate } from '@/lib/format';
+import { formatTime, formatDate } from '@/lib/format';
 import './activity.css';
 
 /**
@@ -197,7 +197,7 @@ export function FeedList({ items }: { items: ActivityEntry[] }) {
                 </p>
               </div>
               <time className="feed__time" dateTime={e.occurredAt}>
-                {new Date(e.occurredAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                {formatTime(e.occurredAt)}
               </time>
             </li>
           </FeedDay>

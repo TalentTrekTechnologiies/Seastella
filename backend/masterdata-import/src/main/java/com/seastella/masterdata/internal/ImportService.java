@@ -1,5 +1,6 @@
 package com.seastella.masterdata.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.seastella.core.api.audit.AuditAction;
@@ -33,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -324,7 +325,7 @@ class ImportService {
         private final Map<ImportRow.Outcome, Integer> counts = new LinkedHashMap<>();
         private final Set<String> vessels = new LinkedHashSet<>();
         private final Map<Long, Set<String>> refsInFile = new HashMap<>();
-        private final LocalDate tomorrow = LocalDate.now(ZoneOffset.UTC).plusDays(1);
+        private final LocalDate tomorrow = BusinessTime.today().plusDays(1);
         private final Map<String, FleetDirectory.CategoryRef> categories = new HashMap<>();
         private final Map<Long, Map<String, ExistingPart>> partsByVessel = new HashMap<>();
         /** Categories worked out for rows in this same file, so children can inherit them. */

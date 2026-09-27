@@ -1,5 +1,6 @@
 package com.seastella.invoice.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.identity.api.UserDirectory;
 import com.seastella.invoice.api.PaymentPosition;
 import com.seastella.servicerequest.api.InvoiceLookup;
@@ -36,7 +37,7 @@ class DefaultInvoiceLookup implements InvoiceLookup {
                         paid.values().stream().flatMap(List::stream).map(InvoicePayment::getRecordedByUserId))
                 .filter(Objects::nonNull)
                 .toList());
-        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneOffset.UTC);
+        java.time.LocalDate today = BusinessTime.today();
 
         return rows.stream().map(i -> new InvoiceView(
                 i.getId(), i.getInvoiceNumber(), i.getAmount().toPlainString(), i.getCurrency(),

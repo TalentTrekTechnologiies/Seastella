@@ -1,5 +1,6 @@
 package com.seastella.maintenance.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -77,7 +78,7 @@ class DueStatusMonitor {
         scanFleet("startup");
     }
 
-    @Scheduled(cron = "${seastella.maintenance.status-scan-cron:0 5 0 * * *}", zone = "UTC")
+    @Scheduled(cron = "${seastella.maintenance.status-scan-cron:0 5 0 * * *}", zone = "${seastella.time-zone:Asia/Kolkata}")
     public void nightly() {
         scanFleet("nightly");
     }
@@ -120,7 +121,7 @@ class DueStatusMonitor {
         Map<Long, SpareDueState> known = states.findBySpareIdIn(spareIds).stream()
                 .collect(Collectors.toMap(SpareDueState::getSpareId, Function.identity()));
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         Instant now = Instant.now();
         Map<Long, List<MaintenanceEvents.Change>> escalations = new LinkedHashMap<>();
         Map<Long, FleetDirectory.SpareRef> vesselRefs = new LinkedHashMap<>();

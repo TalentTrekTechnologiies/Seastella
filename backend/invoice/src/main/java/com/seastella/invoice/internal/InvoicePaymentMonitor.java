@@ -1,5 +1,6 @@
 package com.seastella.invoice.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.event.DomainEventPublisher;
 import com.seastella.invoice.api.InvoiceEvents;
 import com.seastella.servicerequest.api.ServiceRequestMetrics;
@@ -15,7 +16,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 /**
  * Announces an accepted invoice whose balance is still unpaid after its due
@@ -48,7 +48,7 @@ class InvoicePaymentMonitor {
         scan();
     }
 
-    @Scheduled(cron = "${seastella.invoice.payment-scan-cron:0 30 0 * * *}")
+    @Scheduled(cron = "${seastella.invoice.payment-scan-cron:0 30 0 * * *}", zone = "${seastella.time-zone:Asia/Kolkata}")
     public void scan() {
         try {
             Integer announced = tx.execute(status -> announceOverdue());
@@ -59,7 +59,7 @@ class InvoicePaymentMonitor {
     }
 
     private int announceOverdue() {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = BusinessTime.today();
         int announced = 0;
         for (Invoice invoice : invoices.findByStatusAndPaymentDueDateBeforeAndOverdueAlertedAtIsNull(
                 com.seastella.invoice.api.InvoiceStatus.ACCEPTED, today)) {

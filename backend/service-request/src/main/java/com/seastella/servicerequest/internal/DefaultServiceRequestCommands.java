@@ -1,5 +1,6 @@
 package com.seastella.servicerequest.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.error.ForbiddenException;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.core.api.error.ValidationException;
@@ -21,7 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -133,7 +134,7 @@ class DefaultServiceRequestCommands implements ServiceRequestCommands {
             CompletionReport report = reports.findByServiceRequestId(request.getId()).orElse(null);
             // SoW s18: a completed service recalculates the next-service-due
             // date. Same transaction, so the new cycle commits with the completion.
-            LocalDate serviceDate = report == null ? LocalDate.now(ZoneOffset.UTC) : report.getServiceDate();
+            LocalDate serviceDate = report == null ? BusinessTime.today() : report.getServiceDate();
             maintenance.serviceCompleted(request.getSpareId(), serviceDate);
             // SRQ-19: and the spare's own history gains what was done, not just
             // when - which is what a surveyor reads and what an audit asks for.
@@ -172,7 +173,7 @@ class DefaultServiceRequestCommands implements ServiceRequestCommands {
 
         CompletionReport entity = new CompletionReport(serviceRequestId, request.getVesselId(),
                 scope.userId(), workPerformed, outcome,
-                report.serviceDate() == null ? LocalDate.now(ZoneOffset.UTC) : report.serviceDate());
+                report.serviceDate() == null ? BusinessTime.today() : report.serviceDate());
         entity.setPartsUsed(trimToNull(report.partsUsed()));
         reports.save(entity);
     }
@@ -209,7 +210,7 @@ class DefaultServiceRequestCommands implements ServiceRequestCommands {
 
     /** SR-ACME-202609-0017: organization, month raised, running number within that month. */
     private String nextRequestNumber(String orgCode) {
-        String prefix = "SR-" + orgCode + "-" + LocalDate.now(ZoneOffset.UTC).format(MONTH) + "-";
+        String prefix = "SR-" + orgCode + "-" + BusinessTime.today().format(MONTH) + "-";
         long seq = requests.countByRequestNumberStartingWith(prefix) + 1;
         String number = prefix + String.format("%04d", seq);
         while (requests.existsByRequestNumber(number)) {

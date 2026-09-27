@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -38,7 +39,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -218,7 +219,7 @@ class FleetServiceHistoryController {
                     headings.length - 1));
             book.write(out);
             String fileName = "thawe-marine-service-history-" + label.replaceAll("[^A-Za-z0-9]+", "-")
-                    .replaceAll("^-|-$", "").toLowerCase(Locale.ROOT) + "-" + LocalDate.now(ZoneOffset.UTC) + ".xlsx";
+                    .replaceAll("^-|-$", "").toLowerCase(Locale.ROOT) + "-" + BusinessTime.today() + ".xlsx";
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
                             ContentDisposition.attachment().filename(fileName).build().toString())
@@ -298,7 +299,7 @@ class FleetServiceHistoryController {
             List<String> problems = new ArrayList<>(p.problems());
             Vessel vessel = resolver.vessel(p.imo(), problems);
             Spare spare = vessel == null ? null : resolver.spare(vessel, p.equipment(), problems);
-            LocalDate today = LocalDate.now(ZoneOffset.UTC);
+            LocalDate today = BusinessTime.today();
             if (p.date() != null && p.date().isAfter(today)) problems.add("The date is in the future.");
             if (spare != null && p.date() != null && spare.getInstallationDate() != null
                     && p.date().isBefore(spare.getInstallationDate())) {

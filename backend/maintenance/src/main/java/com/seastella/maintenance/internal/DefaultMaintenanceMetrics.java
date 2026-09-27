@@ -1,5 +1,6 @@
 package com.seastella.maintenance.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.maintenance.api.DueStatus;
 import com.seastella.maintenance.api.MaintenanceMetrics;
 import com.seastella.maintenance.api.MaintenanceStatusEngine;
@@ -46,7 +47,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
         for (DueStatus s : DueStatus.values()) result.put(s, 0L);
         if (vesselIds.isEmpty()) return result;
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
 
         // One pass over the active rules; each classified by the engine.
         named.query("""
@@ -70,7 +71,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
     @Transactional(readOnly = true)
     public List<DueItem> dueSoon(Set<Long> vesselIds, int withinDays, int limit) {
         if (vesselIds.isEmpty()) return List.of();
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
 
         return named.query(DUE_SELECT + """
                 where r.vessel_id in (:ids) and r.active = true
@@ -89,7 +90,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
     @Transactional(readOnly = true)
     public List<DueItem> overdue(Set<Long> vesselIds, int limit) {
         if (vesselIds.isEmpty()) return List.of();
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
 
         return named.query(DUE_SELECT + """
                 where r.vessel_id in (:ids) and r.active = true
@@ -111,7 +112,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
                 where vessel_id in (:ids) and active = true
                   and next_due_date is not null and next_due_date < :today
                 """, new MapSqlParameterSource("ids", vesselIds)
-                        .addValue("today", Date.valueOf(LocalDate.now())), Long.class);
+                        .addValue("today", Date.valueOf(BusinessTime.today())), Long.class);
         return n == null ? 0 : n;
     }
 
@@ -119,7 +120,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
     @Transactional(readOnly = true)
     public long dueSoonCount(Set<Long> vesselIds, int withinDays) {
         if (vesselIds.isEmpty()) return 0;
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         Long n = named.queryForObject("""
                 select count(*) from spare_maintenance_rule
                 where vessel_id in (:ids) and active = true
@@ -145,7 +146,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
     @Transactional(readOnly = true)
     public List<RadarPoint> radarPoints(Set<Long> vesselIds, int limit) {
         if (vesselIds.isEmpty()) return List.of();
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
 
         // One row per tracked spare. Banding is applied by the engine, as
         // everywhere else - the plot colours points by the same rule the
@@ -173,7 +174,7 @@ class DefaultMaintenanceMetrics implements MaintenanceMetrics {
         Map<Long, VesselDueCounts> result = new HashMap<>();
         if (vesselIds.isEmpty()) return result;
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
 
         // One grouped query for every vessel, rather than two queries each.
         named.query("""

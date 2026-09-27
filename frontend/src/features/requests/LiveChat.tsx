@@ -17,7 +17,7 @@ import {
 import { Button, Plate, roleName } from '@/design-system/Console';
 import { FormError } from '@/design-system/Dialog';
 import { Icon } from '@/design-system/Icon';
-import { formatDateTime } from '@/lib/format';
+import { APP_TIME_ZONE, dayKey, formatDateTime, formatTime } from '@/lib/format';
 
 /** How often a chat checks for new messages: fast with a live agent engaged, steady otherwise. */
 const LIVE_POLL_MS = 3_000;
@@ -451,8 +451,7 @@ function initialsOf(name?: string) {
 }
 
 function dayOf(iso: string) {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return dayKey(iso);
 }
 
 /** "Today", "Yesterday", or the date: the line between days, as in a messaging app. */
@@ -463,11 +462,11 @@ function dayLabel(iso: string) {
   yesterday.setDate(today.getDate() - 1);
   if (dayOf(iso) === dayOf(today.toISOString())) return 'Today';
   if (dayOf(iso) === dayOf(yesterday.toISOString())) return 'Yesterday';
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: APP_TIME_ZONE });
 }
 
 function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return formatTime(iso);
 }
 
 /**

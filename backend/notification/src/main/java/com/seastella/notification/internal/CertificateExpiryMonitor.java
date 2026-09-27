@@ -1,5 +1,6 @@
 package com.seastella.notification.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.fleet.api.DocumentDirectory;
 import com.seastella.fleet.api.DocumentDirectory.CertificateRef;
 import com.seastella.identity.api.Role;
@@ -16,7 +17,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
@@ -63,7 +64,7 @@ class CertificateExpiryMonitor {
         scan();
     }
 
-    @Scheduled(cron = "${seastella.notification.certificate.scan-cron:0 20 0 * * *}")
+    @Scheduled(cron = "${seastella.notification.certificate.scan-cron:0 20 0 * * *}", zone = "${seastella.time-zone:Asia/Kolkata}")
     public void scan() {
         try {
             tx.executeWithoutResult(status -> announceCrossings());
@@ -74,7 +75,7 @@ class CertificateExpiryMonitor {
 
     private void announceCrossings() {
         if (thresholds.isEmpty()) return;
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate today = BusinessTime.today();
         int widest = thresholds.get(0);
         List<CertificateRef> certificates = documents.certificatesExpiringBy(today.plusDays(widest));
         int announced = 0;

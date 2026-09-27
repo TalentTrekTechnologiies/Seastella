@@ -1,5 +1,6 @@
 package com.seastella.notification.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.identity.api.AccountEmails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
+
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -32,7 +33,7 @@ class AccountEmailSender implements AccountEmails {
 
     private static final Logger log = LoggerFactory.getLogger(AccountEmailSender.class);
     private static final DateTimeFormatter EXPIRY =
-            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm 'UTC'", Locale.ENGLISH).withZone(ZoneOffset.UTC);
+            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm '" + BusinessTime.LABEL + "'", Locale.ENGLISH).withZone(BusinessTime.ZONE);
 
     static final String INVITATION = "ACCOUNT_INVITATION";
     static final String PASSWORD_RESET = "ACCOUNT_PASSWORD_RESET";

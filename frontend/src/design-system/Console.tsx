@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import type { ActivityItem, DueStatus } from '@/api/types';
-import { relativeTime } from '@/lib/format';
+import { relativeTime, APP_TIME_LABEL, formatDateTime } from '@/lib/format';
 import { DUE_COLOUR, DUE_FILL, DUE_LABEL, DUE_SHAPE } from './status';
 import { Icon } from './Icon';
 import './sbs.css';
@@ -69,14 +69,7 @@ export function ConsoleHeader({
             <span className="ohead__live" aria-hidden="true" />
             <span>
               Updated <b>{relativeTime(generatedAt)}</b> ·{' '}
-              {generated.toLocaleString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'UTC',
-              })}{' '}
-              UTC
+              {formatDateTime(generatedAt)} {APP_TIME_LABEL}
             </span>
           </div>
         )}

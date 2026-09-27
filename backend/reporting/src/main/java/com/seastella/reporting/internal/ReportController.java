@@ -1,5 +1,6 @@
 package com.seastella.reporting.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.reporting.api.ReportCatalogue;
 import com.seastella.reporting.api.ReportTable;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.util.List;
 
 /**
@@ -49,7 +50,7 @@ class ReportController {
     @GetMapping("/{key}/pdf")
     ResponseEntity<byte[]> asPdf(@PathVariable String key, @RequestParam(required = false) Long vesselId) {
         ReportTable table = reports.build(byKey(key), vesselId);
-        String fileName = "thawe-marine-" + table.key() + "-" + LocalDate.now(ZoneOffset.UTC) + ".pdf";
+        String fileName = "thawe-marine-" + table.key() + "-" + BusinessTime.today() + ".pdf";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(fileName).build().toString())

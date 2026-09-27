@@ -1,5 +1,6 @@
 package com.seastella.maintenance.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.fleet.api.FleetDirectory;
 import com.seastella.maintenance.api.DueAssessment;
 import com.seastella.maintenance.api.DueStatus;
@@ -47,7 +48,7 @@ class DefaultMaintenanceStatusEngine implements MaintenanceStatusEngine {
     @Override
     @Transactional(readOnly = true)
     public DueAssessment assess(Long spareId) {
-        return assess(spareId, LocalDate.now());
+        return assess(spareId, BusinessTime.today());
     }
 
     @Override

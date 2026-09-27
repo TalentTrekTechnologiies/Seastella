@@ -5,6 +5,16 @@
  * counts and money all arrive already decided by the server.
  */
 
+/**
+ * Every time on screen is shown in the business's own zone, Indian Standard
+ * Time, whatever the viewer's device is set to - the same zone the server
+ * uses for "today", due dates and reports. IST has no daylight saving, so its
+ * offset is fixed.
+ */
+export const APP_TIME_ZONE = 'Asia/Kolkata';
+export const APP_TIME_LABEL = 'IST';
+const APP_OFFSET = '+05:30';
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '\u2014';
   const d = new Date(iso);
@@ -14,14 +24,42 @@ export function formatDateTime(iso: string | null | undefined): string {
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: APP_TIME_ZONE,
   });
 }
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '\u2014';
-  const d = new Date(iso);
+  // A bare date (2026-10-30) is a calendar day, not a moment: shown as it is.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00${APP_OFFSET}`) : new Date(iso);
   if (Number.isNaN(d.getTime())) return '\u2014';
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: APP_TIME_ZONE });
+}
+
+/** Hours and minutes, e.g. "14:30". */
+export function formatTime(iso: string | Date): string {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: APP_TIME_ZONE });
+}
+
+/** The calendar day a moment falls on, in the business's zone: "2026-09-27". */
+export function dayKey(iso: string | Date): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: APP_TIME_ZONE });
+}
+
+/** Today's date for a date field: "2026-09-27". */
+export function todayInput(): string {
+  return dayKey(new Date());
+}
+
+/** Now for a date-and-time field, to the minute: "2026-09-27T14:30". */
+export function nowInput(): string {
+  const d = new Date();
+  return `${dayKey(d)}T${formatTime(d)}`;
+}
+
+/** A date-and-time field's value, read as the business's time, to an instant. */
+export function fromInput(value: string): string {
+  return new Date(`${value}:00${APP_OFFSET}`).toISOString();
 }
 
 /** "2h ago", "3d ago" — for activity feeds where exact time is noise. */

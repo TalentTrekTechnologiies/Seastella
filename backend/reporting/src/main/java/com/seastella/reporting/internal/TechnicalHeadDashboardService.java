@@ -1,5 +1,6 @@
 package com.seastella.reporting.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.fleet.api.Criticality;
 import com.seastella.fleet.api.FleetMetrics;
 import com.seastella.fleet.api.VesselStatus;
@@ -75,8 +76,8 @@ class TechnicalHeadDashboardService {
         // is keeping up. The period is the calendar month, which is how a
         // fleet reviews itself.
         long approvedThisMonth = requests.approvedSince(vesselIds,
-                java.time.YearMonth.now(java.time.ZoneOffset.UTC)
-                        .atDay(1).atStartOfDay().toInstant(java.time.ZoneOffset.UTC));
+                java.time.YearMonth.now(BusinessTime.ZONE)
+                        .atDay(1).atStartOfDay(BusinessTime.ZONE).toInstant());
         long shortages = fleet.partShortageCount(vesselIds);
 
         List<Kpi> kpis = List.of(

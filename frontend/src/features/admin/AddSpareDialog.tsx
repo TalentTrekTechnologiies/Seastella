@@ -1,3 +1,4 @@
+import { todayInput } from '@/lib/format';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { addSpare, createEquipmentCategory, fetchEquipmentCategories, type EquipmentCategoryOption } from '@/api/admin';
@@ -54,7 +55,7 @@ export function AddSpareDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInput();
   // Until someone chooses, the category follows the name: "X-Band Radar" is a Radar.
   const suggested = useMemo(() => suggestCategory(name, categories.data ?? []), [name, categories.data]);
   const categoryId = picked === '' ? suggested?.id ?? '' : picked;

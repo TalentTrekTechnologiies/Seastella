@@ -10,7 +10,7 @@ import { Button, EmptyNote } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
 import { LoadingState } from '@/design-system/States';
 import { Pill } from '@/design-system/StatusBadge';
-import { formatDate } from '@/lib/format';
+import { todayInput, formatDate } from '@/lib/format';
 import { errorText } from './AdminParts';
 import { downloadServiceHistoryExcel } from '@/api/admin';
 import './service-history.css';
@@ -192,7 +192,7 @@ export function RecordServiceDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInput();
   const [serviceDate, setServiceDate] = useState('');
   const [workPerformed, setWorkPerformed] = useState('');
   const [performedBy, setPerformedBy] = useState('');

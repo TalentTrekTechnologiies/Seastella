@@ -1,5 +1,6 @@
 package com.seastella.invoice.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.invoice.api.InvoiceMetrics;
 import com.seastella.invoice.api.PaymentPosition;
 import com.seastella.invoice.api.InvoiceStatus;
@@ -191,7 +192,7 @@ class DefaultInvoiceMetrics implements InvoiceMetrics {
                 instant(rs, "created_at"), instant(rs, "decided_at"),
                 PaymentPosition.of(status, rs.getBigDecimal("amount"), rs.getInt("advance_percent"),
                         date(rs, "payment_due_date"), rs.getBigDecimal("received"),
-                        java.time.LocalDate.now(java.time.ZoneOffset.UTC)));
+                        BusinessTime.today()));
     }
 
     private static java.time.LocalDate date(ResultSet rs, String column) throws SQLException {

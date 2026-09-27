@@ -1,5 +1,6 @@
 package com.seastella.fleet.internal;
 
+import com.seastella.core.api.time.BusinessTime;
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
 import com.seastella.core.api.audit.AuditJson;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -103,8 +104,8 @@ class RunningHourController {
 
         // The vessel's local date is not known here; allowing one day ahead of
         // UTC keeps a ship east of Greenwich from being told its today is "future".
-        LocalDate readingDate = body.readingDate() == null ? LocalDate.now(ZoneOffset.UTC) : body.readingDate();
-        if (readingDate.isAfter(LocalDate.now(ZoneOffset.UTC).plusDays(1))) {
+        LocalDate readingDate = body.readingDate() == null ? BusinessTime.today() : body.readingDate();
+        if (readingDate.isAfter(BusinessTime.today().plusDays(1))) {
             throw new ValidationException("The reading date cannot be in the future.");
         }
 
