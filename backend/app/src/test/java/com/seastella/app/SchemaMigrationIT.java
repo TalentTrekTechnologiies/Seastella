@@ -119,7 +119,8 @@ class SchemaMigrationIT {
                 "30",  // fleet: a critical spare keeps the form's name for its equipment
                 "31",  // troubleshooting: the request thread is open to everyone on the request
                 "32",  // invoice: payment terms and payments received
-                "33"); // service-request: the engineer's job log
+                "33",  // service-request: the engineer's job log
+                "34"); // maintenance: the platform's default colour bands
     }
 
     @Test
