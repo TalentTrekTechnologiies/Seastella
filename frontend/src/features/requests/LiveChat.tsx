@@ -18,23 +18,42 @@ import { FormError } from '@/design-system/Dialog';
 import { Icon } from '@/design-system/Icon';
 import { formatDateTime } from '@/lib/format';
 
-/** How often an open chat checks for new messages. */
+/** How often a chat checks for new messages: fast with a live agent engaged, steady otherwise. */
 const LIVE_POLL_MS = 3_000;
+const OPEN_POLL_MS = 8_000;
+
+/** The chat list behind the chat button; refreshed whenever a thread is read or written. */
+export const CHAT_INBOX_KEY = ['chat-inbox'];
 
 /**
- * The conversation on a request (SoW §6.1).
+ * The conversation on a request (SoW §6.1, SRS §21).
  *
  * <p>One thread, in order: what the guided checks asked, what the Captain
- * answered, what the platform recorded, and — once escalated — the live
- * conversation with the Coordinator. Afterwards the same panel is the
- * transcript, which the Ship Manager and the engineer also read (§6.2).
+ * answered, what the platform recorded, and what the people working the
+ * request said to each other — Captain, Ship Manager, Technical Head,
+ * Coordinator and engineer. It stays open until the request is finished, and
+ * afterwards is the transcript on the request.
+ *
+ * <p>`variant="panel"` is the compact form shown from the chat button.
  */
-export function LiveChat({ requestId, prominent }: { requestId: number; prominent: boolean }) {
+export function LiveChat({
+  requestId,
+  prominent,
+  variant = 'page',
+}: {
+  requestId: number;
+  prominent: boolean;
+  variant?: 'page' | 'panel';
+}) {
   const client = useQueryClient();
   const chat = useQuery({
     queryKey: ['conversation', requestId],
     queryFn: () => fetchChat(requestId),
-    refetchInterval: (q) => ((q.state.data as ChatView | undefined)?.status === 'LIVE' ? LIVE_POLL_MS : false),
+    refetchInterval: (q) => {
+      const status = (q.state.data as ChatView | undefined)?.status;
+      if (status === 'LIVE') return LIVE_POLL_MS;
+      return status === 'OPEN' || status === 'ASSISTANT' ? OPEN_POLL_MS : false;
+    },
   });
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -66,6 +85,7 @@ export function LiveChat({ requestId, prominent }: { requestId: number; prominen
         client.setQueryData<ChatView>(['conversation', requestId], (old) =>
           old ? { ...old, unreadCount: 0, lastReadMessageId: latestId } : old,
         );
+        void client.invalidateQueries({ queryKey: CHAT_INBOX_KEY });
       })
       .catch(() => undefined);
     return () => {
@@ -84,6 +104,7 @@ export function LiveChat({ requestId, prominent }: { requestId: number; prominen
           }
         : old,
     );
+    void client.invalidateQueries({ queryKey: CHAT_INBOX_KEY });
   };
 
   const newId = () =>
@@ -142,36 +163,11 @@ export function LiveChat({ requestId, prominent }: { requestId: number; prominen
   };
 
   const live = view.status === 'LIVE';
-  const assistant = view.status === 'ASSISTANT';
+  const closed = view.status === 'CLOSED';
+  const inputId = `chat-input-${variant}-${requestId}`;
 
-  return (
-    <Plate
-      title="Conversation"
-      count={view.messages.filter((m) => m.kind === 'USER').length || undefined}
-      subtitle={
-        live
-          ? 'Captain and Service Coordinator, on this request. Everything here stays in the request’s record.'
-          : assistant
-            ? 'The guided checks, as they were asked and answered. Escalating adds the live chat to this same thread.'
-            : `Closed ${view.closedAt ? formatDateTime(view.closedAt) : ''} · transcript kept on the request`
-      }
-      action={
-        <div className="chat__tools">
-          {view.messages.length > 3 && (
-            <input
-              className="input input--search chat__search"
-              type="search"
-              placeholder="Find in conversation…"
-              aria-label="Find in conversation"
-              value={query}
-              onChange={(e) => void runSearch(e.target.value)}
-            />
-          )}
-          {live && <span className="chat__live">Live</span>}
-        </div>
-      }
-    >
-      <div className={`chat${prominent ? ' chat--prominent' : ''}`}>
+  const body = (
+      <div className={`chat${prominent ? ' chat--prominent' : ''}${variant === 'panel' ? ' chat--panel' : ''}`}>
         {hits !== null && (
           <p className="chat__hits" role="status">
             {hits.length === 0
@@ -190,7 +186,9 @@ export function LiveChat({ requestId, prominent }: { requestId: number; prominen
         )}
 
         <ol className="chat__thread" ref={thread} aria-live="polite" aria-label="Messages">
-          {view.messages.length === 0 && <li className="chat__empty">No messages yet. Say what you need help with.</li>}
+          {view.messages.length === 0 && (
+            <li className="chat__empty">No messages yet. Ask a question or share an update on this request.</li>
+          )}
           {view.messages.map((m) => (
             <Message
               key={m.id}
@@ -203,15 +201,15 @@ export function LiveChat({ requestId, prominent }: { requestId: number; prominen
 
         {view.canSend ? (
           <div className="chat__composer">
-            <label className="sr-only" htmlFor="chat-input">
+            <label className="sr-only" htmlFor={inputId}>
               Message
             </label>
             <textarea
-              id="chat-input"
+              id={inputId}
               className="textarea chat__input"
               rows={2}
               maxLength={2000}
-              placeholder="Write a message… (Enter to send, Shift+Enter for a new line)"
+              placeholder="Write a message… Everyone on this request reads it. (Enter to send)"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -247,10 +245,44 @@ export function LiveChat({ requestId, prominent }: { requestId: number; prominen
             </div>
           </div>
         ) : (
-          live && <p className="chat__readonly">You can read this chat. The Captain and the Service Coordinator write in it.</p>
+          !closed && (
+            <p className="chat__readonly">You can read this conversation. The people working the request write in it.</p>
+          )
         )}
         <FormError message={error} />
       </div>
+  );
+
+  if (variant === 'panel') return body;
+
+  return (
+    <Plate
+      title="Conversation"
+      count={view.messages.filter((m) => m.kind === 'USER').length || undefined}
+      subtitle={
+        closed
+          ? `Closed ${view.closedAt ? formatDateTime(view.closedAt) : ''} · history kept on the request`
+          : live
+            ? 'Live agent engaged. Everyone on this request can read and write here; it all stays in the request’s record.'
+            : 'Everyone working this request writes here — Captain, Ship Manager, Coordinator and engineer. It all stays in the request’s record.'
+      }
+      action={
+        <div className="chat__tools">
+          {view.messages.length > 3 && (
+            <input
+              className="input input--search chat__search"
+              type="search"
+              placeholder="Find in conversation…"
+              aria-label="Find in conversation"
+              value={query}
+              onChange={(e) => void runSearch(e.target.value)}
+            />
+          )}
+          {live && <span className="chat__live">Live</span>}
+        </div>
+      }
+    >
+      {body}
     </Plate>
   );
 }

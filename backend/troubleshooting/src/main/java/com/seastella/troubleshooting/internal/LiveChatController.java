@@ -20,8 +20,9 @@ import java.util.List;
  * one thread (SoW §6.1, CHT-04 to CHT-10).
  *
  * <p>Reading needs the request in scope; {@code after} returns only newer
- * messages, so a polling client fetches little. Writing is the Captain's and
- * the Coordinator's, and only while a live agent is engaged.
+ * messages, so a polling client fetches little. Everyone working the request
+ * writes while it is open (LiveChatService.WRITERS); the service re-checks the
+ * role, the scope and the request's state.
  */
 @RestController
 @RequestMapping("/api/v1/service-requests/{requestId}/conversation")
@@ -47,7 +48,7 @@ class LiveChatController {
     }
 
     @PostMapping("/messages")
-    @PreAuthorize("hasAnyRole('CAPTAIN','SERVICE_COORDINATOR')")
+    @PreAuthorize("hasAnyRole('CAPTAIN','SHIP_MANAGER','TECHNICAL_HEAD','SERVICE_COORDINATOR','SERVICE_ENGINEER')")
     ResponseEntity<LiveChatService.MessageView> send(@PathVariable Long requestId, @RequestBody MessageBody body) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 chat.send(requestId, body == null ? null : body.body(), body == null ? null : body.clientMsgId()));
@@ -55,7 +56,7 @@ class LiveChatController {
 
     /** A photograph, a video or a document, sent in the chat (CHT-08). */
     @PostMapping("/attachments")
-    @PreAuthorize("hasAnyRole('CAPTAIN','SERVICE_COORDINATOR')")
+    @PreAuthorize("hasAnyRole('CAPTAIN','SHIP_MANAGER','TECHNICAL_HEAD','SERVICE_COORDINATOR','SERVICE_ENGINEER')")
     ResponseEntity<LiveChatService.MessageView> attach(@PathVariable Long requestId,
                                                         @RequestParam("file") MultipartFile file,
                                                         @RequestParam(required = false) String caption,

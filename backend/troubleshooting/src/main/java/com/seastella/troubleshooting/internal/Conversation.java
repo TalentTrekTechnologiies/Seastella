@@ -22,6 +22,8 @@ import java.time.Instant;
 public class Conversation extends BaseEntity implements VesselScoped {
 
     static final String ASSISTANT = "ASSISTANT";
+    /** Everyone on the request writes; no live agent engaged. */
+    static final String OPEN = "OPEN";
     static final String LIVE = "LIVE";
     static final String CLOSED = "CLOSED";
 
@@ -70,6 +72,11 @@ public class Conversation extends BaseEntity implements VesselScoped {
     void escalate(Instant at) {
         this.status = LIVE;
         if (this.escalatedAt == null) this.escalatedAt = at;
+    }
+
+    /** The live agent session ended; the thread stays open to the request. */
+    void endLive() {
+        if (LIVE.equals(status)) this.status = OPEN;
     }
 
     void close(Instant at) {

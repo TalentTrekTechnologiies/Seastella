@@ -48,6 +48,12 @@ class ConversationThread {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    void endLive(Conversation conversation) {
+        conversation.endLive();
+        conversations.save(conversation);
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     void close(Conversation conversation, Instant at) {
         conversation.close(at);
         conversations.save(conversation);

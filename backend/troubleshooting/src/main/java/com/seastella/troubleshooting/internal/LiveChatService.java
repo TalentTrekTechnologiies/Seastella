@@ -7,6 +7,7 @@ import com.seastella.core.api.error.WorkflowException;
 import com.seastella.fleet.api.RequestAttachments;
 import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
+import com.seastella.identity.api.ScopeKind;
 import com.seastella.identity.api.ScopeResolver;
 import com.seastella.identity.api.UserDirectory;
 import com.seastella.servicerequest.api.ServiceRequestAction;
@@ -20,22 +21,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
- * Live Agent Chat: Captain and Service Coordinator, on the request (SoW s6.1).
+ * The thread on a service request (SoW s6.1, SRS s21).
  *
  * <p>One thread per request, shared with the guided checks (CHT-04): the
- * assistant's questions, the Captain's answers, the live conversation and the
- * platform's own notes are all the same transcript, in order. The status says
- * where it is - ASSISTANT while the checks run, LIVE once a Captain escalates,
- * CLOSED when the request moves on (CHT-10).
+ * assistant's questions, the Captain's answers, the conversation between the
+ * people on the request and the platform's own notes are all the same
+ * transcript, in order. The status says where it is - ASSISTANT while the
+ * checks run, OPEN for the rest of the request's life, LIVE while a Captain has
+ * a live agent engaged (s6.1 step 3), and CLOSED once the request is finished.
  *
- * <p>Only the Captain on the vessel and the Coordinators serving it write;
- * anyone who can see the request reads it, because s6.2 attaches the log for
- * the Ship Manager's approval and the engineer's context.
+ * <p>Everyone working the request writes in it - the Captain, the Ship Manager
+ * and Technical Head, the Coordinators serving the vessel and the engineer on
+ * the job - so whoever has to answer can. The Platform Admin reads it all but
+ * does not take part. Scope decides whose request it is: a person who cannot
+ * see the request cannot see or write in its thread.
  *
  * <p>Human-to-human only (s15). The client polls; the transcript, not the
  * transport, is the requirement.
@@ -44,6 +51,12 @@ import java.util.Objects;
 class LiveChatService {
 
     private static final int MAX_BODY = 2000;
+    private static final int PREVIEW = 140;
+    private static final int INBOX_SIZE = 50;
+
+    /** Who takes part in a request's thread. The Platform Admin oversees it. */
+    static final Set<Role> WRITERS = EnumSet.of(Role.CAPTAIN, Role.SHIP_MANAGER, Role.TECHNICAL_HEAD,
+            Role.SERVICE_COORDINATOR, Role.SERVICE_ENGINEER);
 
     private final ConversationRepository conversations;
     private final ConversationMessageRepository messages;
@@ -86,12 +99,26 @@ class LiveChatService {
             return;
         }
 
+        // A finished request finishes its thread; the transcript stays.
+        if (t.toStatus() != null && t.toStatus().isTerminal()) {
+            conversations.findByServiceRequestId(t.serviceRequestId())
+                    .filter(c -> !c.isClosed())
+                    .ifPresent(c -> {
+                        thread.close(c, now);
+                        thread.system(c, "Conversation closed: " + actor + " — " + t.action().label().toLowerCase()
+                                + ". The history stays on the request.", now);
+                    });
+            return;
+        }
+
+        // Moving on from the live agent ends that session, not the thread.
         if (t.fromStatus() == ServiceRequestStatus.LIVE_AGENT_ESCALATED) {
             conversations.findByServiceRequestId(t.serviceRequestId())
                     .filter(Conversation::isLive)
                     .ifPresent(c -> {
-                        thread.close(c, now);
-                        thread.system(c, "Chat closed: " + actor + " — " + t.action().label().toLowerCase() + ".", now);
+                        thread.endLive(c);
+                        thread.system(c, "Live agent session ended: " + actor + " — "
+                                + t.action().label().toLowerCase() + ".", now);
                     });
         }
     }
@@ -107,11 +134,13 @@ class LiveChatService {
 
         Conversation c = conversations.findByServiceRequestId(requestId).orElse(null);
         if (c == null) {
-            // Nothing written yet: no checks run, no escalation. The Captain and
-            // the Coordinator still see whether a live chat is open to them.
+            // Nothing written yet. An open request's thread is there to start;
+            // a finished one that never had a word said has nothing to show.
+            if (request.status().isTerminal()) {
+                return new ChatView("NONE", false, null, null, null, 0, null, null, List.of());
+            }
             boolean live = request.status() == ServiceRequestStatus.LIVE_AGENT_ESCALATED;
-            boolean writer = scope.role() == Role.CAPTAIN || scope.role() == Role.SERVICE_COORDINATOR;
-            return new ChatView(live ? Conversation.LIVE : "NONE", live && writer,
+            return new ChatView(live ? Conversation.LIVE : Conversation.OPEN, WRITERS.contains(scope.role()),
                     null, null, null, 0, null, null, List.of());
         }
 
@@ -120,7 +149,7 @@ class LiveChatService {
 
         Long lastRead = reads.findByConversationIdAndUserId(c.getId(), scope.userId())
                 .map(ConversationRead::getLastReadMessageId).orElse(0L);
-        long unread = messages.countByConversationIdAndIdGreaterThan(c.getId(), lastRead);
+        long unread = messages.countUnreadFor(c.getId(), lastRead, scope.userId());
         Long readByOthers = reads.findByConversationId(c.getId()).stream()
                 .filter(r -> !Objects.equals(r.getUserId(), scope.userId()))
                 .map(ConversationRead::getLastReadMessageId)
@@ -217,7 +246,64 @@ class LiveChatService {
             reads.save(state);
         }
         return new ReadView(state.getLastReadMessageId(),
-                messages.countByConversationIdAndIdGreaterThan(c.getId(), state.getLastReadMessageId()));
+                messages.countUnreadFor(c.getId(), state.getLastReadMessageId(), scope.userId()));
+    }
+
+    // ------------------------------------------------------------------ inbox
+
+    /**
+     * The caller's threads, newest message first, with what is unread in each:
+     * what the chat button shows. Only threads with something in them, on
+     * requests the caller can see.
+     */
+    @Transactional(readOnly = true)
+    Inbox inbox() {
+        AccessScope scope = scopes.currentScope();
+        List<Conversation> found;
+        if (scope.isPlatformWide()) {
+            found = conversations.findAll();
+        } else if (scope.vesselIds().isEmpty()) {
+            found = List.of();
+        } else {
+            found = conversations.findByVesselIdIn(scope.vesselIds());
+        }
+        if (scope.kind() == ScopeKind.JOB_SET) {
+            // An engineer's vessels are those of their jobs; only the jobs themselves are theirs.
+            found = found.stream().filter(c -> scope.assignedJobIds().contains(c.getServiceRequestId())).toList();
+        }
+
+        List<ThreadSummary> threads = found.stream()
+                .map(c -> summarise(c, scope))
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing((ThreadSummary t) -> t.lastMessage().sentAt()).reversed())
+                .toList();
+        long unread = threads.stream().mapToLong(ThreadSummary::unreadCount).sum();
+        return new Inbox(unread, threads.stream().limit(INBOX_SIZE).toList());
+    }
+
+    private ThreadSummary summarise(Conversation c, AccessScope scope) {
+        ConversationMessage last = messages.findFirstByConversationIdOrderByIdDesc(c.getId()).orElse(null);
+        if (last == null) return null;
+        RequestSummary request = metrics.summary(c.getServiceRequestId()).orElse(null);
+        if (request == null) return null;
+
+        Long lastRead = reads.findByConversationIdAndUserId(c.getId(), scope.userId())
+                .map(ConversationRead::getLastReadMessageId).orElse(0L);
+        String sender = switch (last.getSenderKind()) {
+            case "ASSISTANT" -> "Guided checks";
+            case "SYSTEM" -> null;
+            default -> last.getSenderUserId() == null ? null
+                    : users.find(last.getSenderUserId()).map(UserDirectory.UserRef::fullName).orElse(null);
+        };
+        String body = last.getBody() == null ? "" : last.getBody().strip();
+        String preview = body.length() > PREVIEW ? body.substring(0, PREVIEW - 1) + "…" : body;
+
+        return new ThreadSummary(request.id(), request.requestNumber(), request.vesselName(), request.spareName(),
+                request.title(), request.statusLabel(), c.getStatus(), canSend(scope, c, request),
+                messages.countUnreadFor(c.getId(), lastRead, scope.userId()),
+                new LastMessage(last.getSenderKind(), sender, last.getSenderRole(),
+                        Objects.equals(last.getSenderUserId(), scope.userId()), preview,
+                        last.getDocumentId() != null, last.getSentAt()));
     }
 
     // -------------------------------------------------------------- internals
@@ -228,20 +314,19 @@ class LiveChatService {
         RequestSummary request = metrics.summary(requestId)
                 .orElseThrow(() -> NotFoundException.ofResource("ServiceRequest", requestId));
 
-        if (scope.role() != Role.CAPTAIN && scope.role() != Role.SERVICE_COORDINATOR) {
-            throw ForbiddenException.ofAction("write in the live chat");
+        if (!WRITERS.contains(scope.role())) {
+            throw ForbiddenException.ofAction("write in this request's conversation");
+        }
+        if (request.status().isTerminal()) {
+            throw new WorkflowException("This request is finished. Its conversation stays on the request to read.");
         }
         Conversation c = conversations.findByServiceRequestId(requestId).orElse(null);
         if (c == null) {
-            if (request.status() != ServiceRequestStatus.LIVE_AGENT_ESCALATED) {
-                throw new WorkflowException("The Captain has not escalated this request to a live agent.");
-            }
-            c = thread.open(requestId, request.vesselId(), Conversation.LIVE, Instant.now());
+            boolean live = request.status() == ServiceRequestStatus.LIVE_AGENT_ESCALATED;
+            c = thread.open(requestId, request.vesselId(), live ? Conversation.LIVE : Conversation.OPEN, Instant.now());
         }
         if (!canSend(scope, c, request)) {
-            throw new WorkflowException(c.isClosed()
-                    ? "This chat is closed. The transcript stays on the request."
-                    : "The Captain has not escalated this request to a live agent.");
+            throw new WorkflowException("This conversation is closed. The history stays on the request.");
         }
         return c;
     }
@@ -253,9 +338,7 @@ class LiveChatService {
     }
 
     private static boolean canSend(AccessScope scope, Conversation c, RequestSummary request) {
-        return (scope.role() == Role.CAPTAIN || scope.role() == Role.SERVICE_COORDINATOR)
-                && c.isLive()
-                && request.status() == ServiceRequestStatus.LIVE_AGENT_ESCALATED;
+        return WRITERS.contains(scope.role()) && !c.isClosed() && !request.status().isTerminal();
     }
 
     private List<MessageView> views(List<ConversationMessage> found, AccessScope scope) {
@@ -299,4 +382,13 @@ class LiveChatService {
                           boolean image, boolean video) {}
 
     record ReadView(Long lastReadMessageId, long unreadCount) {}
+
+    record Inbox(long unreadCount, List<ThreadSummary> threads) {}
+
+    record ThreadSummary(Long requestId, String requestNumber, String vesselName, String spareName, String title,
+                         String requestStatus, String status, boolean canSend, long unreadCount,
+                         LastMessage lastMessage) {}
+
+    record LastMessage(String kind, String senderName, String senderRole, boolean mine, String preview,
+                       boolean attachment, Instant sentAt) {}
 }

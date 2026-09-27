@@ -5,6 +5,7 @@ import { NotificationBell } from '@/features/alerts/NotificationBell';
 import { navigationFor } from './navigation';
 import { useAuth } from './AuthContext';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { ChatLauncher } from './ChatLauncher';
 import './shell.css';
 import './brand.css';
 
@@ -151,6 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="content console-ground">{children}</main>
       </div>
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
+      <ChatLauncher />
     </div>
   );
 }

@@ -30,7 +30,7 @@ export interface ChatMessage {
 }
 
 export interface ChatView {
-  status: 'NONE' | 'ASSISTANT' | 'LIVE' | 'CLOSED';
+  status: 'NONE' | 'ASSISTANT' | 'OPEN' | 'LIVE' | 'CLOSED';
   canSend: boolean;
   openedAt?: string;
   escalatedAt?: string;
@@ -72,3 +72,34 @@ export const attachmentPath = (documentId: number) => `/api/v1/documents/${docum
 
 export const downloadAttachment = (attachment: ChatAttachment) =>
   downloadFile(attachmentPath(attachment.documentId), attachment.fileName);
+
+/** One thread in the chat list: the request it belongs to and its latest line. */
+export interface ChatThreadSummary {
+  requestId: number;
+  requestNumber: string;
+  vesselName: string;
+  spareName: string;
+  title: string;
+  requestStatus: string;
+  status: ChatView['status'];
+  canSend: boolean;
+  unreadCount: number;
+  lastMessage: {
+    kind: 'USER' | 'SYSTEM' | 'ASSISTANT';
+    senderName?: string;
+    senderRole?: string;
+    mine: boolean;
+    preview: string;
+    attachment: boolean;
+    sentAt: string;
+  };
+}
+
+export interface ChatInbox {
+  /** Unread across all of this person's threads: the number on the chat button. */
+  unreadCount: number;
+  threads: ChatThreadSummary[];
+}
+
+/** The caller's request threads, newest first. */
+export const fetchChatInbox = () => api.get<ChatInbox>('/api/v1/conversations');

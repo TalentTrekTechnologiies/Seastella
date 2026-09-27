@@ -55,6 +55,8 @@ class ConversationIT {
     private static final String CAPTAIN = "master.kestrel@acme-shipmanagement.example";
     private static final String COORDINATOR = "coordinator@seastella.example";
     private static final String OTHER_CAPTAIN = "master.bergen@nordic-tanker.example";
+    private static final String SHIP_MANAGER = "d.fernandes@acme-shipmanagement.example";
+    private static final String ADMIN = "admin@seastella.example";
 
     /** A one-pixel PNG: what matters is that it starts with the PNG signature. */
     private static final byte[] PNG = new byte[]{
@@ -69,29 +71,34 @@ class ConversationIT {
     private String captain;
     private String coordinator;
     private String otherCaptain;
+    private String shipManager;
+    private String admin;
 
     @BeforeAll
     void setUp() throws Exception {
         captain = token(CAPTAIN);
         coordinator = token(COORDINATOR);
         otherCaptain = token(OTHER_CAPTAIN);
+        shipManager = token(SHIP_MANAGER);
+        admin = token(ADMIN);
     }
 
     @Test
-    @DisplayName("guided checks, escalation and the live chat are one thread (CHT-04, CHT-10)")
+    @DisplayName("guided checks, escalation and the conversation are one thread (CHT-04, CHT-10)")
     void oneThread() throws Exception {
         long requestId = raise("Gyro heading drifting", "Heading wanders a degree either side.");
 
-        // Before anything is said there is no thread, and nothing to write in.
+        // Before anything is said the thread is empty but open: anyone on the request can start it.
         JsonNode empty = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", captain), 200);
-        assertThat(empty.path("status").asText()).isEqualTo("NONE");
-        assertThat(empty.path("canSend").asBoolean()).isFalse();
+        assertThat(empty.path("status").asText()).isEqualTo("OPEN");
+        assertThat(empty.path("canSend").asBoolean()).isTrue();
+        assertThat(empty.path("messages").size()).isZero();
 
         // The guided checks open it, and ask their first question in it.
         runChecks(requestId);
         JsonNode afterChecks = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", captain), 200);
         assertThat(afterChecks.path("status").asText()).isEqualTo("ASSISTANT");
-        assertThat(afterChecks.path("canSend").asBoolean()).as("no live agent yet").isFalse();
+        assertThat(afterChecks.path("canSend").asBoolean()).as("the thread is open during the checks").isTrue();
 
         List<String> kinds = kinds(afterChecks);
         assertThat(kinds).startsWith("SYSTEM", "ASSISTANT", "USER");
@@ -119,16 +126,94 @@ class ConversationIT {
         JsonNode both = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", coordinator), 200);
         assertThat(text(both)).contains("Gyro is drifting again").contains("follow-up gearing");
 
-        // Moving the request on closes the thread and says so, keeping the transcript.
+        // Moving the request on ends the live session, not the thread: it says so and stays open.
         act(captain, requestId, "SUBMIT_FOR_APPROVAL");
-        JsonNode closed = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", captain), 200);
+        JsonNode after = body(getJson("/api/v1/service-requests/" + requestId + "/conversation", captain), 200);
+        assertThat(after.path("status").asText()).isEqualTo("OPEN");
+        assertThat(after.path("canSend").asBoolean()).isTrue();
+        assertThat(text(after)).contains("Live agent session ended").contains("Gyro is drifting again");
+        body(postJson("/api/v1/service-requests/" + requestId + "/conversation/messages", captain,
+                Map.of("body", "One more thing: the repeater on the wing also lags.")), 201);
+    }
+
+    @Test
+    @DisplayName("everyone on the request writes, the admin reads, and a finished request closes it (SRS s21)")
+    void everyoneOnTheRequest() throws Exception {
+        long requestId = raise("Speed log reading zero", "Log shows 0.0 kn under way.");
+        String path = "/api/v1/service-requests/" + requestId + "/conversation";
+
+        // Whoever has to answer can: the Ship Manager asks, the Captain answers, before any escalation.
+        body(postJson(path + "/messages", shipManager, Map.of("body", "Since when? Any alarm on the panel?")), 201);
+        body(postJson(path + "/messages", captain, Map.of("body", "Since the dry-dock. No alarm.")), 201);
+        body(postJson(path + "/messages", coordinator, Map.of("body", "Please send a photo of the transducer.")), 201);
+        attach(shipManager, requestId, PNG, "panel.png", "Panel as it looks now");
+
+        JsonNode thread = body(getJson(path, captain), 200);
+        assertThat(thread.path("status").asText()).isEqualTo("OPEN");
+        assertThat(text(thread)).contains("Since when?").contains("No alarm").contains("transducer")
+                .contains("Panel as it looks now");
+
+        // The Platform Admin oversees every thread but does not take part.
+        JsonNode adminView = body(getJson(path, admin), 200);
+        assertThat(adminView.path("canSend").asBoolean()).isFalse();
+        assertThat(postJson(path + "/messages", admin, Map.of("body", "Hello"))
+                .getResponse().getStatus()).isEqualTo(403);
+
+        // Outside scope the thread does not exist.
+        assertThat(getJson(path, otherCaptain).getResponse().getStatus()).isEqualTo(404);
+        assertThat(postJson(path + "/messages", otherCaptain, Map.of("body", "Hello"))
+                .getResponse().getStatus()).isEqualTo(404);
+
+        // Finishing the request closes the thread and says so; the history stays, new lines are refused.
+        runChecks(requestId);
+        act(captain, requestId, "SUBMIT_FOR_APPROVAL");
+        body(postJson("/api/v1/service-requests/" + requestId + "/actions", shipManager,
+                Map.of("action", "REJECT", "reason", "Duplicate of an open request.")), 200);
+        JsonNode closed = body(getJson(path, captain), 200);
         assertThat(closed.path("status").asText()).isEqualTo("CLOSED");
         assertThat(closed.path("canSend").asBoolean()).isFalse();
-        assertThat(text(closed)).contains("Chat closed").contains("Gyro is drifting again");
+        assertThat(text(closed)).contains("Conversation closed").contains("Since when?");
+        assertThat(postJson(path + "/messages", captain, Map.of("body", "One more thing"))
+                .getResponse().getStatus()).isEqualTo(409);
+    }
 
-        // A closed chat refuses new lines rather than silently dropping them.
-        assertThat(postJson("/api/v1/service-requests/" + requestId + "/conversation/messages", captain,
-                Map.of("body", "One more thing")).getResponse().getStatus()).isEqualTo(409);
+    @Test
+    @DisplayName("the chat list shows each person their threads, newest first, with unread counts")
+    void chatList() throws Exception {
+        long requestId = raise("AIS not transmitting", "No own-ship position on other vessels' AIS.");
+        String path = "/api/v1/service-requests/" + requestId + "/conversation";
+        body(postJson(path + "/messages", coordinator, Map.of("body", "Is the GPS input present on the AIS?")), 201);
+
+        // The Captain has one unread line in it; the Coordinator, who wrote it, has none.
+        JsonNode captainList = body(getJson("/api/v1/conversations", captain), 200);
+        JsonNode mine = find(captainList, requestId);
+        assertThat(mine).as("the Captain's list has the thread").isNotNull();
+        assertThat(mine.path("unreadCount").asLong()).isEqualTo(1);
+        assertThat(mine.path("lastMessage").path("preview").asText()).contains("GPS input");
+        assertThat(mine.path("canSend").asBoolean()).isTrue();
+        assertThat(captainList.path("unreadCount").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(captainList.path("threads").get(0).path("requestId").asLong())
+                .as("newest first").isEqualTo(requestId);
+
+        JsonNode coordinatorList = body(getJson("/api/v1/conversations", coordinator), 200);
+        assertThat(find(coordinatorList, requestId).path("unreadCount").asLong()).isZero();
+
+        // Reading it clears it.
+        JsonNode view = body(getJson(path, captain), 200);
+        long last = view.path("messages").get(view.path("messages").size() - 1).path("id").asLong();
+        body(postJson(path + "/read", captain, Map.of("lastMessageId", last)), 200);
+        assertThat(find(body(getJson("/api/v1/conversations", captain), 200), requestId)
+                .path("unreadCount").asLong()).isZero();
+
+        // Another organization's Captain never sees it.
+        assertThat(find(body(getJson("/api/v1/conversations", otherCaptain), 200), requestId)).isNull();
+    }
+
+    private static JsonNode find(JsonNode list, long requestId) {
+        for (JsonNode t : list.path("threads")) {
+            if (t.path("requestId").asLong() == requestId) return t;
+        }
+        return null;
     }
 
     @Test

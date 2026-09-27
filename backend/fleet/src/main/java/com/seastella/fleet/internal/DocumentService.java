@@ -182,7 +182,8 @@ class DocumentService {
      *
      * <p>Fleet cannot look a request up, so the vessel comes from the caller -
      * and is then checked against the caller's own scope here, not taken on
-     * trust. Only the two people who write in the chat may attach to it.
+     * trust. The people who write in the request's conversation may attach to
+     * it; the Platform Admin oversees it and does not.
      */
     @Transactional
     DocumentView attachToRequest(Long vesselId, Long serviceRequestId, String fileName, byte[] content, String caption) {
@@ -191,7 +192,7 @@ class DocumentService {
             throw new ValidationException("Say what this file belongs to.");
         }
         scopeGuard.assertVessel(vesselId);
-        if (actor.role() != Role.CAPTAIN && actor.role() != Role.SERVICE_COORDINATOR) {
+        if (actor.role() == Role.PLATFORM_ADMIN || actor.role() == Role.CHIEF_ENGINEER) {
             throw ForbiddenException.ofAction("attach a file to this request");
         }
 
