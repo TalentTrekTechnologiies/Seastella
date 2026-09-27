@@ -666,7 +666,8 @@
 .notice__body { font-size: 14px; margin-top: 2px; color: var(--sbs-ink-2); }
 .notice--wait { background: var(--c-approaching-weak); border-color: color-mix(in srgb, var(--c-approaching) 40%, transparent); color: var(--c-approaching); }
 .notice--ok { background: var(--c-normal-weak); border-color: color-mix(in srgb, var(--c-normal) 40%, transparent); color: var(--c-normal); }
-.notice--wait .notice__title, .notice--ok .notice__title { color: var(--sbs-ink); }
+.notice--alert { background: var(--c-overdue-weak); border-color: color-mix(in srgb, var(--c-overdue) 45%, transparent); color: var(--c-overdue); }
+.notice--wait .notice__title, .notice--ok .notice__title, .notice--alert .notice__title { color: var(--sbs-ink); }
 
 .gate {
   display: flex;

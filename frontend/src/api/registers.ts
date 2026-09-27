@@ -25,6 +25,16 @@ export interface InvoiceRow {
   decisionNote?: string;
   raisedAt: string;
   decidedAt?: string;
+  payment: {
+    advancePercent: number;
+    advanceAmount: string;
+    dueDate?: string;
+    received: string;
+    balance: string;
+    advanceReceived: boolean;
+    status: 'NOT_DUE' | 'UNPAID' | 'PART_PAID' | 'PAID';
+    overdue: boolean;
+  };
 }
 
 export interface InvoiceRegister {

@@ -496,3 +496,39 @@
 :root[data-theme='dark'] .chat__tone--5 { --who: #5ccde0; }
 :root[data-theme='dark'] .chat__avatar { color: #0d1f29; }
 :root[data-theme='dark'] .chat__avatar--assistant { color: var(--sbs-ink-2); }
+
+/* ---- invoice payments: terms, what is received, what is owed ---- */
+.pay { display: grid; gap: 10px; margin-top: 8px; padding-top: 12px; border-top: 1px dashed var(--sbs-line); }
+.pay__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.pay__terms { font-size: 14px; color: var(--sbs-ink-2); }
+.pay__figures { display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; color: var(--sbs-ink-2); }
+.pay__figures b { color: var(--sbs-ink); font-variant-numeric: tabular-nums; }
+.pay__figures .pay__owed { color: var(--c-overdue); }
+.pay__lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pay__lines li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--sbs-plate-sunk);
+  border: 1px solid var(--sbs-line);
+  font-size: 14px;
+}
+.pay__lines li span { flex: 1; min-width: 160px; color: var(--sbs-ink-2); }
+.pay__remove { background: none; border: none; color: var(--sbs-ink-3); font-size: 13px; cursor: pointer; text-decoration: underline; }
+.pay__remove:hover { color: var(--c-overdue); }
+.pay__actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.pay__form { display: grid; gap: 10px; padding: 12px; border-radius: 12px; background: var(--sbs-plate-sunk); border: 1px solid var(--sbs-line); }
+.pay__quick { display: flex; gap: 8px; flex-wrap: wrap; }
+.pay__quick button {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--sbs-signal-line);
+  background: var(--sbs-signal-weak);
+  color: var(--sbs-signal);
+  cursor: pointer;
+}

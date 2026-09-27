@@ -39,6 +39,29 @@ export interface InvoiceView {
   decidedByName?: string;
   decidedAt?: string;
   decisionNote?: string;
+  /** Where the money stands. A record only: nothing in the workflow waits on it. */
+  payment?: InvoicePayment;
+}
+
+export interface InvoicePayment {
+  advancePercent: number;
+  advanceAmount: string;
+  dueDate?: string;
+  received: string;
+  balance: string;
+  advanceReceived: boolean;
+  status: 'NOT_DUE' | 'UNPAID' | 'PART_PAID' | 'PAID';
+  overdue: boolean;
+  lines: {
+    id: number;
+    amount: string;
+    receivedOn: string;
+    method: string;
+    reference?: string;
+    note?: string;
+    recordedByName?: string;
+    recordedAt?: string;
+  }[];
 }
 
 export interface CompletionView {
@@ -134,7 +157,21 @@ export const submitCompletion = (
   body: { workPerformed: string; partsUsed?: string; outcome: string; serviceDate?: string },
 ) => api.post<RequestDetail>(`/api/v1/service-requests/${id}/completion-report`, body);
 
-export const raiseInvoice = (id: number, body: { amount: number; currency: string; description: string }) =>
+export const updateInvoiceTerms = (invoiceId: number, body: { advancePercent: number; paymentDueDate?: string }) =>
+  api.put<{ invoiceId: number; serviceRequestId: number }>(`/api/v1/invoices/${invoiceId}/terms`, body);
+
+export const recordInvoicePayment = (
+  invoiceId: number,
+  body: { amount: number; receivedOn: string; method: string; reference?: string; note?: string },
+) => api.post<{ invoiceId: number; serviceRequestId: number }>(`/api/v1/invoices/${invoiceId}/payments`, body);
+
+export const removeInvoicePayment = (invoiceId: number, paymentId: number) =>
+  api.del<{ invoiceId: number; serviceRequestId: number }>(`/api/v1/invoices/${invoiceId}/payments/${paymentId}`);
+
+export const raiseInvoice = (
+  id: number,
+  body: { amount: number; currency: string; description: string; advancePercent?: number; paymentDueDate?: string },
+) =>
   api.post<{ invoiceId: number; serviceRequestId: number }>(`/api/v1/service-requests/${id}/invoices`, body);
 
 export const decideInvoice = (invoiceId: number, body: { decision: 'ACCEPT' | 'REJECT' | 'QUERY'; note?: string }) =>

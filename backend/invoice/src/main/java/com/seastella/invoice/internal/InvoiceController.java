@@ -4,12 +4,15 @@ import com.seastella.core.api.error.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Locale;
 
 /**
@@ -32,7 +35,8 @@ class InvoiceController {
     @PostMapping("/api/v1/service-requests/{requestId}/invoices")
     @PreAuthorize("hasRole('SERVICE_COORDINATOR')")
     ResponseEntity<Result> raise(@PathVariable Long requestId, @RequestBody RaiseBody body) {
-        Long invoiceId = service.raise(requestId, body.amount(), body.currency(), body.description());
+        Long invoiceId = service.raise(requestId, body.amount(), body.currency(), body.description(),
+                body.advancePercent(), body.paymentDueDate());
         return ResponseEntity.status(HttpStatus.CREATED).body(new Result(invoiceId, requestId));
     }
 
@@ -49,7 +53,36 @@ class InvoiceController {
         return ResponseEntity.ok(new Result(invoiceId, requestId));
     }
 
-    record RaiseBody(BigDecimal amount, String currency, String description) {}
+    /** Payment terms: the Coordinator sets and changes them (payment tracking; no money moves here). */
+    @PutMapping("/api/v1/invoices/{invoiceId}/terms")
+    @PreAuthorize("hasRole('SERVICE_COORDINATOR')")
+    ResponseEntity<Result> terms(@PathVariable Long invoiceId, @RequestBody TermsBody body) {
+        Long requestId = service.updateTerms(invoiceId, body.advancePercent(), body.paymentDueDate());
+        return ResponseEntity.ok(new Result(invoiceId, requestId));
+    }
+
+    /** Money received, recorded by the Coordinator. */
+    @PostMapping("/api/v1/invoices/{invoiceId}/payments")
+    @PreAuthorize("hasRole('SERVICE_COORDINATOR')")
+    ResponseEntity<Result> recordPayment(@PathVariable Long invoiceId, @RequestBody PaymentBody body) {
+        Long requestId = service.recordPayment(invoiceId, body.amount(), body.receivedOn(), body.method(),
+                body.reference(), body.note());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new Result(invoiceId, requestId));
+    }
+
+    @DeleteMapping("/api/v1/invoices/{invoiceId}/payments/{paymentId}")
+    @PreAuthorize("hasRole('SERVICE_COORDINATOR')")
+    ResponseEntity<Result> removePayment(@PathVariable Long invoiceId, @PathVariable Long paymentId) {
+        Long requestId = service.removePayment(invoiceId, paymentId);
+        return ResponseEntity.ok(new Result(invoiceId, requestId));
+    }
+
+    record RaiseBody(BigDecimal amount, String currency, String description,
+                     Integer advancePercent, LocalDate paymentDueDate) {}
+
+    record TermsBody(Integer advancePercent, LocalDate paymentDueDate) {}
+
+    record PaymentBody(BigDecimal amount, LocalDate receivedOn, String method, String reference, String note) {}
 
     record DecisionBody(String decision, String note) {}
 

@@ -1,6 +1,7 @@
 package com.seastella.invoice.internal;
 
 import com.seastella.invoice.api.InvoiceMetrics;
+import com.seastella.invoice.api.PaymentPosition;
 import com.seastella.invoice.api.InvoiceStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -165,7 +166,8 @@ class DefaultInvoiceMetrics implements InvoiceMetrics {
                    i.vessel_id, v.name as vessel_name, i.amount, i.currency, i.description,
                    i.status, i.raised_by_user_id, ru.full_name as raised_by_name,
                    i.decided_by_user_id, du.full_name as decided_by_name, i.decision_note,
-                   i.created_at, i.decided_at
+                   i.created_at, i.decided_at, i.advance_percent, i.payment_due_date,
+                   (select coalesce(sum(p.amount), 0) from invoice_payment p where p.invoice_id = i.id) as received
             from invoice i
             join service_request r on r.id = i.service_request_id
             join vessel v on v.id = i.vessel_id
@@ -186,7 +188,15 @@ class DefaultInvoiceMetrics implements InvoiceMetrics {
                 rs.getLong("raised_by_user_id"), rs.getString("raised_by_name"),
                 decidedBy == null ? null : ((Number) decidedBy).longValue(),
                 rs.getString("decided_by_name"), rs.getString("decision_note"),
-                instant(rs, "created_at"), instant(rs, "decided_at"));
+                instant(rs, "created_at"), instant(rs, "decided_at"),
+                PaymentPosition.of(status, rs.getBigDecimal("amount"), rs.getInt("advance_percent"),
+                        date(rs, "payment_due_date"), rs.getBigDecimal("received"),
+                        java.time.LocalDate.now(java.time.ZoneOffset.UTC)));
+    }
+
+    private static java.time.LocalDate date(ResultSet rs, String column) throws SQLException {
+        java.sql.Date d = rs.getDate(column);
+        return d == null ? null : d.toLocalDate();
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

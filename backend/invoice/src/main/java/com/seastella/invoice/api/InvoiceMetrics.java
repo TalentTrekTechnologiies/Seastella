@@ -54,5 +54,6 @@ public interface InvoiceMetrics {
             String description, InvoiceStatus status, String statusLabel,
             Long raisedByUserId, String raisedByName,
             Long decidedByUserId, String decidedByName, String decisionNote,
-            Instant raisedAt, Instant decidedAt) {}
+            Instant raisedAt, Instant decidedAt,
+            PaymentPosition payment) {}
 }

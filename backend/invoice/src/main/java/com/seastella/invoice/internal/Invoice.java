@@ -11,13 +11,15 @@ import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * An invoice raised against a service request (SoW s6.2).
  *
- * <p>An acceptance-and-tracking record only. No payment reference, no gateway
- * identifier, no settled amount - their absence is a decision, recorded in
- * docs/03-data-model.md, not an omission.
+ * <p>Acceptance, and the terms it was accepted on: how much in advance and by
+ * when the whole is due. Payments received are recorded separately
+ * ({@link InvoicePayment}); no money moves through the platform - settlement
+ * stays with Seastella's finance process (SoW s15).
  */
 @Entity
 @Table(name = "invoice")
@@ -67,6 +69,15 @@ public class Invoice extends BaseEntity implements VesselScoped {
     @Column(name = "seed_marker", length = 8)
     private String seedMarker;
 
+    @Column(name = "advance_percent", nullable = false)
+    private int advancePercent;
+
+    @Column(name = "payment_due_date")
+    private LocalDate paymentDueDate;
+
+    @Column(name = "overdue_alerted_at")
+    private Instant overdueAlertedAt;
+
     protected Invoice() {
     }
 
@@ -97,6 +108,18 @@ public class Invoice extends BaseEntity implements VesselScoped {
     public String getDecisionNote() { return decisionNote; }
     public Long getSupersedesInvoiceId() { return supersedesInvoiceId; }
     public String getSeedMarker() { return seedMarker; }
+    public int getAdvancePercent() { return advancePercent; }
+    public LocalDate getPaymentDueDate() { return paymentDueDate; }
+    public Instant getOverdueAlertedAt() { return overdueAlertedAt; }
+
+    /** Terms change: a new due date is a new deadline, so its overdue alert can go out again. */
+    public void setTerms(int advancePercent, LocalDate paymentDueDate) {
+        if (!java.util.Objects.equals(this.paymentDueDate, paymentDueDate)) this.overdueAlertedAt = null;
+        this.advancePercent = advancePercent;
+        this.paymentDueDate = paymentDueDate;
+    }
+
+    public void overdueAlerted(Instant at) { this.overdueAlertedAt = at; }
 
     public void setSupersedesInvoiceId(Long id) { this.supersedesInvoiceId = id; }
     public void markSeed() { this.seedMarker = "SEED"; }

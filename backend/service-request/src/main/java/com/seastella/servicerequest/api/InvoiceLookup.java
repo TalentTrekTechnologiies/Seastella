@@ -1,6 +1,7 @@
 package com.seastella.servicerequest.api;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -29,5 +30,25 @@ public interface InvoiceLookup {
             Long decidedByUserId,
             String decidedByName,
             Instant decidedAt,
-            String decisionNote) {}
+            String decisionNote,
+            Payment payment) {}
+
+    /**
+     * Where the money stands: terms, received, outstanding and whether the
+     * advance is in or the balance is late. A record, not a gate - nothing in
+     * the workflow waits on it.
+     */
+    record Payment(
+            int advancePercent,
+            String advanceAmount,
+            LocalDate dueDate,
+            String received,
+            String balance,
+            boolean advanceReceived,
+            String status,
+            boolean overdue,
+            List<PaymentLine> lines) {}
+
+    record PaymentLine(Long id, String amount, LocalDate receivedOn, String method, String reference,
+                       String note, String recordedByName, Instant recordedAt) {}
 }

@@ -35,5 +35,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     boolean existsByInvoiceNumber(String invoiceNumber);
 
+    /** Accepted invoices past their due date that have not been announced for it yet. */
+    List<Invoice> findByStatusAndPaymentDueDateBeforeAndOverdueAlertedAtIsNull(InvoiceStatus status,
+                                                                             java.time.LocalDate today);
+
     long countByInvoiceNumberStartingWith(String prefix);
 }

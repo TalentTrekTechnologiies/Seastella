@@ -14,6 +14,7 @@ import { ApiError } from '@/api/client';
 import { Button } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
 import { formatMoney } from '@/lib/format';
+import { PaymentTermsFields, paymentWarning } from './InvoicePayments';
 
 /** What the user sees after each step goes through. */
 export const DONE_MESSAGE: Record<string, string> = {
@@ -125,6 +126,8 @@ function InvoiceDialog({ requestId, detail, onClose, onDone }: DialogProps) {
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
+  const [advance, setAdvance] = useState('0');
+  const [dueDate, setDueDate] = useState('');
   const { busy, error, run } = useSubmit(onDone);
   const value = Number(amount);
   const valid = Number.isFinite(value) && value > 0 && description.trim().length > 0;
@@ -142,7 +145,13 @@ function InvoiceDialog({ requestId, detail, onClose, onDone }: DialogProps) {
             disabled={busy || !valid}
             onClick={() =>
               run(async () => {
-                await raiseInvoice(requestId, { amount: value, currency, description });
+                await raiseInvoice(requestId, {
+                  amount: value,
+                  currency,
+                  description,
+                  advancePercent: Number(advance) || 0,
+                  paymentDueDate: dueDate || undefined,
+                });
                 // The invoice call answers with ids; read the request so the page is current on close.
                 return fetchRequest(requestId);
               })
@@ -169,6 +178,8 @@ function InvoiceDialog({ requestId, detail, onClose, onDone }: DialogProps) {
       <Field label="What it covers" htmlFor="inv-desc">
         <textarea id="inv-desc" className="textarea" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Attendance, parts and labour for…" />
       </Field>
+      <p className="dialog__note">Payment terms — shown to the Ship Manager with the invoice. Payments are recorded on the request as they arrive.</p>
+      <PaymentTermsFields advance={advance} setAdvance={setAdvance} dueDate={dueDate} setDueDate={setDueDate} idSuffix="new" />
       <FormError message={error} />
     </Dialog>
   );
@@ -253,6 +264,14 @@ function AssignDialog({ requestId, detail, onClose, onDone }: DialogProps) {
       }
     >
       <p className="dialog__note">The invoice has been accepted, so this job can be dispatched.</p>
+      {detail.invoices.map((inv) => paymentWarning(inv)).filter(Boolean).slice(0, 1).map((w) => (
+        <div key="pay" className="notice notice--wait" role="status">
+          <div>
+            <p className="notice__title">{w!.title}</p>
+            <p className="notice__body">{w!.body}</p>
+          </div>
+        </div>
+      ))}
       <Field label="Service engineer" htmlFor="assign-engineer">
         <select
           id="assign-engineer"

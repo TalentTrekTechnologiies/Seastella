@@ -10,6 +10,35 @@ public final class InvoiceEvents {
 
     private InvoiceEvents() {}
 
+    /**
+     * An accepted invoice still has money owing after its due date. Raised
+     * once per due date by the nightly scan; it informs, it stops nothing.
+     */
+    public record PaymentOverdue(
+            Long invoiceId,
+            String invoiceNumber,
+            Long serviceRequestId,
+            String requestNumber,
+            String vesselName,
+            BigDecimal amount,
+            BigDecimal balance,
+            String currency,
+            java.time.LocalDate dueDate,
+            Long organizationId,
+            Long vesselId,
+            Instant occurredAt) implements DomainEvent {
+
+        public static final String EVENT_TYPE = "INVOICE_PAYMENT_OVERDUE";
+
+        @Override
+        public String eventType() { return EVENT_TYPE; }
+
+        @Override
+        public String summary() {
+            return "Payment overdue on invoice " + invoiceNumber;
+        }
+    }
+
     public record InvoiceDecided(
             Long invoiceId,
             String invoiceNumber,

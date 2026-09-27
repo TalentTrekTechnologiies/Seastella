@@ -79,6 +79,9 @@ public final class AuditAction {
     public static final String INVOICE_ACCEPTED = "INVOICE_ACCEPTED";
     public static final String INVOICE_REJECTED = "INVOICE_REJECTED";
     public static final String INVOICE_QUERIED = "INVOICE_QUERIED";
+    public static final String INVOICE_TERMS_CHANGED = "INVOICE_TERMS_CHANGED";
+    public static final String INVOICE_PAYMENT_RECORDED = "INVOICE_PAYMENT_RECORDED";
+    public static final String INVOICE_PAYMENT_REMOVED = "INVOICE_PAYMENT_REMOVED";
 
     // Documents and import (AUD-07, AUD-08)
     public static final String DOCUMENT_UPLOADED = "DOCUMENT_UPLOADED";

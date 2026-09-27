@@ -15,6 +15,7 @@ import { useAuth } from '@/app/AuthContext';
 import { ActionDialog, DONE_MESSAGE, runImmediate } from './ActionDialogs';
 import { GuidedChecks } from './GuidedChecks';
 import { LiveChat } from './LiveChat';
+import { InvoicePayments, paymentWarning } from './InvoicePayments';
 import { RequestAttachmentsPanel } from './RequestAttachments';
 import './requests.css';
 
@@ -138,6 +139,21 @@ export function RequestDetailPage() {
         </div>
       )}
 
+      {/* Money not in yet: a warning before work starts or continues, never a block. */}
+      {data.financialsVisible &&
+        data.invoices
+          .map((inv) => paymentWarning(inv))
+          .filter(Boolean)
+          .slice(0, 1)
+          .map((w) => (
+            <div key="pay-warning" className={`notice ${w!.title.startsWith('Payment overdue') ? 'notice--alert' : 'notice--wait'}`} role="status">
+              <div>
+                <p className="notice__title">{w!.title}</p>
+                <p className="notice__body">{w!.body}</p>
+              </div>
+            </div>
+          ))}
+
       <NextStep
         detail={data}
         role={user?.role}
@@ -244,6 +260,14 @@ export function RequestDetailPage() {
                         {inv.decidedByName && <span>Decided by {inv.decidedByName}</span>}
                       </div>
                       {inv.decisionNote && <p className="req-reason"><b>Note</b>“{inv.decisionNote}”</p>}
+                      <InvoicePayments
+                        invoice={inv}
+                        canManage={user?.role === 'SERVICE_COORDINATOR'}
+                        onChanged={() => {
+                          void queryClient.invalidateQueries({ queryKey: ['service-request', id] });
+                          void queryClient.invalidateQueries({ queryKey: ['invoice-register'] });
+                        }}
+                      />
                     </article>
                   ))}
                 </div>

@@ -73,6 +73,38 @@ class NotificationFanout {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPaymentOverdue(com.seastella.invoice.api.InvoiceEvents.PaymentOverdue event) {
+        try {
+            tx.executeWithoutResult(status -> paymentOverdueAlerts(event));
+        } catch (RuntimeException e) {
+            log.error("Payment overdue alerts for {} could not be created", event.invoiceNumber(), e);
+        }
+    }
+
+    private void paymentOverdueAlerts(com.seastella.invoice.api.InvoiceEvents.PaymentOverdue event) {
+        String due = event.dueDate() == null ? "" : event.dueDate().format(
+                java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.ENGLISH));
+        AlertMessages.Message message = new AlertMessages.Message(Notification.Category.ACTION,
+                "Payment overdue: " + event.invoiceNumber(),
+                event.balance().toPlainString() + " " + event.currency() + " of "
+                        + event.amount().toPlainString() + " " + event.currency() + " is still unpaid on invoice "
+                        + event.invoiceNumber()
+                        + (event.requestNumber() == null ? "" : " for " + event.requestNumber())
+                        + (event.vesselName() == null ? "" : " (" + event.vesselName() + ")")
+                        + ". It was due on " + due + ". Decide whether work starts or continues until it is paid.");
+        Map<Long, NotificationRule> byUser = new LinkedHashMap<>();
+        Map<Long, UserRef> people = new LinkedHashMap<>();
+        for (NotificationRule rule : rules.findByEventTypeAndActiveTrue(event.eventType())) {
+            for (UserRef user : recipientsInScope(rule.getRecipientRole(), event.organizationId(), event.vesselId())) {
+                byUser.putIfAbsent(user.id(), rule);
+                people.putIfAbsent(user.id(), user);
+            }
+        }
+        byUser.forEach((userId, rule) -> create(people.get(userId), rule, event.eventType(), message,
+                "SERVICE_REQUEST", event.serviceRequestId(), event.organizationId(), event.vesselId(), null));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onDueStatusChanged(MaintenanceEvents.DueStatusChanged event) {
         try {
             tx.executeWithoutResult(status -> maintenanceAlerts(event));

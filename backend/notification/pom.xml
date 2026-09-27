@@ -24,6 +24,11 @@
       <groupId>com.seastella</groupId>
       <artifactId>troubleshooting</artifactId>
     </dependency>
+    <!-- Payment overdue alerts. -->
+    <dependency>
+      <groupId>com.seastella</groupId>
+      <artifactId>invoice</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
