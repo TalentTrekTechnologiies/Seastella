@@ -15,6 +15,7 @@ import { useAuth } from '@/app/AuthContext';
 import { ActionDialog, DONE_MESSAGE, runImmediate } from './ActionDialogs';
 import { GuidedChecks } from './GuidedChecks';
 import { LiveChat } from './LiveChat';
+import { JobLog } from './JobLog';
 import { InvoicePayments, paymentWarning } from './InvoicePayments';
 import { RequestAttachmentsPanel } from './RequestAttachments';
 import './requests.css';
@@ -169,6 +170,9 @@ export function RequestDetailPage() {
       {/* So does the live chat, for the two people in it. */}
       {chatLeads && <LiveChat requestId={id} prominent />}
 
+      {/* The engineer on the job logs each step here, so it leads the page for them. */}
+      {user?.role === 'SERVICE_ENGINEER' && r.assignedEngineerName && <JobLog requestId={id} prominent />}
+
       <Progress status={r.status} />
 
       <div className="row-main-side">
@@ -189,6 +193,8 @@ export function RequestDetailPage() {
           />
 
           {!chatLeads && <LiveChat requestId={id} prominent={false} />}
+
+          {user?.role !== 'SERVICE_ENGINEER' && r.assignedEngineerName && <JobLog requestId={id} />}
 
           {!checksAreMyMove && checksPanel}
 

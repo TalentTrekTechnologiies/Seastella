@@ -118,7 +118,8 @@ class SchemaMigrationIT {
                 "29", // masterdata-import: a staged row says what kind of thing it is
                 "30",  // fleet: a critical spare keeps the form's name for its equipment
                 "31",  // troubleshooting: the request thread is open to everyone on the request
-                "32"); // invoice: payment terms and payments received
+                "32",  // invoice: payment terms and payments received
+                "33"); // service-request: the engineer's job log
     }
 
     @Test

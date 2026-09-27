@@ -276,14 +276,14 @@ function JobSheet({ job }: { job: EngineerJob }) {
 
         <section className="sheet__report">
           <div>
-            <h3 className="sheet__h">Completion report</h3>
+            <h3 className="sheet__h">Job log and completion report</h3>
             <p className="sheet__desc">
-              Start the work, then file what you did, the parts used and the outcome. Your report goes to the Service
-              Coordinator.
+              Open the job to log each step as it happens — arrived on board, work started, progress, waiting, finished —
+              then file your completion report. Every step is kept with its time.
             </p>
           </div>
           <Link to={`/requests/${job.serviceRequestId}`} className="cbtn cbtn--primary cbtn--lg">
-            Open job to update it
+            Open job to log work
           </Link>
         </section>
       </div>

@@ -83,6 +83,9 @@ public final class AuditAction {
     public static final String INVOICE_PAYMENT_RECORDED = "INVOICE_PAYMENT_RECORDED";
     public static final String INVOICE_PAYMENT_REMOVED = "INVOICE_PAYMENT_REMOVED";
 
+    // Engineer job log
+    public static final String JOB_LOG_ADDED = "JOB_LOG_ADDED";
+
     // Documents and import (AUD-07, AUD-08)
     public static final String DOCUMENT_UPLOADED = "DOCUMENT_UPLOADED";
     public static final String DOCUMENT_DELETED = "DOCUMENT_DELETED";

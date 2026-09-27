@@ -222,15 +222,15 @@ export async function fetchObjectUrl(path: string): Promise<string> {
   return URL.createObjectURL(await response.blob());
 }
 
-/** Multipart upload; the browser sets the boundary, so no Content-Type here. */
+/** Multipart form, with or without a file; the browser sets the boundary, so no Content-Type here. */
 export async function uploadFile<T>(
   path: string,
-  file: File,
+  file: File | null,
   fields: Record<string, string | number | undefined | null> = {},
   field = 'file',
 ): Promise<T> {
   const form = new FormData();
-  form.append(field, file);
+  if (file) form.append(field, file);
   Object.entries(fields).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') form.append(key, String(value));
   });
