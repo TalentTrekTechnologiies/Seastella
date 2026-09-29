@@ -149,11 +149,12 @@ class MasterDataImportIT {
         JsonNode preview = body(upload(head, file), 201);
         Long batchId = preview.path("id").asLong();
         assertThat(preview.path("rowCount").asInt()).isEqualTo(10);
-        assertThat(preview.path("newCount").asInt()).isEqualTo(2);
+        // A date that does not exist (31 June) leaves that cell empty; the row itself still goes in.
+        assertThat(preview.path("newCount").asInt()).isEqualTo(3);
         assertThat(preview.path("modifiedCount").asInt()).isEqualTo(1);
         assertThat(preview.path("unchangedCount").asInt()).isEqualTo(1);
         assertThat(preview.path("duplicateCount").asInt()).isEqualTo(1);
-        assertThat(preview.path("invalidCount").asInt()).isEqualTo(5);
+        assertThat(preview.path("invalidCount").asInt()).isEqualTo(4);
         assertThat(preview.path("vessels").asText()).contains(imo);
 
         Map<String, JsonNode> byRef = rowsByRef(preview);
@@ -181,10 +182,12 @@ class MasterDataImportIT {
 
         JsonNode committed = body(commit(head, batchId), 200);
         assertThat(committed.path("status").asText()).isEqualTo("COMMITTED");
-        assertThat(committed.path("appliedCount").asInt()).isEqualTo(3);
+        assertThat(committed.path("appliedCount").asInt()).isEqualTo(4);
         assertThat(committed.path("committedBy").asText()).isNotBlank();
 
-        assertThat(spareCount()).isEqualTo(sparesBefore + 2);
+        assertThat(spareCount()).isEqualTo(sparesBefore + 3);
+        assertThat(jdbc.queryForObject("select installation_date from spare where vessel_id = ? and vmp_ref = ?",
+                java.sql.Date.class, vesselId, newRef + "2")).as("an impossible date is left empty, never guessed").isNull();
         Map<String, Object> changed = jdbc.queryForMap(
                 "select make, criticality, last_annual_service_date from spare where vessel_id = ? and vmp_ref = ?",
                 vesselId, existingRef);

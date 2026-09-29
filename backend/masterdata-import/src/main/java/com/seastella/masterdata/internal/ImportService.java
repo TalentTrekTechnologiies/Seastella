@@ -315,6 +315,33 @@ class ImportService {
 
     private record Staged(Long categoryId, SpareValues values) {}
 
+    /** Marks, in a staged row, a category the file adds rather than one that exists. */
+    private static final String NEW_CATEGORY = "NEW:";
+
+    /**
+     * Other names clients' lists use for the template's categories, keyed by
+     * code: spelling variants ("walky talky") and the long names of the
+     * acronyms. Matched the same way as the names, ignoring case and spacing.
+     */
+    private static final Map<String, List<String>> ALIASES = Map.ofEntries(
+            Map.entry("GMDSS_WT", List.of("walky talky", "walkie talkie", "walky talkie", "walkie talky",
+                    "walkytalky", "handheld vhf", "hand held vhf", "portable vhf", "two way radio", "twoway radio")),
+            Map.entry("SATC", List.of("inmarsat c", "inmarsat-c", "sat-c")),
+            Map.entry("MFHF", List.of("mf hf", "mf-hf", "mf/hf")),
+            Map.entry("SPEED_LOG", List.of("speed log", "doppler log", "em log", "electromagnetic log")),
+            Map.entry("ECHO_SOUNDER", List.of("echosounder", "depth sounder", "echo sounding")),
+            Map.entry("ITU_PUB", List.of("itu publication", "publications", "admiralty list")),
+            Map.entry("VDR", List.of("voyage data recorder")),
+            Map.entry("AIS", List.of("automatic identification")),
+            Map.entry("ECDIS", List.of("electronic chart")),
+            Map.entry("BNWAS", List.of("bridge navigational watch", "watch alarm")),
+            Map.entry("EPIRB", List.of("eprib")),
+            Map.entry("GYRO", List.of("gyro compass")),
+            Map.entry("AUTOPILOT", List.of("auto pilot", "track pilot", "steering control")),
+            Map.entry("ANEMOMETER", List.of("wind sensor", "wind speed")),
+            Map.entry("SSAS", List.of("ship security alert")),
+            Map.entry("GPS", List.of("gnss", "dgps")));
+
     /** Holds what one file needs while it is being classified, so each row is one pass. */
     private final class Staging {
 
@@ -384,7 +411,8 @@ class ImportService {
 
             ExistingSpare existing = spares(vessel.id()).get(ref);
             FleetDirectory.CategoryRef category = category(row, problems);  // may be inferred below
-            Map<Column, Object> provided = values(row, problems);
+            List<String> notes = new java.util.ArrayList<>();
+            Map<Column, Object> provided = values(row, problems, notes);
 
             if (existing == null && category == null && row.get(Column.CATEGORY) == null) {
                 category = inferCategory(vessel.id(), ref, name);
@@ -407,8 +435,9 @@ class ImportService {
                     : changes(existing, category, provided);
             ImportRow.Outcome outcome = existing == null ? ImportRow.Outcome.NEW
                     : changes.isEmpty() ? ImportRow.Outcome.UNCHANGED : ImportRow.Outcome.MODIFIED;
+            // The row goes in; what looked odd in it is said alongside, not held against it.
             return staged(batchId, row, imo, ref, name == null && existing != null ? existing.values().name() : name,
-                    vessel, existing, category, outcome, problems, changes);
+                    vessel, existing, category, outcome, notes, changes);
         }
 
         // --------------------------------------------------------- the vessel
@@ -521,7 +550,9 @@ class ImportService {
             } else if (name.length() > 200) {
                 problems.add("The spare name is longer than 200 characters.");
             }
-            problems.addAll(row.warnings());
+            // What the reader could not make sense of in a cell is a note, not a refusal:
+            // the spare still goes in with the rest of its row.
+            List<String> notes = new java.util.ArrayList<>(row.warnings());
 
             VesselRef vessel = imo == null ? null : resolve(imo).orElse(null);
             if (imo != null && vessel == null) {
@@ -553,8 +584,10 @@ class ImportService {
                     : spareChanges(existing.values(), incoming);
             ImportRow.Outcome outcome = existing == null ? ImportRow.Outcome.NEW
                     : changes.isEmpty() ? ImportRow.Outcome.UNCHANGED : ImportRow.Outcome.MODIFIED;
+            List<String> said = new java.util.ArrayList<>(problems);
+            said.addAll(notes);
             return stagedSpare(batchId, row.rowNumber(), imo, name, equipment, vessel, existing,
-                    outcome, problems, values, changes);
+                    outcome, said, values, changes);
         }
 
         private Map<String, String> spareValues(CriticalSpareRow row, String equipment) {
@@ -673,7 +706,23 @@ class ImportService {
                     return inherited;
                 }
             }
+            // A top-level heading naming a kind of equipment the platform does
+            // not know - a Magnetic Compass, a Weather Fax - is that kind: it is
+            // added on commit under the sheet's own name, and everything beneath
+            // it follows. The file goes in as it is rather than losing the group.
+            if (parentRef(ref) == null && name != null && !name.isBlank()) {
+                FleetDirectory.CategoryRef added = newCategory(name);
+                categoryByRef.put(vesselId + "|" + ref, added);
+                return added;
+            }
             return null;
+        }
+
+        /** A category this file will add, named as the sheet names it; created when the import is committed. */
+        private FleetDirectory.CategoryRef newCategory(String name) {
+            String tidy = name.trim().replaceAll("\\s+", " ");
+            if (tidy.length() > 80) tidy = tidy.substring(0, 80).trim();
+            return new FleetDirectory.CategoryRef(null, NEW_CATEGORY + tidy, tidy + " (new type)");
         }
 
         /** The longest category code or name the equipment's own name contains. */
@@ -684,7 +733,9 @@ class ImportService {
             FleetDirectory.CategoryRef best = null;
             int bestLength = 0;
             for (FleetDirectory.CategoryRef c : fleet.equipmentCategories()) {
-                for (String candidate : List.of(key(c.code()), key(c.name()))) {
+                List<String> names = new java.util.ArrayList<>(List.of(key(c.code()), key(c.name())));
+                ALIASES.getOrDefault(c.code(), List.of()).forEach(a -> names.add(key(a)));
+                for (String candidate : names) {
                     // Two letters match far too much; "AIS" and "GPS" are the short ones that count.
                     if (candidate.length() < 3 || !haystack.contains(candidate)) continue;
                     if (candidate.length() > bestLength) {
@@ -702,8 +753,14 @@ class ImportService {
             return lastDot <= 0 ? null : ref.substring(0, lastDot);
         }
 
-        /** Everything the row provides, checked; problems are collected rather than thrown. */
-        private Map<Column, Object> values(ParsedRow row, List<String> problems) {
+        /**
+         * Everything the row provides, checked; problems are collected rather
+         * than thrown. A date that cannot be read, or that contradicts another,
+         * is a note on the row - the rest of the row still goes in - because a
+         * client's sheet goes in as it is, and one odd cell must not cost a
+         * whole piece of equipment.
+         */
+        private Map<Column, Object> values(ParsedRow row, List<String> problems, List<String> notes) {
             Map<Column, Object> provided = new LinkedHashMap<>();
             text(row, Column.NAME, 200, "Spare / Description", provided, problems);
             text(row, Column.MAKE, 120, "Make", provided, problems);
@@ -716,11 +773,11 @@ class ImportService {
                 if (raw == null) continue;
                 LocalDate date = row.date(c);
                 if (date == null) {
-                    problems.add(c.heading + " \"" + raw + "\" is not a date. Use a date cell, or text like 2026-03-31.");
+                    notes.add(c.heading + " \"" + raw + "\" is not a date, so it was left empty.");
                     continue;
                 }
                 if (c != Column.EXPIRES && date.isAfter(tomorrow)) {
-                    problems.add(c.heading + " cannot be in the future.");
+                    notes.add(c.heading + " " + date + " is in the future, so it was left empty.");
                     continue;
                 }
                 provided.put(c, date);
@@ -728,7 +785,8 @@ class ImportService {
             LocalDate installed = (LocalDate) provided.get(Column.INSTALLED);
             LocalDate serviced = (LocalDate) provided.get(Column.LAST_SERVICE);
             if (installed != null && serviced != null && serviced.isBefore(installed)) {
-                problems.add("Last Annual Service is before the installation date.");
+                notes.add("Last Annual Service (" + serviced + ") is before the installation date ("
+                        + installed + "); both are kept as the sheet has them.");
             }
 
             String criticality = row.get(Column.CRITICALITY);
@@ -782,7 +840,7 @@ class ImportService {
                                             Map<Column, Object> provided) {
             Map<String, Change> changes = new LinkedHashMap<>();
             SpareValues current = existing.values();
-            if (category != null && !category.id().equals(existing.equipmentCategoryId())) {
+            if (category != null && category.id() != null && !category.id().equals(existing.equipmentCategoryId())) {
                 changes.put("category", new Change("Equipment Category", existing.categoryCode(), category.name()));
             }
             compare(changes, Column.NAME, provided, current.name());
@@ -865,9 +923,17 @@ class ImportService {
             categories.put(key(c.name()), c);
         });
         String categoryText = values.get(Column.CATEGORY.name());
-        FleetDirectory.CategoryRef category = categoryText == null ? null : categories.get(key(categoryText));
+        Long categoryId;
+        if (categoryText != null && categoryText.startsWith(NEW_CATEGORY)) {
+            // Named by the sheet and new to the platform: added now, once - the
+            // gateway returns the same category for its children.
+            categoryId = fleetGateway.ensureCategory(categoryText.substring(NEW_CATEGORY.length()), row.getVesselId());
+        } else {
+            FleetDirectory.CategoryRef category = categoryText == null ? null : categories.get(key(categoryText));
+            categoryId = category == null ? null : category.id();
+        }
 
-        return new Staged(category == null ? null : category.id(), new SpareValues(
+        return new Staged(categoryId, new SpareValues(
                 values.get(Column.NAME.name()),
                 values.get(Column.MAKE.name()),
                 values.get(Column.MODEL.name()),

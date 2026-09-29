@@ -39,11 +39,13 @@ class DefaultSpareImportGateway implements SpareImportGateway {
     private final ScopeResolver scopes;
     private final DomainEventPublisher events;
     private final SpareServiceRecordRepository history;
+    private final EquipmentCategoryCatalog catalog;
 
     DefaultSpareImportGateway(VesselRepository vessels, SpareRepository spares,
                               EquipmentCategoryRepository categories, ReplacementPartRepository parts,
                               ScopeResolver scopes, DomainEventPublisher events,
-                              SpareServiceRecordRepository history) {
+                              SpareServiceRecordRepository history, EquipmentCategoryCatalog catalog) {
+        this.catalog = catalog;
         this.vessels = vessels;
         this.spares = spares;
         this.categories = categories;
@@ -107,6 +109,12 @@ class DefaultSpareImportGateway implements SpareImportGateway {
         return spares.findByVesselIdOrderByPathAsc(vesselId).stream()
                 .map(s -> s.getVmpRef() == null ? s.getPath() : s.getVmpRef())
                 .toList();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Long ensureCategory(String name, Long vesselId) {
+        return catalog.ensure(name, scopes.currentScope(), vesselId).category().getId();
     }
 
     @Override

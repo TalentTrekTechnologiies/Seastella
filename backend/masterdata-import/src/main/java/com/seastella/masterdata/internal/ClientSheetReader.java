@@ -69,10 +69,15 @@ final class ClientSheetReader {
     private static final Set<String> BLANKS =
             Set.of("na", "n/a", "nil", "none", "-", "--", "n.a.", "tba", "na.", "x");
 
+    /** A date inside other words: 30-05-2030, 30/05/2030, 30.05.2030, 2030-05-30, 30-May-2030. */
+    private static final java.util.regex.Pattern DATE_IN_TEXT = java.util.regex.Pattern.compile(
+            "\\b(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[-/.]\\d{1,2}[-/.]\\d{4}|\\d{1,2}-[A-Za-z]{3}-\\d{4})\\b");
+
     private static final List<DateTimeFormatter> TEXT_DATES = List.of(
             DateTimeFormatter.ISO_LOCAL_DATE,
             DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.UK),
             DateTimeFormatter.ofPattern("d/M/yyyy", Locale.UK),
+            DateTimeFormatter.ofPattern("d-M-yyyy", Locale.UK),
             DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.UK),
             DateTimeFormatter.ofPattern("d-MMM-yyyy", Locale.UK),
             DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.UK));
@@ -450,6 +455,19 @@ final class ClientSheetReader {
                 return LocalDate.parse(value, pattern);
             } catch (DateTimeParseException ignored) {
                 // Try the next shape.
+            }
+        }
+        // A date written inside a note - "SPARE BATT EXP : 30-05-2030" - is still the date.
+        java.util.regex.Matcher inside = DATE_IN_TEXT.matcher(value);
+        if (inside.find()) {
+            for (DateTimeFormatter pattern : TEXT_DATES) {
+                try {
+                    LocalDate found = LocalDate.parse(inside.group().replace('.', '-'), pattern);
+                    warnings.add("The " + what + " was read as " + found + " from \"" + value + "\".");
+                    return found;
+                } catch (DateTimeParseException ignored) {
+                    // Try the next shape.
+                }
             }
         }
         warnings.add("\"" + value + "\" is not a date the " + what + " could be read from.");
