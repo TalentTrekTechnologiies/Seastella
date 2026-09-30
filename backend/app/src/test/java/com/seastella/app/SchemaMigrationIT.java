@@ -75,7 +75,11 @@ class SchemaMigrationIT {
                 // masterdata-import (V21)
                 "import_batch", "import_row",
                 // fleet (V22), notification (V23)
-                "document", "certificate_alert_state");
+                "document", "certificate_alert_state",
+                // fleet (V35): the latest release each equipment model should run
+                "software_baseline",
+                // notification (V37): the last expiry threshold announced per unit
+                "equipment_expiry_alert_state");
     }
 
     @Test
@@ -120,7 +124,10 @@ class SchemaMigrationIT {
                 "31",  // troubleshooting: the request thread is open to everyone on the request
                 "32",  // invoice: payment terms and payments received
                 "33",  // service-request: the engineer's job log
-                "34"); // maintenance: the platform's default colour bands
+                "34",  // maintenance: the platform's default colour bands
+                "35",  // fleet: the latest release each equipment model should run
+                "36",  // maintenance: the client's bands - yellow at 60, red at 15
+                "37"); // notification: reminders before a unit's own expiry date
     }
 
     @Test
