@@ -191,6 +191,29 @@ Distinct from `spare` (see §1). View-only in the MVP per SOURCE-A §7.
 Shortage flag is derived: `quantity_on_hand < minimum_quantity`. Not stored —
 storing it would let it drift from the quantity it describes.
 
+### `software_baseline`
+The latest software release each equipment **model** should be running. The
+client keeps this as a spreadsheet; it uploads into this table.
+
+`make`, `model`, `match_key`, `equipment_name` (display only), `latest_version`,
+`source` (`IMPORTED` / `RECORDED`), `notes`.
+
+Unscoped on purpose: a baseline belongs to a model, not to a vessel, so one row
+serves every Furuno FA-170 in every fleet.
+
+`match_key` is `make` and `model` folded to lower case with all punctuation and
+spacing stripped, so the sheet's `FA-170` still matches a vessel's `FA170`. It
+is stored rather than computed at read time, which is what lets the database
+enforce one baseline per model. Digits are never folded — `FA-170` and `FA-171`
+are different devices, and a false match would report a vessel as current
+against another model's release.
+
+Currency itself is **derived, not stored**: `SoftwareVersions.compare` orders
+`spare.software_version` against `latest_version` when a vessel's fit is read.
+Storing the verdict would let it drift from the two versions it describes — the
+same reasoning as the shortage flag above — and it would have to be recomputed
+across every vessel each time one sheet row changed.
+
 ## 4. Service request (`service-request`)
 
 ### `service_request`
@@ -320,6 +343,15 @@ organization.
 `organization_id` (null = platform default), `status_code`, `min_days`,
 `max_days`, `colour`, `active`.
 
+Platform defaults as shipped (V36): Normal above 60 days, Approaching 16–60
+(yellow), Urgent 1–15 (red), Due today, Overdue past. The client widened these
+from the §11 table's 15 / 10 / 9 so a warning arrives while parts can still be
+ordered, and dropped orange with the middle step — see V-12 in
+`08-scope-variances.md`. The rows are what decide the bands; the constants in
+`DefaultMaintenanceStatusEngine` are only the fallback for an installation
+with no rows at all. The same rows band `spare.expiration_date` (V-13), so the
+two dates a unit carries are always read off one ladder.
+
 Seeded: `APPROACHING 10–15`, `URGENT 1–9`, `DUE 0–0`, `OVERDUE < 0`,
 `NORMAL > 15`.
 
@@ -380,6 +412,17 @@ As built (V23): `document_id` (unique), `last_threshold_days`, `expiry_date`,
 crosses (90 / 30 / 7 / 0 by default, configurable), exactly as `spare_due_state`
 remembers the last colour band announced. A renewed expiry date starts the
 thresholds again.
+
+### `equipment_expiry_alert_state` (`notification` module)
+As built (V37): `spare_id` (unique, cascades with the unit),
+`last_threshold_days`, `expiry_date`, `alerted_at`. The same bookmark as
+`certificate_alert_state`, for a different date — `spare.expiration_date`, the
+day the unit itself stops being fit for use. The nightly sweep announces once
+per threshold crossed (60 / 15 / 0 by default, configurable via
+`seastella.notification.equipment.warning-days`), so a unit expiring in three
+months does not alert for ninety nights. The expiry date is stored alongside
+the threshold so that correcting the date frees the unit to announce again
+against the new deadline.
 
 ### `platform_setting`
 `key`, `value`, `value_type`, `organization_id` (null = global), `description`.

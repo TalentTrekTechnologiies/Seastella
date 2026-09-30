@@ -29,13 +29,16 @@ class SpareController {
     private final VesselRepository vessels;
     private final SpareRepository spares;
     private final EquipmentCategoryRepository categories;
+    private final SoftwareBaselineRepository baselines;
     private final ScopeGuard scopeGuard;
 
     SpareController(VesselRepository vessels, SpareRepository spares,
-                    EquipmentCategoryRepository categories, ScopeGuard scopeGuard) {
+                    EquipmentCategoryRepository categories,
+                    SoftwareBaselineRepository baselines, ScopeGuard scopeGuard) {
         this.vessels = vessels;
         this.spares = spares;
         this.categories = categories;
+        this.baselines = baselines;
         this.scopeGuard = scopeGuard;
     }
 
@@ -49,15 +52,27 @@ class SpareController {
         Map<Long, EquipmentCategory> byId = categories.findAll().stream()
                 .collect(Collectors.toMap(EquipmentCategory::getId, Function.identity()));
 
+        // The whole baseline table in one read. It is one row per equipment
+        // model across the platform - hundreds, not millions - and the
+        // alternative is a query per spare on a tree of ninety.
+        Map<String, SoftwareBaseline> baselineByKey = baselines.findAll().stream()
+                .collect(Collectors.toMap(SoftwareBaseline::getMatchKey, Function.identity(),
+                        (first, second) -> first));
+
         List<SpareNode> nodes = spares.findByVesselIdOrderByPathAsc(vesselId).stream()
                 .map(s -> {
                     EquipmentCategory c = byId.get(s.getEquipmentCategoryId());
+                    String key = SoftwareMatchKey.of(s.getMake(), s.getModel());
+                    SoftwareBaseline baseline = key == null ? null : baselineByKey.get(key);
+                    String latest = baseline == null ? null : baseline.getLatestVersion();
                     return new SpareNode(
                             s.getId(), s.getParentSpareId(), s.getPath(), s.getDepth(), s.getName(),
                             c == null ? null : c.getCode(), c == null ? null : c.getName(),
                             s.getMake(), s.getModel(), s.getSerialNumber(),
                             s.getCriticality().name(), s.isTracksRunningHours(), s.getRunningHours(),
-                            s.getSoftwareVersion(), s.getInstallationDate(), s.getExpirationDate(),
+                            s.getSoftwareVersion(), latest,
+                            SoftwareVersions.compare(s.getSoftwareVersion(), latest).name(),
+                            s.getInstallationDate(), s.getExpirationDate(),
                             s.getLastAnnualServiceDate());
                 })
                 .toList();
@@ -71,6 +86,7 @@ class SpareController {
                      String categoryCode, String categoryName,
                      String make, String model, String serialNumber,
                      String criticality, boolean tracksRunningHours, BigDecimal runningHours,
-                     String softwareVersion, java.time.LocalDate installationDate,
+                     String softwareVersion, String latestSoftwareVersion, String softwareStatus,
+                     java.time.LocalDate installationDate,
                      java.time.LocalDate expirationDate, java.time.LocalDate lastAnnualServiceDate) {}
 }

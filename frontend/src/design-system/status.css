@@ -64,6 +64,16 @@
   color: var(--c-critical);
   border-color: color-mix(in srgb, var(--c-critical) 35%, transparent);
 }
+.badge--software-current {
+  background: var(--c-software-current-weak);
+  color: var(--c-software-current);
+  border-color: color-mix(in srgb, var(--c-software-current) 35%, transparent);
+}
+.badge--software-outdated {
+  background: var(--c-software-outdated-weak);
+  color: var(--c-software-outdated);
+  border-color: color-mix(in srgb, var(--c-software-outdated) 40%, transparent);
+}
 
 /* Shape carries the status as well as colour: greyscale and colour-vision safe. */
 .glyph {
@@ -93,6 +103,29 @@
 }
 .glyph--none {
   display: none;
+}
+/* Software currency, not maintenance. A tick and an up-arrow, so the column
+   is still readable in greyscale and cannot be mistaken for a due status. */
+.glyph--tick {
+  width: 5px;
+  height: 9px;
+  background: none;
+  border: solid currentColor;
+  border-width: 0 1.8px 1.8px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+.glyph--uplift {
+  width: 0;
+  height: 0;
+  background: none;
+  border-left: 4.5px solid transparent;
+  border-right: 4.5px solid transparent;
+  border-bottom: 8px solid currentColor;
+}
+.glyph--bar {
+  width: 9px;
+  height: 3px;
+  border-radius: 1px;
 }
 
 .vessel-status {

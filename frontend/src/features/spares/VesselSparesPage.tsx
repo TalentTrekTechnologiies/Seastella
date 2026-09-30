@@ -3,17 +3,16 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCaptain } from '@/api/dashboards';
 import { fetchVesselFit, type SpareNode } from '@/api/serviceRequests';
-import { fetchVesselMaintenance, type SpareDue } from '@/api/admin';
-import { Button, ConsoleHeader, Plate, StatusMark } from '@/design-system/Console';
+import { fetchVesselMaintenance } from '@/api/admin';
+import { Button, ConsoleHeader, Plate } from '@/design-system/Console';
 import { Dialog } from '@/design-system/Dialog';
 import { ErrorState, LoadingState } from '@/design-system/States';
-import { CriticalityChip } from '@/design-system/StatusBadge';
-import { formatDays } from '@/design-system/status';
-import { formatDate, formatHours } from '@/lib/format';
+import { CriticalityChip, DatedStatusBadge } from '@/design-system/StatusBadge';
+import { formatHours } from '@/lib/format';
 import { DocumentsPanel } from '@/features/documents/DocumentsPanel';
 import { PartsPanel } from '@/features/parts/PartsPanel';
 import { RaiseRequestDialog } from '@/features/requests/RaiseRequestDialog';
-import { SpareTree } from './SpareTree';
+import { SpareTree, type TreeColumn } from './SpareTree';
 
 /**
  * The vessel's equipment, as the Captain browses it (SoW §9.1, SPR-11).
@@ -46,6 +45,49 @@ export function VesselSparesPage() {
   const [raising, setRaising] = useState(false);
 
   const dueBySpare = useMemo(() => new Map((due.data ?? []).map((d) => [d.spareId, d])), [due.data]);
+
+  /**
+   * The two dates a unit can be waiting on, each in its own column and each in
+   * its band's colour — the same columns the Technical Head reads, so the
+   * Captain and the office are looking at one answer rather than two.
+   */
+  const columns = useMemo<TreeColumn[]>(
+    () => [
+      {
+        key: 'due',
+        header: 'Service due',
+        width: 176,
+        render: (spare) => {
+          const d = dueBySpare.get(spare.id);
+          return (
+            <DatedStatusBadge
+              status={d?.status}
+              date={d?.nextDueDate}
+              daysRemaining={d?.daysRemaining}
+              what="Service due"
+            />
+          );
+        },
+      },
+      {
+        key: 'expiry',
+        header: 'Expires',
+        width: 164,
+        render: (spare) => {
+          const d = dueBySpare.get(spare.id);
+          return (
+            <DatedStatusBadge
+              status={d?.expiryStatus}
+              date={d?.expiryDate}
+              daysRemaining={d?.daysToExpiry}
+              what="Expires"
+            />
+          );
+        },
+      },
+    ],
+    [dueBySpare],
+  );
 
   if (dashboard.error) return <ErrorState error={dashboard.error} onRetry={() => dashboard.refetch()} />;
   if (fit.error) return <ErrorState error={fit.error} onRetry={() => fit.refetch()} />;
@@ -82,7 +124,8 @@ export function VesselSparesPage() {
           <SpareTree
             spares={spares}
             focusId={focusSpare}
-            meta={(spare) => <SpareMeta spare={spare} due={dueBySpare.get(spare.id)} />}
+            meta={(spare) => <SpareMeta spare={spare} />}
+            columns={columns}
             actions={(spare) => (
               <Button variant="ghost" onClick={() => setDocumentsFor(spare)}>
                 Documents
@@ -128,7 +171,12 @@ export function VesselSparesPage() {
   );
 }
 
-function SpareMeta({ spare, due }: { spare: SpareNode; due?: SpareDue }) {
+/**
+ * What identifies the unit, under its name. The due status used to be spelled
+ * into this line; it moved into a column of its own, where a whole vessel's
+ * dates can be compared down the page instead of read one row at a time.
+ */
+function SpareMeta({ spare }: { spare: SpareNode }) {
   const details = [spare.make, spare.model].filter(Boolean).join(' ');
   return (
     <>
@@ -136,13 +184,6 @@ function SpareMeta({ spare, due }: { spare: SpareNode; due?: SpareDue }) {
       {details && <span>{details}</span>}
       {spare.serialNumber && <span className="mono">S/N {spare.serialNumber}</span>}
       {spare.tracksRunningHours && spare.runningHours != null && <span>{formatHours(spare.runningHours)}</span>}
-      {due && due.status !== 'NOT_TRACKED' && (
-        <span className="equip__due">
-          <StatusMark status={due.status} size={10} />
-          <b>{due.statusLabel}</b>
-          {due.nextDueDate && ` · due ${formatDate(due.nextDueDate)} (${formatDays(due.daysRemaining)})`}
-        </span>
-      )}
     </>
   );
 }

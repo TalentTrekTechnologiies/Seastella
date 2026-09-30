@@ -23,8 +23,10 @@ public class MaintenanceSeedContributor implements SeedContributor {
 
     /**
      * Offsets from today, in days, cycled across spares. Negative is overdue,
-     * zero is due today. The spread deliberately covers each band boundary
-     * named in SoW s7, including the 9/10-day edge raised as OI-02.
+     * zero is due today. The spread deliberately lands in every band of the
+     * client's ladder - red to 15, yellow 16 to 60, green beyond - and on both
+     * sides of each boundary, so a band that stopped being reachable shows up
+     * as an empty count rather than as a screen that merely looks plausible.
      */
     private static final int[] DUE_OFFSETS = {
             -34, -12, -3, 0, 2, 5, 9, 10, 12, 15, 18, 24, 41, 63, 95, 128, 174, 210
@@ -77,6 +79,16 @@ public class MaintenanceSeedContributor implements SeedContributor {
                         SpareMaintenanceRule.calendar(spareId, vesselId, 365, lastService);
                 rules.save(calendar);
 
+                // The same date has to land on the spare itself, or the demo
+                // contradicts itself: the row would show a due date while its
+                // own line read "Last annual service not recorded". In the
+                // running platform that pairing cannot happen - entering the
+                // date on the spare is what creates this rule - so a seed that
+                // writes only the rule shows a state the product never
+                // produces. fleet owns the spare, so the date is handed over
+                // rather than written here (see FleetServiceDateSeedContributor).
+                ctx.put("service." + spareId, lastService.toEpochDay());
+
                 // Magnetrons additionally carry a running-hour rule, which is
                 // how they are actually managed aboard.
                 if (tracksHours) {
@@ -89,12 +101,17 @@ public class MaintenanceSeedContributor implements SeedContributor {
         }
     }
 
-    /** Platform defaults matching the SoW table; organizations may override. */
+    /**
+     * Platform defaults, should the seed ever run before the migrations that
+     * write them (V34, then V36). Normally a no-op: the rows are reference
+     * data and ship with the schema. Kept in step with V36 so the two cannot
+     * disagree about what a fresh database starts with.
+     */
     private void seedThresholds() {
         if (!thresholds.findAll().isEmpty()) {
             return;
         }
-        thresholds.save(new MaintenanceThreshold(null, "URGENT", 1, 9));
-        thresholds.save(new MaintenanceThreshold(null, "APPROACHING", 10, 15));
+        thresholds.save(new MaintenanceThreshold(null, "URGENT", 1, 15));
+        thresholds.save(new MaintenanceThreshold(null, "APPROACHING", 16, 60));
     }
 }

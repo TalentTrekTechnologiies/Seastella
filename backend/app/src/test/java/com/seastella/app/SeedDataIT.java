@@ -158,12 +158,12 @@ class SeedDataIT {
                             + "where next_due_date = current_date"),
                     "urgent", scalar("select count(*) from spare_maintenance_rule "
                             + "where next_due_date > current_date "
-                            + "and next_due_date <= current_date + 9"),
-                    "approaching", scalar("select count(*) from spare_maintenance_rule "
-                            + "where next_due_date > current_date + 9 "
                             + "and next_due_date <= current_date + 15"),
+                    "approaching", scalar("select count(*) from spare_maintenance_rule "
+                            + "where next_due_date > current_date + 15 "
+                            + "and next_due_date <= current_date + 60"),
                     "normal", scalar("select count(*) from spare_maintenance_rule "
-                            + "where next_due_date > current_date + 15"));
+                            + "where next_due_date > current_date + 60"));
 
             assertThat(bands).allSatisfy((band, n) ->
                     assertThat(n).as("%s band", band).isGreaterThan(0));
@@ -176,10 +176,16 @@ class SeedDataIT {
                             + "order by status_code");
 
             assertThat(rows).hasSize(2);
+            // The client's ladder: red from 15 days in, yellow from 60 (V36).
             assertThat(rows).anySatisfy(r -> {
                 assertThat(r.get("status_code")).isEqualTo("URGENT");
                 assertThat(((Number) r.get("min_days")).intValue()).isEqualTo(1);
-                assertThat(((Number) r.get("max_days")).intValue()).isEqualTo(9);
+                assertThat(((Number) r.get("max_days")).intValue()).isEqualTo(15);
+            });
+            assertThat(rows).anySatisfy(r -> {
+                assertThat(r.get("status_code")).isEqualTo("APPROACHING");
+                assertThat(((Number) r.get("min_days")).intValue()).isEqualTo(16);
+                assertThat(((Number) r.get("max_days")).intValue()).isEqualTo(60);
             });
         }
     }

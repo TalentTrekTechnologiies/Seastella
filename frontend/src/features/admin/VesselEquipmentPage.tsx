@@ -1,18 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchVesselMaintenance, updateSpare, type SpareDetails, type SpareDue } from '@/api/admin';
+import { fetchVesselMaintenance, updateSpare, type SpareDetails } from '@/api/admin';
 import { fetchVesselFit, type SpareNode } from '@/api/serviceRequests';
-import { Button, ConsoleHeader, Plate, StatusMark } from '@/design-system/Console';
+import { Button, ConsoleHeader, Plate } from '@/design-system/Console';
 import { Dialog, Field, FormError } from '@/design-system/Dialog';
 import { ErrorState, LoadingState } from '@/design-system/States';
-import { CriticalityChip } from '@/design-system/StatusBadge';
-import { formatDays } from '@/design-system/status';
+import { CriticalityChip, DatedStatusBadge, SoftwareStatusBadge } from '@/design-system/StatusBadge';
 import { formatDate } from '@/lib/format';
 import { errorText } from './AdminParts';
 import { DocumentsPanel } from '@/features/documents/DocumentsPanel';
 import { CriticalSparesPanel } from '@/features/parts/CriticalSparesPanel';
-import { SpareTree } from '@/features/spares/SpareTree';
+import { SpareTree, type TreeColumn } from '@/features/spares/SpareTree';
 import { ServiceHistoryPanel } from './ServiceHistoryPanel';
 import { AddSpareDialog } from './AddSpareDialog';
 import { ImportFileButton } from '@/features/import/ImportFileButton';
@@ -40,6 +39,67 @@ export function VesselEquipmentPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const dueBySpare = useMemo(() => new Map((due.data ?? []).map((d) => [d.spareId, d])), [due.data]);
+
+  /**
+   * The three statuses read down their own columns rather than along each
+   * row's meta line. Ninety rows of "Normal · Normal · Normal" spelled into
+   * running text is a list nobody scans; narrow columns answer "what needs
+   * attention on this vessel" without reading a word.
+   *
+   * <p>Service and expiry are deliberately separate columns. They answer
+   * different questions — when this is next serviced, and when it stops being
+   * usable at all — and a unit can be freshly serviced and three weeks from
+   * expiry. Folding them into one worst-of chip would hide exactly that case.
+   */
+  const columns = useMemo<TreeColumn[]>(
+    () => [
+      {
+        key: 'due',
+        header: 'Service due',
+        width: 176,
+        render: (spare) => {
+          const d = dueBySpare.get(spare.id);
+          return (
+            <DatedStatusBadge
+              status={d?.status}
+              date={d?.nextDueDate}
+              daysRemaining={d?.daysRemaining}
+              what="Service due"
+            />
+          );
+        },
+      },
+      {
+        key: 'expiry',
+        header: 'Expires',
+        width: 164,
+        render: (spare) => {
+          const d = dueBySpare.get(spare.id);
+          return (
+            <DatedStatusBadge
+              status={d?.expiryStatus}
+              date={d?.expiryDate}
+              daysRemaining={d?.daysToExpiry}
+              what="Expires"
+            />
+          );
+        },
+      },
+      {
+        key: 'software',
+        header: 'Software',
+        width: 186,
+        render: (spare) => (
+          <SoftwareStatusBadge
+            status={spare.softwareStatus ?? 'UNKNOWN'}
+            installed={spare.softwareVersion}
+            latest={spare.latestSoftwareVersion}
+          />
+        ),
+      },
+    ],
+    [dueBySpare],
+  );
 
   if (fit.error) return <ErrorState error={fit.error} onRetry={() => fit.refetch()} />;
 
@@ -86,15 +146,13 @@ export function VesselEquipmentPage() {
             spares={spares}
             focusId={focusSpare}
             emptyNote="This vessel has no equipment recorded."
-            meta={(spare) => <EquipmentMeta spare={spare} due={dueBySpare.get(spare.id)} />}
+            meta={(spare) => <EquipmentMeta spare={spare} />}
+            columns={columns}
             actions={(spare) => (
               <>
                 {/* The history is what a surveyor and an auditor ask for. */}
                 <Button variant="ghost" onClick={() => setHistoryFor(spare)}>
                   Service history
-                </Button>
-                <Button variant="ghost" onClick={() => setAddingUnder(spare)}>
-                  Add spare
                 </Button>
                 <Button variant="ghost" onClick={() => setDocumentsFor(spare)}>
                   Documents
@@ -163,6 +221,15 @@ export function VesselEquipmentPage() {
         <EditSpareDialog
           spare={editing}
           onClose={() => setEditing(null)}
+          // "Add spare" left the row to make room for the status columns.
+          // Adding a component inside an item is still the only way to build
+          // the nested VMP structure (13.1 gains 13.1.4), so it moved here,
+          // onto the item it applies to, where it costs no row width.
+          onAddComponent={() => {
+            const parent = editing;
+            setEditing(null);
+            setAddingUnder(parent);
+          }}
           onSaved={(details) => {
             setNotice(
               details.lastAnnualServiceDate && details.lastAnnualServiceDate !== editing.lastAnnualServiceDate
@@ -181,7 +248,12 @@ export function VesselEquipmentPage() {
   );
 }
 
-function EquipmentMeta({ spare: s, due }: { spare: SpareNode; due?: SpareDue }) {
+/**
+ * What identifies the item, under its name. The maintenance and software
+ * statuses used to live here too; they moved into columns of their own, where
+ * they can be compared down the page instead of read one row at a time.
+ */
+function EquipmentMeta({ spare: s }: { spare: SpareNode }) {
   const details = [s.make, s.model].filter(Boolean).join(' ');
   return (
     <>
@@ -197,18 +269,21 @@ function EquipmentMeta({ spare: s, due }: { spare: SpareNode; due?: SpareDue }) 
       <span>
         Last annual service {s.lastAnnualServiceDate ? <b>{formatDate(s.lastAnnualServiceDate)}</b> : 'not recorded'}
       </span>
-      {due && due.status !== 'NOT_TRACKED' && (
-        <span className="equip__due">
-          <StatusMark status={due.status} size={10} />
-          <b>{due.statusLabel}</b>
-          {due.nextDueDate && ` · due ${formatDate(due.nextDueDate)} (${formatDays(due.daysRemaining)})`}
-        </span>
-      )}
     </>
   );
 }
 
-function EditSpareDialog({ spare, onClose, onSaved }: { spare: SpareNode; onClose: () => void; onSaved: (d: SpareDetails) => void }) {
+function EditSpareDialog({
+  spare,
+  onClose,
+  onSaved,
+  onAddComponent,
+}: {
+  spare: SpareNode;
+  onClose: () => void;
+  onSaved: (d: SpareDetails) => void;
+  onAddComponent: () => void;
+}) {
   const [form, setForm] = useState<SpareDetails>({
     make: spare.make ?? '',
     model: spare.model ?? '',
@@ -255,6 +330,10 @@ function EditSpareDialog({ spare, onClose, onSaved }: { spare: SpareNode; onClos
       width={640}
       footer={
         <>
+          <Button variant="ghost" onClick={onAddComponent}>
+            Add component inside
+          </Button>
+          <span className="dialog__foot-gap" />
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" disabled={busy} onClick={save}>
             {busy ? 'Saving…' : 'Save details'}

@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Icon } from '@/design-system/Icon';
 import { APP_TIME_LABEL, formatTime } from '@/lib/format';
 import { NotificationBell } from '@/features/alerts/NotificationBell';
+import { AlertToasts } from '@/features/alerts/AlertToasts';
 import { navigationFor } from './navigation';
 import { useAuth } from './AuthContext';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
@@ -153,6 +154,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="content console-ground">{children}</main>
       </div>
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
+      {/* Alerts announce themselves here; the bell keeps the full inbox. */}
+      <AlertToasts />
       <ChatLauncher />
     </div>
   );

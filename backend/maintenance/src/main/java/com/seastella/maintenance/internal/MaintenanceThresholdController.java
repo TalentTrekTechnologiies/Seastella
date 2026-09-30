@@ -85,7 +85,8 @@ class MaintenanceThresholdController {
                     + "so the two bands meet rather than overlap.");
         }
         if (approachingUpTo > 365) {
-            throw new ValidationException("Keep the warning inside a year; beyond that everything would be amber.");
+            throw new ValidationException("Keep the warning inside a year; beyond that "
+                    + "every job on the vessel would be coloured.");
         }
 
         MaintenanceThreshold urgent = platformBand(URGENT);
@@ -127,8 +128,8 @@ class MaintenanceThresholdController {
     private List<BandView> ladder() {
         MaintenanceThreshold urgent = platformBand(URGENT);
         MaintenanceThreshold approaching = platformBand(APPROACHING);
-        int urgentUpTo = urgent.getMaxDays() == null ? 9 : urgent.getMaxDays();
-        int approachingUpTo = approaching.getMaxDays() == null ? 15 : approaching.getMaxDays();
+        int urgentUpTo = urgent.getMaxDays() == null ? 15 : urgent.getMaxDays();
+        int approachingUpTo = approaching.getMaxDays() == null ? 60 : approaching.getMaxDays();
 
         List<BandView> bands = new ArrayList<>();
         bands.add(band(DueStatus.OVERDUE, "Past its due date", false, null, null));

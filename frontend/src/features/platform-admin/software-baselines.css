@@ -1,0 +1,39 @@
+/* The software baseline master list (SoW §9.3). */
+
+.baselines__bar { padding: 0 20px 14px; }
+.baselines__bar .input--search { max-width: 340px; }
+.baselines__empty { padding: 4px 20px 20px; }
+
+/* The list is wider than a phone; it scrolls rather than reflowing, because a
+   version against the wrong model is worse than a sideways scroll. */
+.baselines__scroll { overflow-x: auto; }
+.baselines__table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.baselines__table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sbs-ink-3);
+  padding: 0 14px 8px;
+  border-bottom: 1px solid var(--sbs-line);
+  white-space: nowrap;
+}
+.baselines__table td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--sbs-line);
+  vertical-align: middle;
+}
+.baselines__table tbody tr:hover { background: var(--sbs-plate-sunk); }
+.baselines__table th:first-child,
+.baselines__table td:first-child { padding-left: 20px; }
+.baselines__table th:last-child,
+.baselines__table td:last-child { padding-right: 20px; }
+
+.baselines__actions { display: flex; gap: 4px; justify-content: flex-end; white-space: nowrap; }
+
+.baselines__notes { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--sbs-ink-2); }
+.baselines__notes li { margin: 2px 0; }
+
+.baselines__help { font-size: 14px; color: var(--sbs-ink-2); display: grid; gap: 10px; }
+.baselines__help p { margin: 0; }

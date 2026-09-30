@@ -160,6 +160,15 @@ lapses, all configurable - to the vessel's Captain and Ship Manager and the
 organization's Technical Head. Covered by `CertificateExpiryIT`, which runs the
 real schedule rather than calling the scan directly.
 
+Equipment expiry reminders (`MNT-15`, `MNT-16`, `NOT-15`): the same shape for a
+different date — `spare.expiration_date`, the day the unit itself stops being
+fit for use. One notice at 60 days and one at 15, the thresholds the client
+asked for and the same ladder the colour bands use, so the email and the
+equipment list agree on what colour a unit is. The last threshold announced is
+remembered per unit, and correcting the date frees it to announce again.
+Recipients are the same three roles as a certificate. See V-13 in
+`08-scope-variances.md`; the SMS half of the client's request is open as OI-14.
+
 Reports (`RPT-01`–`RPT-09`): the seven reports the SoW names, each built from
 the caller's own scope and stating that scope on itself, on screen and as a PDF.
 The invoice report is not offered to a Captain or an Engineer and is refused if
@@ -572,6 +581,11 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | SPR-12 | Replacement-part stock separate from spare master | A§7 | fleet | `ReplacementPartTest` | VERIFIED |
 | SPR-13 | Below-minimum flag derived, not stored | A§7 | fleet | `ReplacementPartTest` | VERIFIED |
 | SPR-14 | Part shortage raises an alert | B§22 | fleet | `PartStockIT` | VERIFIED |
+| SPR-15 | Latest software release held per equipment model (make + model) | client 29-09-26 | fleet | `SoftwareMatchKeyTest` | BUILT |
+| SPR-16 | Installed version compared with the baseline on the server, never in the browser | client 29-09-26 | fleet | `SoftwareVersionsTest` | BUILT |
+| SPR-17 | The master sheet is uploaded as the client's own spreadsheet | client 29-09-26 | masterdata-import | `SoftwareBaselineSheetTest` | BUILT |
+| SPR-18 | A baseline corrected by hand survives a later sheet upload | derived | fleet | *(pending IT)* | BUILT |
+| SPR-19 | Equipment list shows due status and software currency as columns | client 29-09-26 | frontend | browser run | BUILT |
 
 ## RHR — Running hours
 
@@ -590,7 +604,7 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | MNT-01 | Calendar-based due-date calculation | B§12 | maintenance | `MaintenanceEngineTest` | VERIFIED |
 | MNT-02 | Running-hour-based due calculation | B§12 | maintenance | `MaintenanceEngineTest` | VERIFIED |
 | MNT-03 | Nearest of the two rules wins | derived | maintenance | `MaintenanceEngineTest` | BUILT |
-| MNT-04 | Colour status: > 15 Normal / 10–15 Approaching / 1–9 Urgent / 0 Due / < 0 Overdue | A§7, B§14 | maintenance | `ColourStatusTest` | VERIFIED |
+| MNT-04 | Colour status: > 60 Normal / 16–60 Approaching / 1–15 Urgent / 0 Due / < 0 Overdue | A§7, B§14, client 29 Sep 2026 | maintenance | `ColourStatusTest` | VERIFIED (V-12: widened from 15/10/9, orange retired) |
 | MNT-05 | Thresholds configurable, not hard-coded | B§14, M§8 | maintenance | `ThresholdConfigTest` | VERIFIED |
 | MNT-06 | Band gap (9 < d < 10) resolved by half-open bands | derived | maintenance | `ColourStatusTest` | VERIFIED |
 | MNT-07 | One engine consumed by dashboards, spares, alerts, reports | M§8 | maintenance | `StatusConsistencyIT` | BUILT |
@@ -601,6 +615,8 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | MNT-12 | Alerts: approaching / due / overdue | A§11 | maintenance | `AlertEngineTest` | BUILT |
 | MNT-13 | Certificate-expiry alerts | A§11 | notification | `CertificateExpiryIT` | VERIFIED |
 | MNT-14 | Alert recipients configurable | A§11, B§35 | notification | `NotificationRuleTest` | BUILT (OI-03 assumption) |
+| MNT-15 | Equipment expiry date banded on the same ladder as a service date | client 29 Sep 2026 | maintenance | `ColourStatusTest` | BUILT (V-13) |
+| MNT-16 | Equipment expiry reminders, once at 60 days and once at 15 | client 29 Sep 2026 | notification | `EquipmentExpiryMonitor` | BUILT (V-13) |
 
 ## SRQ — Service request & workflow
 
@@ -732,6 +748,8 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | NOT-11 | Certificate expiry approaching | A§11 | notification | `CertificateExpiryIT` | VERIFIED |
 | NOT-12 | In-app notification centre | A§7 | frontend | `NotificationCentre.test` | BUILT |
 | NOT-13 | Email channel | A§7, A§15 | notification | `EmailChannelTest` | BUILT |
+| NOT-15 | Equipment expiry approaching → Captain, Ship Manager, Tech Head | client 29 Sep 2026 | notification | `EquipmentExpiryMonitor` | BUILT (V-13) |
+| NOT-16 | SMS channel | client 29 Sep 2026 | notification | — | NOT BUILT (OI-14: needs a gateway account and budget) |
 | NOT-14 | Recipients configurable | A§11, B§35 | notification | `NotificationRuleTest` | BUILT (OI-03 assumption) |
 | FEE-01 | Platform-wide activity feed for Platform Admin | A§8.5 | activity-feed | `ActivityFeedIT` | BUILT |
 | FEE-02 | Every state change lands in the feed in real time | A§11 | activity-feed | `FeedCoverageTest` | BUILT |

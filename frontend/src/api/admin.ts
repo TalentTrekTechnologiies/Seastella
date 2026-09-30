@@ -166,6 +166,19 @@ export interface SpareDetails {
 export const updateSpare = (spareId: number, body: SpareDetails) =>
   api.put<SpareDetails>(`/api/v1/spares/${spareId}`, body);
 
+/**
+ * The two dated statuses a unit can carry, both decided on the server.
+ *
+ * `status` is the recurring service cycle — NOT_TRACKED when the unit has no
+ * maintenance rule. `expiryStatus` is the unit's own expiry date, the day it
+ * stops being fit for use whatever its service history says. A unit may carry
+ * either without the other, so both sides are optional and neither implies
+ * the other is absent.
+ *
+ * Both come off the same colour ladder, so a yellow expiry and a yellow
+ * service mean the same number of days and move together when the Platform
+ * Admin changes the bands.
+ */
 export interface SpareDue {
   spareId: number;
   status: 'NORMAL' | 'APPROACHING' | 'URGENT' | 'DUE' | 'OVERDUE' | 'NOT_TRACKED';
@@ -173,6 +186,11 @@ export interface SpareDue {
   daysRemaining?: number;
   nextDueDate?: string;
   basis: string;
+  /** The day the unit itself expires; absent when none is recorded. */
+  expiryDate?: string;
+  daysToExpiry?: number;
+  expiryStatus?: 'NORMAL' | 'APPROACHING' | 'URGENT' | 'DUE' | 'OVERDUE' | 'NOT_TRACKED';
+  expiryStatusLabel?: string;
 }
 
 export const fetchVesselMaintenance = (vesselId: number) =>

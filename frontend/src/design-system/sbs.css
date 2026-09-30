@@ -1103,6 +1103,9 @@ a.cbtn { text-decoration: none; }
 .dialog__close:hover { background: var(--sbs-plate-sunk); color: var(--sbs-ink); }
 .dialog__body { padding: 18px 22px; overflow-y: auto; display: grid; gap: 16px; }
 .dialog__foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 22px 20px; border-top: 1px solid var(--sbs-line); }
+/* Pushes what follows it to the right, so a footer can carry an action that
+   is not one of the confirm/cancel pair without crowding them. */
+.dialog__foot-gap { flex: 1; }
 .dialog__note { font-size: 14px; color: var(--sbs-ink-2); background: var(--sbs-signal-weak); padding: 10px 12px; border-radius: 10px; }
 
 .ffield { display: grid; gap: 6px; }

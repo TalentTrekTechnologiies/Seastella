@@ -17,13 +17,17 @@ import java.util.List;
  * The one implementation of the colour-status rules.
  *
  * <h2>Band boundaries</h2>
- * The published table reads: more than 15 days Normal, 10-15 Approaching,
- * 1-9 Urgent, due today Due, past due Overdue. Note that "10-15" and "1-9" do
- * not meet - a spare 9.5 days out belongs to no band. Whole-day arithmetic
- * never produces that value, but any fractional or timezone-shifted calculation
- * would, so the bands here are evaluated in descending strictness with a final
- * fallback to NORMAL: every possible day count lands somewhere. Raised with the
- * client as OI-02.
+ * More than 60 days Normal, 16-60 Approaching, 1-15 Urgent, due today Due,
+ * past due Overdue. The published table was tighter - 10-15 and 1-9 - and the
+ * client widened it, because a warning five days before a due date arrives
+ * after the point where parts could still be ordered. Orange retired with it:
+ * two notices, not three (see V36).
+ *
+ * <p>The rows are what decide this, not the constants below; those are only
+ * the fallback for an installation with no rows at all. Bands are evaluated in
+ * descending strictness with a final fallback to NORMAL, so a gapped or
+ * overlapping configuration still yields an answer rather than a null status -
+ * the published table did have such a gap, raised as OI-02.
  *
  * <h2>Two rules, nearest wins</h2>
  * A spare may carry a calendar rule and a running-hour rule at once (MNT-03).
@@ -111,8 +115,8 @@ class DefaultMaintenanceStatusEngine implements MaintenanceStatusEngine {
 
     /** Used when no threshold rows exist - keeps the engine total. */
     private static DueStatus classifyWithDefaults(int daysRemaining) {
-        if (daysRemaining <= 9) return DueStatus.URGENT;
-        if (daysRemaining <= 15) return DueStatus.APPROACHING;
+        if (daysRemaining <= 15) return DueStatus.URGENT;
+        if (daysRemaining <= 60) return DueStatus.APPROACHING;
         return DueStatus.NORMAL;
     }
 }

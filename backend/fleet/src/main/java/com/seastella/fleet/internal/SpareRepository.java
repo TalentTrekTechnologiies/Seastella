@@ -29,6 +29,21 @@ public interface SpareRepository extends JpaRepository<Spare, Long> {
     @Query("select s from Spare s where s.vesselId = :vesselId and s.path like concat(:path, '.%') order by s.path")
     List<Spare> findDescendants(@Param("vesselId") Long vesselId, @Param("path") String path);
 
+    /**
+     * Equipment on one vessel that carries an expiry date of its own, soonest
+     * first. Equipment without one is left out rather than returned null-dated:
+     * "no expiry recorded" is the ordinary state of most components, and a
+     * caller counting rows should not be counting those.
+     */
+    List<Spare> findByVesselIdAndExpirationDateIsNotNullOrderByExpirationDateAsc(Long vesselId);
+
+    /**
+     * Equipment anywhere in the fleet expiring on or before a day, soonest
+     * first - the nightly reminder sweep. Bounded by the widest warning the
+     * platform sends, so it never reads the whole table.
+     */
+    List<Spare> findByExpirationDateLessThanEqualOrderByExpirationDateAsc(java.time.LocalDate cutoff);
+
     long countByVesselIdIn(Set<Long> vesselIds);
 
     @Query("select s.criticality, count(s) from Spare s where s.vesselId in :ids group by s.criticality")

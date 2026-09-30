@@ -4,6 +4,22 @@ import { Button, EmptyNote } from '@/design-system/Console';
 import './spares.css';
 
 /**
+ * A fixed-width column between a row's name and its actions.
+ *
+ * <p>A status read down a column is a different instrument from the same status
+ * spelled into a row's meta line: the eye compares neighbours without reading
+ * any of them. Every cell in a column shares one width so that comparison holds
+ * whatever the indent depth.
+ */
+export type TreeColumn = {
+  key: string;
+  header: string;
+  /** Pixels. The header and every cell in the column share it. */
+  width: number;
+  render: (spare: SpareNode) => ReactNode;
+};
+
+/**
  * The Spare tree, browsed (SoW §9.1, SPR-11).
  *
  * <p>The VMP numbering is a hierarchy — 13.1.4 is the fan inside the scanner
@@ -20,14 +36,17 @@ import './spares.css';
 export function SpareTree({
   spares,
   meta,
+  columns,
   actions,
   focusId,
   emptyNote = 'No equipment is recorded for this vessel.',
   searchLabel = 'Search name, make, serial…',
 }: {
   spares: SpareNode[];
-  /** The line under a row's name: due status, running hours, whatever fits. */
+  /** The line under a row's name: running hours, make, whatever fits. */
   meta?: (spare: SpareNode) => ReactNode;
+  /** Statuses that are read down the page rather than along a row. */
+  columns?: TreeColumn[];
   actions?: (spare: SpareNode) => ReactNode;
   /** Arrived here from a dashboard: open this item and say which one it is (DSH-13). */
   focusId?: number;
@@ -150,12 +169,20 @@ export function SpareTree({
           </div>
           {meta && <div className="tree__meta">{meta(spare)}</div>}
         </div>
+        {columns?.map((col) => (
+          <div key={col.key} className="tree__cell" style={{ width: col.width }}>
+            {col.render(spare)}
+          </div>
+        ))}
         {actions && <div className="tree__actions">{actions(spare)}</div>}
       </li>,
     );
     if (open) kids.forEach((kid) => walk(kid, depth + 1));
   };
   children.roots.forEach((root) => walk(root, 0));
+
+  // Only to size the header's ghost actions — never shown to a reader.
+  const firstRow = spares.find(visible);
 
   return (
     <div className="tree">
@@ -188,7 +215,29 @@ export function SpareTree({
           <EmptyNote>{q ? 'Nothing matches that search.' : emptyNote}</EmptyNote>
         </div>
       ) : (
-        <ul className="tree__list">{rows}</ul>
+        <>
+          {columns && columns.length > 0 && (
+            <div className="tree__head">
+              <span className="tree__head-indent" aria-hidden="true" />
+              <span className="tree__head-main" aria-hidden="true" />
+              {columns.map((col) => (
+                <div key={col.key} className="tree__cell tree__cell--head" style={{ width: col.width }}>
+                  {col.header}
+                </div>
+              ))}
+              {/* The actions group is as wide as its buttons, and it is what
+                  pushes the cells left. A hidden copy of it reserves exactly
+                  that width so the headings sit over their own column. It is
+                  visibility:hidden, so it takes no tab stop and no reading. */}
+              {actions && firstRow && (
+                <div className="tree__actions tree__actions--ghost" aria-hidden="true">
+                  {actions(firstRow)}
+                </div>
+              )}
+            </div>
+          )}
+          <ul className="tree__list">{rows}</ul>
+        </>
       )}
     </div>
   );

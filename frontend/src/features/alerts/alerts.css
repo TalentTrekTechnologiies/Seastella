@@ -35,6 +35,27 @@
   font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 2px var(--sbs-plate);
 }
+/* A slow halo while anything is unread. It draws the eye on the way past
+   without moving the badge or changing its colour, and it stops the moment the
+   count is cleared. Motion is the only thing carrying this, so it is dropped
+   entirely for readers who have asked for less of it — the count itself is
+   still there, which is the information. */
+.bell__count::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 2px solid var(--sbs-signal);
+  animation: bell-halo 2.4s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes bell-halo {
+  0%        { opacity: 0.55; transform: scale(1); }
+  70%, 100% { opacity: 0;    transform: scale(1.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bell__count::after { animation: none; content: none; }
+}
 .bell__panel {
   position: absolute;
   top: calc(100% + 10px);
@@ -128,4 +149,111 @@
 
 @media (max-width: 640px) {
   .bell__panel { position: fixed; top: 62px; right: 12px; left: 12px; width: auto; }
+}
+
+/* ---- toasts ----
+   Alerts that announce themselves rather than waiting to be clicked on. They
+   sit under the station bar on the right, clear of the chat launcher in the
+   opposite corner, and they never cover the rail. Maintenance alerts carry the
+   band they announce — the same four reserved colours, and the same shapes, so
+   the toast and the equipment list cannot disagree. */
+.toasts {
+  position: fixed;
+  top: 70px;
+  right: 18px;
+  z-index: 60;
+  width: min(380px, calc(100vw - 36px));
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+  pointer-events: none;
+}
+.toasts > * { pointer-events: auto; }
+.toasts__more {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--sbs-ink-3);
+  text-align: right;
+}
+
+.toast {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--sbs-line);
+  border-left: 3px solid var(--sbs-signal);
+  background: var(--sbs-plate);
+  box-shadow: var(--shadow-float);
+  animation: toast-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+/* Arriving from the edge says "this is new" without a sound or a colour. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+.toast--signal      { border-left-color: var(--sbs-signal); }
+.toast--normal      { border-left-color: var(--c-normal); }
+.toast--approaching { border-left-color: var(--c-approaching); }
+.toast--overdue     { border-left-color: var(--c-overdue); }
+.toast--neutral     { border-left-color: var(--c-neutral); }
+
+.toast__mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--sbs-plate-sunk);
+  color: var(--sbs-ink-2);
+}
+.toast--normal      .toast__mark { color: var(--c-normal); }
+.toast--approaching .toast__mark { color: var(--c-approaching); }
+.toast--overdue     .toast__mark { color: var(--c-overdue); }
+
+.toast__body {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  min-width: 0;
+}
+.toast__body:focus-visible { outline: 2px solid var(--sbs-signal); outline-offset: 3px; border-radius: 6px; }
+.toast__title { font-size: 13.5px; font-weight: 650; color: var(--sbs-ink); }
+.toast__text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--sbs-ink-2);
+  /* Two lines is the whole point of the alert; the rest is on the record. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.toast__close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: var(--sbs-ink-3);
+  border: 1px solid transparent;
+}
+.toast__close:hover { background: var(--sbs-plate-sunk); color: var(--sbs-ink); border-color: var(--sbs-line); }
+.toast__close:focus-visible { outline: 2px solid var(--sbs-signal); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .toasts { top: 62px; right: 12px; left: 12px; width: auto; }
 }

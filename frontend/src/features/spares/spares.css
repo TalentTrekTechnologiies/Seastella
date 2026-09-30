@@ -67,7 +67,34 @@
 .tree__meta { font-size: 13.5px; color: var(--sbs-ink-3); display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; }
 .tree__actions { display: flex; gap: 4px; flex: none; }
 
-@media (max-width: 720px) {
+/* Status read down a column (SoW §7). Fixed widths, so a cell sits under its
+   heading at every indent depth. */
+.tree__cell { flex: none; min-width: 0; display: flex; align-items: center; }
+.tree__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 8px 16px;
+  border-bottom: 1px solid var(--sbs-line);
+}
+.tree__head-indent { flex: none; width: 22px; }
+.tree__head-main { flex: 1; min-width: 0; }
+.tree__cell--head {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sbs-ink-3);
+}
+.tree__actions--ghost { visibility: hidden; }
+
+/* Three columns need more room than two did: below this width the name is
+   squeezed to nothing before the cells are, so the row wraps instead. */
+@media (max-width: 900px) {
   .tree__row { flex-wrap: wrap; }
   .tree__actions { width: 100%; padding-left: 32px; }
+  /* Once the row wraps a column no longer lines up with anything: the cells
+     rejoin the flow and the headings go away. */
+  .tree__head { display: none; }
+  .tree__cell { width: auto !important; padding-left: 32px; }
 }

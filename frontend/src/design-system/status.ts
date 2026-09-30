@@ -1,4 +1,4 @@
-import type { DueStatus } from '@/api/types';
+import type { DueStatus, SoftwareStatus } from '@/api/types';
 
 /**
  * The maintenance status vocabulary, in one place.
@@ -22,11 +22,18 @@ export const DUE_LABEL: Record<DueStatus, string> = {
   NOT_TRACKED: 'Not tracked',
 };
 
-/** Reserved (SoW §7). Never used for anything that is not a due status. */
+/**
+ * Reserved (SoW §7). Never used for anything that is not a due status.
+ *
+ * <p>Urgent is red, not the orange it used to be. The client escalates in two
+ * steps — yellow at 60 days, red at 15 — so the three bands from 15 days in
+ * share one colour and are told apart by label and shape. `--c-urgent` is
+ * still orange and is no longer a status colour; ordinary warnings may use it.
+ */
 export const DUE_COLOUR: Record<DueStatus, string> = {
   OVERDUE: 'var(--c-overdue)',
   DUE: 'var(--c-overdue)',
-  URGENT: 'var(--c-urgent)',
+  URGENT: 'var(--c-overdue)',
   APPROACHING: 'var(--c-approaching)',
   NORMAL: 'var(--c-normal)',
   NOT_TRACKED: 'var(--c-neutral)',
@@ -44,22 +51,23 @@ export const DUE_SHAPE: Record<DueStatus, string> = {
 export const DUE_TONE: Record<DueStatus, string> = {
   OVERDUE: 'overdue',
   DUE: 'overdue',
-  URGENT: 'urgent',
+  URGENT: 'overdue',
   APPROACHING: 'approaching',
   NORMAL: 'normal',
   NOT_TRACKED: 'neutral',
 };
 
 /**
- * How a status is filled in a chart. Due and Overdue share the spec's red, so
- * in a bar they would be two red blocks with nothing to tell them apart — Due
- * is drawn striped instead. Same reserved colour, visibly different fill, and
- * the legend repeats the stripe so the pairing is learnable at a glance.
+ * How a status is filled in a chart. Three bands now share the spec's red, so
+ * in a stacked bar they would be three red blocks with nothing to tell them
+ * apart. Each keeps the red and varies the fill instead: Overdue solid, Due
+ * striped, Urgent a lighter wash of the same colour. The legend repeats the
+ * fill, so the pairing is learnable at a glance and survives greyscale.
  */
 export const DUE_FILL: Record<DueStatus, string> = {
   OVERDUE: 'var(--c-overdue)',
   DUE: 'repeating-linear-gradient(135deg, var(--c-overdue) 0 5px, color-mix(in srgb, var(--c-overdue) 45%, transparent) 5px 9px)',
-  URGENT: 'var(--c-urgent)',
+  URGENT: 'color-mix(in srgb, var(--c-overdue) 58%, transparent)',
   APPROACHING: 'var(--c-approaching)',
   NORMAL: 'var(--c-normal)',
   NOT_TRACKED: 'var(--c-neutral)',
@@ -77,6 +85,38 @@ export const DUE_SEVERITY: Record<DueStatus, number> = {
 
 /** Status bands in the order they are read on a meter: worst on the left. */
 export const DUE_ORDER: DueStatus[] = ['OVERDUE', 'DUE', 'URGENT', 'APPROACHING', 'NORMAL'];
+
+/**
+ * Software currency: a separate axis from maintenance, drawn separately.
+ *
+ * <p>"Up to date" and "Update due" rather than "Current" and "Outdated": the
+ * column is read by a superintendent deciding what to action, and the second
+ * pair names the equipment's condition where the first names a verdict on it.
+ *
+ * <p>AHEAD is the vessel running something newer than the master sheet knows
+ * about. It is not a fault on the vessel — it is a stale sheet — so it is
+ * drawn neutral and labelled for whoever maintains the sheet.
+ */
+export const SOFTWARE_LABEL: Record<SoftwareStatus, string> = {
+  CURRENT: 'Up to date',
+  OUTDATED: 'Update due',
+  AHEAD: 'Newer than sheet',
+  UNKNOWN: 'Not known',
+};
+
+export const SOFTWARE_TONE: Record<SoftwareStatus, string> = {
+  CURRENT: 'software-current',
+  OUTDATED: 'software-outdated',
+  AHEAD: 'neutral',
+  UNKNOWN: 'neutral',
+};
+
+export const SOFTWARE_SHAPE: Record<SoftwareStatus, string> = {
+  CURRENT: 'tick',
+  OUTDATED: 'uplift',
+  AHEAD: 'bar',
+  UNKNOWN: 'bar',
+};
 
 export function worstStatus(statuses: DueStatus[]): DueStatus | null {
   if (statuses.length === 0) return null;

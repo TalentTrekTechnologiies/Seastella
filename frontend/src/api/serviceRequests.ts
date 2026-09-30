@@ -1,5 +1,5 @@
 import { api, uploadFile } from './client';
-import type { ActivityItem, Priority, RequestSummary } from './types';
+import type { ActivityItem, Priority, RequestSummary, SoftwareStatus } from './types';
 
 /**
  * Service requests: list, detail, and every step of the lifecycle.
@@ -101,7 +101,12 @@ export interface SpareNode {
   criticality: string;
   tracksRunningHours: boolean;
   runningHours?: number;
+  /** What this unit is running, as recorded against the equipment. */
   softwareVersion?: string;
+  /** The latest release for this make and model, from the master sheet. */
+  latestSoftwareVersion?: string;
+  /** The server's comparison of the two. Never derived in the browser. */
+  softwareStatus?: SoftwareStatus;
   installationDate?: string;
   expirationDate?: string;
   lastAnnualServiceDate?: string;

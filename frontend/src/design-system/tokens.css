@@ -59,11 +59,18 @@
   --sbs-step-4: #0d5470;
   --sbs-step-5: #0a3a52;
 
-  /* ---- Status: RESERVED (SoW §7). Never decorative. ---- */
+  /* ---- Status: RESERVED (SoW §7). Never decorative. ----
+     Green above 60 days, yellow 16-60, red from 15 days in. The Urgent band
+     moved onto --c-overdue when the client asked for red at 15 days, so the
+     orange below is no longer one of the reserved status colours: it is the
+     ordinary warning tone, free for tiles, meters and stale-age hints that
+     are not a due status. See docs/08-scope-variances.md. */
   --c-normal: #17764a;
   --c-normal-weak: #dcefe4;
   --c-approaching: #8f6708;
   --c-approaching-weak: #f8eed6;
+  /* Warning orange. Kept under its old name so the places already using it
+     for non-status warnings keep working; it bands nothing any more. */
   --c-urgent: #b85a09;
   --c-urgent-weak: #fae8da;
   --c-overdue: #a92019;
@@ -73,6 +80,18 @@
 
   --c-critical: #63295a;
   --c-critical-weak: #f0e4ef;
+
+  /* ---- Software currency ----
+     A second axis, and the client asked for it in green and red — the same
+     reading as the reserved status bands, on a different question. They are
+     their own tokens rather than an alias of --c-normal so that a future
+     change to the maintenance palette cannot silently restyle this, and the
+     chip carries its own glyph so the two are told apart without colour.
+     Recorded in docs/08-scope-variances.md. */
+  --c-software-current: #17664f;
+  --c-software-current-weak: #dbece5;
+  --c-software-outdated: #9d2422;
+  --c-software-outdated-weak: #f8e2e1;
 
   /* ---- Typography ---- */
   --font-display: 'Archivo', 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
@@ -195,6 +214,11 @@
 
   --c-critical: #c98cba;
   --c-critical-weak: #261729;
+
+  --c-software-current: #33b681;
+  --c-software-current-weak: #0c2820;
+  --c-software-outdated: #ee6154;
+  --c-software-outdated-weak: #2e1413;
 
   --shadow-panel: 0 1px 0 rgba(150, 225, 240, 0.04), 0 16px 40px -20px rgba(0, 0, 0, 0.8);
   --shadow-raised: 0 1px 0 rgba(150, 225, 240, 0.06), 0 22px 48px -18px rgba(0, 0, 0, 0.9);

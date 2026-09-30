@@ -42,6 +42,10 @@ public final class AuditAction {
     public static final String RUNNING_HOURS_RECORDED = "RUNNING_HOURS_RECORDED";
     public static final String PART_STOCK_CHANGED = "PART_STOCK_CHANGED";
     public static final String EQUIPMENT_CATEGORY_CREATED = "EQUIPMENT_CATEGORY_CREATED";
+    /** The latest-release baseline for an equipment model (SoW s9.3). */
+    public static final String SOFTWARE_BASELINE_CHANGED = "SOFTWARE_BASELINE_CHANGED";
+    public static final String SOFTWARE_BASELINE_DELETED = "SOFTWARE_BASELINE_DELETED";
+    public static final String SOFTWARE_BASELINE_IMPORTED = "SOFTWARE_BASELINE_IMPORTED";
 
     // Maintenance (AUD-13, AUD-14)
     public static final String SERVICE_DATE_CHANGED = "SERVICE_DATE_CHANGED";

@@ -244,6 +244,31 @@ class NotificationFanout {
                 message, "DOCUMENT", certificate.id(), certificate.organizationId(), certificate.vesselId(), null));
     }
 
+    /**
+     * Reminders before a unit reaches its own expiry date - the client's 60
+     * and 15 day notices.
+     *
+     * <p>Shaped like the certificate reminder because it is the same problem
+     * reached by a different route: a unit that may not safely or lawfully
+     * stay in service. The band travels with the alert so the in-app entry
+     * shows the colour the equipment list is already showing for that date.
+     */
+    void equipmentExpiryAlert(com.seastella.fleet.api.FleetDirectory.EquipmentExpiry unit,
+                              AlertMessages.Message message, List<Role> roles, String band) {
+        Map<Long, NotificationRule> byUser = new LinkedHashMap<>();
+        Map<Long, UserRef> people = new LinkedHashMap<>();
+        for (NotificationRule rule : rules.findByEventTypeAndActiveTrue(EquipmentExpiryMonitor.EVENT_TYPE)) {
+            if (!roles.contains(rule.getRecipientRole())) continue;
+            for (UserRef user : recipientsInScope(rule.getRecipientRole(),
+                    unit.organizationId(), unit.vesselId())) {
+                byUser.putIfAbsent(user.id(), rule);
+                people.putIfAbsent(user.id(), user);
+            }
+        }
+        byUser.forEach((userId, rule) -> create(people.get(userId), rule, EquipmentExpiryMonitor.EVENT_TYPE,
+                message, "SPARE", unit.spareId(), unit.organizationId(), unit.vesselId(), band));
+    }
+
     private List<UserRef> recipientsInScope(Role role, Long organizationId, Long vesselId) {
         return switch (role) {
             case SHIP_MANAGER, CAPTAIN -> users.activeOnVessel(role, vesselId);

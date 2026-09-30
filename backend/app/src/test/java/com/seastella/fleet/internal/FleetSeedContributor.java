@@ -31,6 +31,19 @@ public class FleetSeedContributor implements SeedContributor {
     private final OrganizationRepository organizations;
     private final VesselRepository vessels;
     private final EquipmentCategoryRepository categories;
+    /**
+     * Offsets from today, in days, for the equipment that carries an expiry
+     * date of its own. Negative is already expired. The spread lands in every
+     * band of the client's ladder - red to 15 days, yellow 16 to 60, green
+     * beyond - and on both sides of each boundary, so the Expires column can
+     * be read against the Service due column beside it and the two are visibly
+     * answering different questions.
+     */
+    private static final int[] EXPIRY_OFFSETS = { -23, -2, 6, 15, 21, 44, 60, 97, 210, 365 };
+
+    /** Cycles across the whole fleet, so no two vessels expire in step. */
+    private int expiryCursor = 0;
+
     private final SpareRepository spares;
     private final ReplacementPartRepository parts;
 
@@ -179,6 +192,17 @@ public class FleetSeedContributor implements SeedContributor {
             spare.setCriticality(spec.criticality());
             spare.setStatus(SpareStatus.OPERATIONAL);
             spare.markSeed();
+
+            // Only some equipment is life-limited - a battery, a hydrostatic
+            // release, a liferaft bottle - so roughly one item in four carries
+            // an expiry date and the rest carry none. An empty column on the
+            // rest is the honest answer, and a demo where every row expires
+            // would teach the reader to ignore the column.
+            if (expiryCursor % 4 == 0) {
+                spare.setExpirationDate(ctx.today().plusDays(
+                        EXPIRY_OFFSETS[(expiryCursor / 4) % EXPIRY_OFFSETS.length]));
+            }
+            expiryCursor++;
 
             if (spec.runningHours()) {
                 spare.enableRunningHours(new BigDecimal(2000 + (spec.path().hashCode() & 0x0FFF)));

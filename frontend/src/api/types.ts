@@ -21,6 +21,12 @@ export type ScopeKind = 'PLATFORM' | 'ORGANIZATION' | 'ORGANIZATION_SET' | 'VESS
 /** The four spec-mandated colour bands, plus "no rule configured". */
 export type DueStatus = 'NORMAL' | 'APPROACHING' | 'URGENT' | 'DUE' | 'OVERDUE' | 'NOT_TRACKED';
 
+/**
+ * How a unit's installed software compares with the latest release for its
+ * model. Decided on the server (SoftwareStatus.java); the browser draws it.
+ */
+export type SoftwareStatus = 'CURRENT' | 'OUTDATED' | 'AHEAD' | 'UNKNOWN';
+
 export type Priority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type Criticality = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';

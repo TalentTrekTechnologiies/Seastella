@@ -54,6 +54,7 @@ const SETUP: Partial<Record<Role, NavItem[]>> = {
     { label: 'Guided checks', to: '/platform/checks', icon: 'check' },
     { label: 'Problem types', to: '/platform/problem-types', icon: 'board' },
     { label: 'Maintenance bands', to: '/platform/bands', icon: 'cog' },
+    { label: 'Software baselines', to: '/platform/software', icon: 'cog' },
     { label: 'Alerts', to: '/platform/alerts', icon: 'bell' },
     { label: 'Users & roles', to: '/platform/users', icon: 'users' },
     { label: 'Audit trail', to: '/platform/audit', icon: 'audit' },

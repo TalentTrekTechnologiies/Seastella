@@ -4,6 +4,7 @@ import com.seastella.fleet.api.FleetDirectory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,6 +126,41 @@ class DefaultFleetDirectory implements FleetDirectory {
         return readings.findTop24BySpareIdOrderByReadingDateDescIdDesc(spareId).stream()
                 .limit(Math.max(0, limit))
                 .map(r -> new HourReading(r.getReadingDate(), r.getReadingHours()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EquipmentExpiry> equipmentExpiries(Long vesselId) {
+        if (vesselId == null) return List.of();
+        return expiries(spares.findByVesselIdAndExpirationDateIsNotNullOrderByExpirationDateAsc(vesselId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EquipmentExpiry> equipmentExpiringBy(LocalDate cutoff) {
+        if (cutoff == null) return List.of();
+        return expiries(spares.findByExpirationDateLessThanEqualOrderByExpirationDateAsc(cutoff));
+    }
+
+    /**
+     * Names the vessels in one read rather than one per unit: the nightly
+     * sweep can carry a few hundred units off a handful of vessels, and a
+     * lookup inside the loop would be a query per row.
+     */
+    private List<EquipmentExpiry> expiries(List<Spare> found) {
+        if (found.isEmpty()) return List.of();
+        Map<Long, Vessel> byId = new LinkedHashMap<>();
+        vessels.findAllById(found.stream().map(Spare::getVesselId).distinct().toList())
+                .forEach(v -> byId.put(v.getId(), v));
+
+        return found.stream()
+                .map(s -> {
+                    Vessel v = byId.get(s.getVesselId());
+                    return new EquipmentExpiry(s.getId(), s.getName(), s.getPath(), s.getExpirationDate(),
+                            s.getVesselId(), v == null ? null : v.getName(),
+                            v == null ? null : v.getOrganizationId());
+                })
                 .toList();
     }
 }

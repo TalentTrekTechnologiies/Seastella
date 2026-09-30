@@ -33,8 +33,8 @@ class ColourStatusTest {
 
     private DefaultMaintenanceStatusEngine seededEngine() {
         return engineWith(List.of(
-                new MaintenanceThreshold(null, "URGENT", 1, 9),
-                new MaintenanceThreshold(null, "APPROACHING", 10, 15)));
+                new MaintenanceThreshold(null, "URGENT", 1, 15),
+                new MaintenanceThreshold(null, "APPROACHING", 16, 60)));
     }
 
     @Nested
@@ -43,12 +43,12 @@ class ColourStatusTest {
 
         @ParameterizedTest(name = "{0} days remaining -> {1}")
         @CsvSource({
-                "60, NORMAL",
-                "16, NORMAL",     // just above the approaching band
-                "15, APPROACHING", // upper edge
-                "12, APPROACHING",
-                "10, APPROACHING", // lower edge
-                "9,  URGENT",      // upper edge
+                "61, NORMAL",
+                "70, NORMAL",
+                "60, APPROACHING", // upper edge
+                "40, APPROACHING",
+                "16, APPROACHING", // lower edge
+                "15, URGENT",      // upper edge - the client's red notice
                 "5,  URGENT",
                 "1,  URGENT",      // lower edge
                 "0,  DUE",         // due today
@@ -65,11 +65,12 @@ class ColourStatusTest {
     class Totality {
 
         /**
-         * OI-02: the published bands "10-15" and "1-9" do not meet. No day count
-         * may fall through to null, whatever the configuration says.
+         * OI-02: the published bands "10-15" and "1-9" did not meet, and a future
+         * configuration may gap the same way. No day count may fall through to
+         * null, whatever the rows say.
          */
         @ParameterizedTest
-        @ValueSource(ints = {-1000, -1, 0, 1, 9, 10, 15, 16, 1000})
+        @ValueSource(ints = {-1000, -1, 0, 1, 15, 16, 60, 61, 1000})
         void neverReturnsNull(int days) {
             assertThat(seededEngine().classify(days, 1L)).isNotNull();
         }
@@ -78,9 +79,9 @@ class ColourStatusTest {
         void fallsBackToDefaultsWhenNoThresholdsConfigured() {
             DefaultMaintenanceStatusEngine engine = engineWith(List.of());
 
-            assertThat(engine.classify(20, 1L)).isEqualTo(DueStatus.NORMAL);
-            assertThat(engine.classify(12, 1L)).isEqualTo(DueStatus.APPROACHING);
-            assertThat(engine.classify(4, 1L)).isEqualTo(DueStatus.URGENT);
+            assertThat(engine.classify(70, 1L)).isEqualTo(DueStatus.NORMAL);
+            assertThat(engine.classify(40, 1L)).isEqualTo(DueStatus.APPROACHING);
+            assertThat(engine.classify(10, 1L)).isEqualTo(DueStatus.URGENT);
             assertThat(engine.classify(0, 1L)).isEqualTo(DueStatus.DUE);
             assertThat(engine.classify(-3, 1L)).isEqualTo(DueStatus.OVERDUE);
         }
@@ -96,8 +97,8 @@ class ColourStatusTest {
             DefaultMaintenanceStatusEngine engine = engineWith(List.of(
                     // org-specific: urgent stretches to 20 days
                     new MaintenanceThreshold(7L, "URGENT", 1, 20),
-                    new MaintenanceThreshold(null, "URGENT", 1, 9),
-                    new MaintenanceThreshold(null, "APPROACHING", 10, 15)));
+                    new MaintenanceThreshold(null, "URGENT", 1, 15),
+                    new MaintenanceThreshold(null, "APPROACHING", 16, 60)));
 
             assertThat(engine.classify(18, 7L)).isEqualTo(DueStatus.URGENT);
         }
@@ -133,9 +134,14 @@ class ColourStatusTest {
             assertThat(DueStatus.DUE.shape()).isEqualTo("square");
         }
 
-        /** Due and Overdue are both red, by specification. */
+        /**
+         * Due and Overdue are red by specification, and Urgent joined them when
+         * the client asked for a red notice at 15 days (V36). Three bands, one
+         * colour, told apart by label and shape.
+         */
         @Test
-        void dueAndOverdueShareTheRedColour() {
+        void theRedBandsShareTheRedColour() {
+            assertThat(DueStatus.URGENT.colour()).isEqualTo("red");
             assertThat(DueStatus.DUE.colour()).isEqualTo("red");
             assertThat(DueStatus.OVERDUE.colour()).isEqualTo("red");
         }

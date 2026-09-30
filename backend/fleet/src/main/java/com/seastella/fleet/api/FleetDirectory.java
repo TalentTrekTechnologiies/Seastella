@@ -46,11 +46,34 @@ public interface FleetDirectory {
     /** A spare's identity and hour meter, for labels, alerts and due projections. */
     Optional<SpareRef> spareRef(Long spareId);
 
+    /**
+     * Equipment on one vessel that carries an expiry date of its own, soonest
+     * first.
+     *
+     * <p>Distinct from a certificate expiry, which belongs to a document, and
+     * from a maintenance due date, which is a recurring service falling due.
+     * This is the date the unit itself stops being fit for use - a life-limited
+     * battery, a hydrostatic release, a liferaft bottle - after which no amount
+     * of servicing makes it compliant.
+     */
+    List<EquipmentExpiry> equipmentExpiries(Long vesselId);
+
+    /**
+     * Equipment anywhere the caller may see, expiring on or before {@code cutoff},
+     * soonest first. Used by the nightly reminder sweep, which bounds it by the
+     * widest warning it sends.
+     */
+    List<EquipmentExpiry> equipmentExpiringBy(LocalDate cutoff);
+
     /** Recorded running-hour readings, most recent first. */
     List<HourReading> hourReadings(Long spareId, int limit);
 
     record SpareRef(Long id, String name, String path, Long vesselId, String vesselName,
                     Long organizationId, boolean tracksRunningHours, BigDecimal runningHours) {}
+
+    /** A unit and the day it stops being fit for use, with where to find it. */
+    record EquipmentExpiry(Long spareId, String name, String path, LocalDate expiryDate,
+                           Long vesselId, String vesselName, Long organizationId) {}
 
     record HourReading(LocalDate readingDate, BigDecimal hours) {}
 
