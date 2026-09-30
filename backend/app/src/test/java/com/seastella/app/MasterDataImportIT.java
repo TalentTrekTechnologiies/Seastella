@@ -276,6 +276,90 @@ class MasterDataImportIT {
 
     // ---------------------------------------------------------------- helpers
 
+    /**
+     * The client's software master sheet (SoW s9.3).
+     *
+     * <p>This endpoint writes and then audits, and {@code AuditService} joins
+     * its caller's transaction rather than opening one of its own. Without a
+     * transaction on the endpoint every upload failed with a 500 - after the
+     * baselines had already been written. Nothing caught it, because the sheet
+     * reader had a unit test and the endpoint had none. Hence this.
+     */
+    @Test
+    @DisplayName("the software master sheet uploads, and a second upload updates rather than duplicates")
+    void softwareMasterSheetUploads() throws Exception {
+        int auditedBefore = softwareImportsAudited();
+
+        // Models the demo fleet does not carry, so the counts are this test's own.
+        JsonNode first = body(uploadSoftware(admin, softwareSheet(List.of(
+                row("Echo Sounder", "Testmark", "ES-900", "1.4"),
+                row("Speed Log", "Testmark", "SL-220", "3.0")))), 200);
+
+        assertThat(first.path("rowsRead").asInt()).isEqualTo(2);
+        assertThat(first.path("added").asInt()).isEqualTo(2);
+        assertThat(first.path("warnings").size()).isZero();
+
+        // One version moved on, one did not.
+        JsonNode second = body(uploadSoftware(admin, softwareSheet(List.of(
+                row("Echo Sounder", "Testmark", "ES-900", "1.9"),
+                row("Speed Log", "Testmark", "SL-220", "3.0")))), 200);
+
+        assertThat(second.path("added").asInt()).isZero();
+        assertThat(second.path("updated").asInt()).isEqualTo(1);
+        assertThat(second.path("unchanged").asInt()).isEqualTo(1);
+
+        // Spelling the vessel varies on still reaches the same row: one model,
+        // one baseline, whatever punctuation the sheet was typed with.
+        JsonNode variant = body(uploadSoftware(admin, softwareSheet(List.of(
+                row("Echo Sounder", "TESTMARK", "es 900", "1.9")))), 200);
+        assertThat(variant.path("unchanged").asInt()).isEqualTo(1);
+        assertThat(variant.path("added").asInt()).isZero();
+
+        // The audit entry committed with the write - the part that was broken.
+        assertThat(softwareImportsAudited()).isEqualTo(auditedBefore + 3);
+    }
+
+    /** A Technical Head may not rewrite what every fleet is measured against. */
+    @Test
+    @DisplayName("only the Platform Admin may upload the software master sheet")
+    void softwareMasterSheetIsPlatformAdminOnly() throws Exception {
+        byte[] sheet = softwareSheet(List.of(row("Echo Sounder", "Testmark", "ES-900", "1.4")));
+        assertThat(uploadSoftware(head, sheet).getResponse().getStatus()).isEqualTo(403);
+    }
+
+    private int softwareImportsAudited() {
+        Integer n = jdbc.queryForObject(
+                "select count(*) from audit_entry where action = 'SOFTWARE_BASELINE_IMPORTED'", Integer.class);
+        return n == null ? 0 : n;
+    }
+
+    private MvcResult uploadSoftware(String token, byte[] content) throws Exception {
+        return mvc.perform(multipart("/api/v1/imports/software-baselines")
+                        .file(new MockMultipartFile("file", "software.xlsx", null, content))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andReturn();
+    }
+
+    private static byte[] softwareSheet(List<List<String>> rows) throws Exception {
+        List<String> headings = List.of("Equipment", "Make", "Model", "Latest Software Version");
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Software");
+            Row heading = sheet.createRow(0);
+            for (int i = 0; i < headings.size(); i++) {
+                heading.createCell(i).setCellValue(headings.get(i));
+            }
+            for (int r = 0; r < rows.size(); r++) {
+                Row row = sheet.createRow(r + 1);
+                List<String> values = rows.get(r);
+                for (int i = 0; i < values.size(); i++) {
+                    if (!values.get(i).isEmpty()) row.createCell(i).setCellValue(values.get(i));
+                }
+            }
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
     private MvcResult upload(String token, byte[] content) throws Exception {
         return mvc.perform(multipart("/api/v1/imports")
                         .file(new MockMultipartFile("file", "spares.xlsx", null, content))

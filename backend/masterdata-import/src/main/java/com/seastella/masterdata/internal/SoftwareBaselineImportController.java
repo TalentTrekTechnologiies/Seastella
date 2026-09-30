@@ -9,6 +9,7 @@ import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.ScopeResolver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,7 +46,16 @@ class SoftwareBaselineImportController {
         this.scopes = scopes;
     }
 
+    /**
+     * One transaction for the write and its audit entry. {@code AuditService}
+     * joins a caller's transaction rather than opening its own - an audit row
+     * that survived a rolled-back write would be a record of something that
+     * never happened - so this has to open one, and without it every upload
+     * failed with a 500 at the audit call, after the baselines had been
+     * written.
+     */
     @PostMapping
+    @Transactional
     ResponseEntity<UploadResult> upload(@RequestParam("file") MultipartFile file) throws IOException {
         byte[] content = file == null ? new byte[0] : file.getBytes();
         SoftwareBaselineSheet.Parsed parsed = SoftwareBaselineSheet.read(content);
