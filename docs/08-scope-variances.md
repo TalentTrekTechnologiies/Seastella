@@ -301,6 +301,42 @@ budget, neither of which is in the current scope. See the open item below.
 
 ---
 
+## V-14 — Outdated software raises an alert, not just a colour
+
+**Client request (video, 29 September 2026)** asked only for a **column**: "one
+column here for software status and it should write whether it is like green or
+red". That was built as V-11. The alert is a later addition, asked for once the
+column was seen working.
+
+**Decision:** built, as one alert per unit — the option the client chose over a
+per-vessel digest, having been shown that uploading one new master sheet can
+make forty units outdated in the same second.
+
+Two things carry that decision without it becoming noise:
+
+1. **Once per gap, not once per night.** `software_alert_state` remembers both
+   versions announced, so a unit is reported when it *falls* behind and then
+   stays quiet. It speaks again when the gap changes — the sheet moving to a
+   newer release, or the vessel flashing a version that is still not current —
+   because each is a different thing the office would want to know. Remembering
+   only "already told them" would silence both.
+2. **The first sheet is a backlog, not news.** The first sweep after a quiet
+   start records what it finds without announcing it, the same reasoning as the
+   alert toasts staying silent on the backlog at sign-in. Verified on the demo
+   fleet: the first sweep recorded 71 units silently, and only the 13 whose gap
+   then changed were announced.
+
+Only OUTDATED is announced. A unit *ahead* of the sheet is a stale sheet and
+belongs to whoever maintains it, not to the vessel; a unit with no version
+recorded is an empty cell, not a finding.
+
+**The residual risk, for the client to accept or reject:** one alert per unit
+means a manufacturer shipping a fleet-wide release still produces one message
+per affected unit. If that proves too much in service, the per-vessel digest is
+a change to the fanout alone — the sweep and its bookmark stay as they are.
+
+---
+
 ## Summary
 
 | ID | Item | Brief | SoW | Building? |
@@ -318,6 +354,7 @@ budget, neither of which is in the current scope. See the open item below.
 | V-11 | Software status colours | client asked | §7 reserves them | ✓ own tokens + glyphs |
 | V-12 | 60/15 bands, orange retired | client asked | §11 says 15/10/9 | ✓ defaults moved, configurable |
 | V-13 | Equipment expiry banded + alerted | client asked | recorded, unwatched | ✓ same engine, own column |
+| V-14 | Outdated software raises an alert | client asked | column only | ✓ once per gap, per unit |
 
 **V-01 and V-02 are the two that remove committed brief scope.** They are the items
 to confirm before scope freeze: either accept the SoW's Phase-2 classification, or

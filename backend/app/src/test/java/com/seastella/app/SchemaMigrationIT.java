@@ -79,7 +79,9 @@ class SchemaMigrationIT {
                 // fleet (V35): the latest release each equipment model should run
                 "software_baseline",
                 // notification (V37): the last expiry threshold announced per unit
-                "equipment_expiry_alert_state");
+                "equipment_expiry_alert_state",
+                // notification (V38): the last software gap announced per unit
+                "software_alert_state");
     }
 
     @Test
@@ -127,7 +129,8 @@ class SchemaMigrationIT {
                 "34",  // maintenance: the platform's default colour bands
                 "35",  // fleet: the latest release each equipment model should run
                 "36",  // maintenance: the client's bands - yellow at 60, red at 15
-                "37"); // notification: reminders before a unit's own expiry date
+                "37",  // notification: reminders before a unit's own expiry date
+                "38"); // notification: a unit has fallen behind the software master sheet
     }
 
     @Test

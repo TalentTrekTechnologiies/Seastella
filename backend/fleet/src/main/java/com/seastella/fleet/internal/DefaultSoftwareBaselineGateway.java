@@ -5,7 +5,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -16,9 +18,47 @@ import java.util.Optional;
 class DefaultSoftwareBaselineGateway implements SoftwareBaselineGateway {
 
     private final SoftwareBaselineRepository baselines;
+    private final SpareRepository spares;
+    private final VesselRepository vessels;
 
-    DefaultSoftwareBaselineGateway(SoftwareBaselineRepository baselines) {
+    DefaultSoftwareBaselineGateway(SoftwareBaselineRepository baselines, SpareRepository spares,
+                                   VesselRepository vessels) {
         this.baselines = baselines;
+        this.spares = spares;
+        this.vessels = vessels;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OutdatedUnit> outdated() {
+        Map<String, SoftwareBaseline> byKey = new LinkedHashMap<>();
+        baselines.findAll().forEach(b -> byKey.putIfAbsent(b.getMatchKey(), b));
+        if (byKey.isEmpty()) return List.of();
+
+        Map<Long, Vessel> vesselById = new LinkedHashMap<>();
+        vessels.findAll().forEach(v -> vesselById.put(v.getId(), v));
+
+        List<OutdatedUnit> behind = new ArrayList<>();
+        for (Spare spare : spares.findAll()) {
+            if (spare.getSoftwareVersion() == null || spare.getSoftwareVersion().isBlank()) continue;
+
+            String key = SoftwareMatchKey.of(spare.getMake(), spare.getModel());
+            SoftwareBaseline baseline = key == null ? null : byKey.get(key);
+            if (baseline == null) continue;
+
+            // Only behind. Ahead is a stale sheet, and unknown is an empty cell.
+            if (SoftwareVersions.compare(spare.getSoftwareVersion(), baseline.getLatestVersion())
+                    != com.seastella.fleet.api.SoftwareStatus.OUTDATED) {
+                continue;
+            }
+
+            Vessel vessel = vesselById.get(spare.getVesselId());
+            behind.add(new OutdatedUnit(spare.getId(), spare.getName(), spare.getPath(),
+                    spare.getVesselId(), vessel == null ? null : vessel.getName(),
+                    vessel == null ? null : vessel.getOrganizationId(),
+                    spare.getSoftwareVersion(), baseline.getLatestVersion()));
+        }
+        return behind;
     }
 
     @Override

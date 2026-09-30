@@ -29,6 +29,24 @@ public interface SoftwareBaselineGateway {
      */
     UpsertResult upsertFromSheet(List<Baseline> rows);
 
+    /**
+     * Every unit running something older than its model's baseline, fleet-wide.
+     *
+     * <p>Read as a whole rather than per vessel: the sweep that uses it runs
+     * nightly over everything, and the table it reads is one row per model -
+     * hundreds - against equipment counted in thousands, so a query per vessel
+     * would be the same work split into more round trips.
+     *
+     * <p>Only OUTDATED is returned. A unit ahead of the sheet is a stale sheet
+     * and belongs to whoever maintains it, not to the vessel; a unit with no
+     * version recorded is an empty cell, not a finding.
+     */
+    List<OutdatedUnit> outdated();
+
+    /** A unit that is behind, with both versions and where to find it. */
+    record OutdatedUnit(Long spareId, String name, String path, Long vesselId, String vesselName,
+                        Long organizationId, String installed, String latest) {}
+
     /** A model's baseline as this platform holds it. */
     record Baseline(Long id, String make, String model, String equipmentName,
                     String latestVersion, Origin origin, String notes) {

@@ -749,6 +749,7 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | NOT-12 | In-app notification centre | A§7 | frontend | `NotificationCentre.test` | BUILT |
 | NOT-13 | Email channel | A§7, A§15 | notification | `EmailChannelTest` | BUILT |
 | NOT-15 | Equipment expiry approaching → Captain, Ship Manager, Tech Head | client 29 Sep 2026 | notification | `EquipmentExpiryMonitor` | BUILT (V-13) |
+| NOT-17 | Software behind the master sheet → Captain, Ship Manager, Tech Head | client 30 Sep 2026 | notification | `SoftwareCurrencyMonitorTest` | BUILT (V-14) |
 | NOT-16 | SMS channel | client 29 Sep 2026 | notification | — | NOT BUILT (OI-14: needs a gateway account and budget) |
 | NOT-14 | Recipients configurable | A§11, B§35 | notification | `NotificationRuleTest` | BUILT (OI-03 assumption) |
 | FEE-01 | Platform-wide activity feed for Platform Admin | A§8.5 | activity-feed | `ActivityFeedIT` | BUILT |

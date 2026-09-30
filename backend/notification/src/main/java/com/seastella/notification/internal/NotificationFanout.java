@@ -269,6 +269,28 @@ class NotificationFanout {
                 message, "SPARE", unit.spareId(), unit.organizationId(), unit.vesselId(), band));
     }
 
+    /**
+     * A unit has fallen behind the software master sheet. Same recipients and
+     * same shape as the expiry reminders: the vessel's people and the
+     * organization's Technical Head. No band travels with it - software
+     * currency is a separate axis from maintenance, drawn separately.
+     */
+    void softwareAlert(com.seastella.fleet.api.SoftwareBaselineGateway.OutdatedUnit unit,
+                       AlertMessages.Message message, List<Role> roles) {
+        Map<Long, NotificationRule> byUser = new LinkedHashMap<>();
+        Map<Long, UserRef> people = new LinkedHashMap<>();
+        for (NotificationRule rule : rules.findByEventTypeAndActiveTrue(SoftwareCurrencyMonitor.EVENT_TYPE)) {
+            if (!roles.contains(rule.getRecipientRole())) continue;
+            for (UserRef user : recipientsInScope(rule.getRecipientRole(),
+                    unit.organizationId(), unit.vesselId())) {
+                byUser.putIfAbsent(user.id(), rule);
+                people.putIfAbsent(user.id(), user);
+            }
+        }
+        byUser.forEach((userId, rule) -> create(people.get(userId), rule, SoftwareCurrencyMonitor.EVENT_TYPE,
+                message, "SPARE", unit.spareId(), unit.organizationId(), unit.vesselId(), null));
+    }
+
     private List<UserRef> recipientsInScope(Role role, Long organizationId, Long vesselId) {
         return switch (role) {
             case SHIP_MANAGER, CAPTAIN -> users.activeOnVessel(role, vesselId);
