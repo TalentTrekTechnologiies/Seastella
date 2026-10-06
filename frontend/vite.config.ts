@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
-// Served at the root of its own host, https://thawemarine.seastella.in/.
+// Served at the root of its own host, https://thaweone.com/.
 // To serve it under a path instead, set this (e.g. '/thawemarine/'): assets,
 // routes and API calls all derive from it.
 const BASE = '/';

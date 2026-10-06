@@ -81,7 +81,7 @@ for _ in $(seq 1 60); do
      && curl -fs "http://127.0.0.1:$PORT/actuator/health" 2>/dev/null | grep -q '"UP"' \
      && curl -s -X POST -H 'X-Requested-With: SeaStella' "http://127.0.0.1:$PORT/api/v1/auth/refresh" 2>/dev/null \
           | grep -q '"code"'; then
-    echo "Backend is up. Open https://thawemarine.seastella.in/"
+    echo "Backend is up. Open https://thaweone.com/"
     exit 0
   fi
   sleep 3

@@ -1,6 +1,6 @@
 # Thawe Marine on the VPS: PostgreSQL and the backend, both private to the
 # machine. nginx is the only thing facing the internet; it serves the built
-# frontend at https://thawemarine.seastella.in/ and forwards
+# frontend at https://thaweone.com/ and forwards
 # /api/ to the backend on 127.0.0.1 (nginx-thawemarine.conf).
 #
 #   cp .env.example .env    # then fill it in

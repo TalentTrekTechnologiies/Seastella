@@ -1,14 +1,14 @@
 # 09 — Deployment
 
 How Thawe Marine runs on the Hostinger VPS (62.72.31.13), at
-**https://thawemarine.seastella.in/**.
+**https://thaweone.com/**.
 The application ships with no demo data: it starts empty, with one Platform
 Admin created from the environment, and everything else is entered in the app.
 
 ## 1. Shape
 
 ```
-Browser ──▶ nginx on the VPS (HTTPS for thawemarine.seastella.in)
+Browser ──▶ nginx on the VPS (HTTPS for thaweone.com)
               │  /        built React app, /var/www/thawemarine
               │  /api/    proxied to 127.0.0.1:8080/api/
               ▼
@@ -30,10 +30,10 @@ On the VPS (Ubuntu), once:
 
 1. **Install Docker** with the Compose plugin (`docker compose version` works),
    plus `git`, `rsync` and `curl`. nginx and the certificate for
-   thawemarine.seastella.in (certbot) are already in place; on a new server,
+   thaweone.com (certbot) are already in place; on a new server,
    `apt install nginx certbot python3-certbot-nginx` and
-   `certbot --nginx -d thawemarine.seastella.in`, with the subdomain's DNS A
-   record pointing at the server first.
+   `certbot --nginx -d thaweone.com -d www.thaweone.com`, with both DNS A
+   records pointing at the server first.
 2. **Clone the repository**, e.g. to `/opt/thawemarine`.
 3. **Configure:** `cp deploy/.env.example deploy/.env`, then fill it in (table
    below). Generate the secrets with `openssl rand -base64 48`.
@@ -45,7 +45,7 @@ On the VPS (Ubuntu), once:
    backend, builds the frontend in a Node container (nothing to install on the
    host), copies it to `/var/www/thawemarine` and waits for the backend to
    report healthy.
-6. **Sign in** at https://thawemarine.seastella.in/ with the bootstrap admin,
+6. **Sign in** at https://thaweone.com/ with the bootstrap admin,
    change the password (Change password, bottom of the side rail), and remove
    `BOOTSTRAP_ADMIN_PASSWORD` from `deploy/.env`.
 
@@ -59,7 +59,7 @@ Docker volumes and survive rebuilds.
 |---|---|---|
 | `DB_USERNAME`, `DB_PASSWORD` | yes | The database is created with these on first start |
 | `JWT_SECRET` | yes | 32+ random characters. The app will not start without it |
-| `APP_BASE_URL` | yes | `https://thawemarine.seastella.in`. Invitation, reset and alert emails link here |
+| `APP_BASE_URL` | yes | `https://thaweone.com`. Invitation, reset and alert emails link here |
 | `BOOTSTRAP_ADMIN_EMAIL` | first start | The first Platform Admin. Used only while no Platform Admin exists |
 | `BOOTSTRAP_ADMIN_PASSWORD` | first start | 12+ characters, not containing the email name. Remove after first sign-in |
 | `BOOTSTRAP_ADMIN_NAME` | no | Defaults to "Platform Administrator" |
@@ -195,12 +195,12 @@ invitation arrives in a real inbox (not spam), and that a reply to it reaches
 ## 6. Go-live checks
 
 - [ ] `curl http://127.0.0.1:8080/actuator/health` on the VPS answers `UP`
-- [ ] https://thawemarine.seastella.in/ loads, and so does a deep link such as
-      https://thawemarine.seastella.in/requests (not an nginx 404)
+- [ ] https://thaweone.com/ loads, and so does a deep link such as
+      https://thaweone.com/requests (not an nginx 404)
 - [ ] The bootstrap admin signs in, and a page reload keeps them signed in
 - [ ] `BOOTSTRAP_ADMIN_PASSWORD` removed from `deploy/.env`
 - [ ] Create an organization → Technical Head → vessel → Ship Manager → Captain;
-      each invitation link opens on thawemarine.seastella.in
+      each invitation link opens on thaweone.com
 - [ ] A certificate uploads and downloads (the upload volume is writable)
 - [ ] The Platform Admin's activity feed updates live (the event stream passes
       through nginx unbuffered)
