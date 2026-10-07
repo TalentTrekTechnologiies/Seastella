@@ -32,8 +32,14 @@ On the VPS (Ubuntu), once:
    plus `git`, `rsync` and `curl`. nginx and the certificate for
    thaweone.com (certbot) are already in place; on a new server,
    `apt install nginx certbot python3-certbot-nginx` and
-   `certbot --nginx -d thaweone.com -d www.thaweone.com`, with both DNS A
-   records pointing at the server first.
+   `mkdir -p /var/www/certbot` and
+   `certbot certonly --webroot -w /var/www/certbot -d thaweone.com -d www.thaweone.com`,
+   with both DNS A records pointing at the server first. The challenge
+   directory is outside the web root on purpose: `deploy.sh` publishes the
+   frontend with `rsync --delete`, which would remove a challenge file
+   mid-renewal if they shared a folder. The nginx config serves
+   `/.well-known/acme-challenge/` from it over plain HTTP before redirecting
+   everything else, so renewals keep working without anyone touching nginx.
 2. **Clone the repository**, e.g. to `/opt/thawemarine`.
 3. **Configure:** `cp deploy/.env.example deploy/.env`, then fill it in (table
    below). Generate the secrets with `openssl rand -base64 48`.
