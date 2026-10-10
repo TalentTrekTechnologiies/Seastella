@@ -2,9 +2,11 @@ package com.seastella.identity.internal;
 
 import com.seastella.core.api.audit.AuditAction;
 import com.seastella.core.api.audit.AuditEntry;
+import com.seastella.core.api.audit.AuditJson;
 import com.seastella.core.api.audit.AuditService;
 import com.seastella.core.api.error.NotFoundException;
 import com.seastella.core.api.error.ValidationException;
+import com.seastella.core.api.error.WorkflowException;
 import com.seastella.identity.api.AccountEmails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -167,6 +170,59 @@ class AccountService {
         users.save(user);
         refreshTokens.revokeAllFor(user.getId(), "PASSWORD_RESET");
         record(AuditAction.PASSWORD_CHANGED, user);
+        return new AuthService.SignedIn(auth.session(user), refreshTokens.issueForNewSession(user, ip, userAgent));
+    }
+
+    // ------------------------------------------------------------ own email
+
+    /**
+     * Changes the signed-in user's own sign-in address.
+     *
+     * <p>The address is how a person signs in and where their reset links go,
+     * so this asks for the current password: an unlocked screen left on a desk
+     * must not be enough to take an account over by pointing it at somebody
+     * else's inbox. Every other session ends, open reset and invitation links
+     * die with the old address, and this device carries on with a fresh
+     * session - the same shape as changing one's own password.
+     *
+     * <p>It is the only way a Platform Admin can correct their own address. The
+     * administrator's correction of someone else's address follows the same
+     * chain as suspension, which refuses to act on oneself, and nobody stands
+     * above a Platform Admin in that chain.
+     */
+    @Transactional
+    AuthService.SignedIn changeEmail(Long userId, String currentPassword, String newEmail,
+                                     String ip, String userAgent) {
+        AppUser user = users.findById(userId).filter(AppUser::isActive)
+                .orElseThrow(() -> NotFoundException.ofResource("User", userId));
+        if (currentPassword == null || !passwords.matches(currentPassword, user.getPasswordHash())) {
+            throw new ValidationException("Your current password is not correct.");
+        }
+        String address = newEmail == null ? "" : newEmail.trim().toLowerCase(Locale.ROOT);
+        if (address.isEmpty() || address.length() > 254 || !ProvisioningService.EMAIL.matcher(address).matches()) {
+            throw new ValidationException("Enter a valid email address.");
+        }
+        if (address.equals(user.getEmail())) {
+            throw new ValidationException("That is already your email address.");
+        }
+        if (users.existsByEmailIgnoreCase(address)) {
+            throw new WorkflowException("An account already exists for " + address + ".");
+        }
+
+        String before = user.getEmail();
+        user.changeEmail(address);
+        users.save(user);
+        refreshTokens.revokeAllFor(user.getId(), "EMAIL_CHANGED");
+        links.revokeOpen(user.getId(), UserToken.Purpose.PASSWORD_RESET);
+        links.revokeOpen(user.getId(), UserToken.Purpose.INVITATION);
+        audit.record(AuditEntry.builder()
+                .actor(user.getId(), user.getRole().name())
+                .action(AuditAction.USER_UPDATED)
+                .entity("AppUser", user.getId())
+                .scope(user.getOrganizationId(), null)
+                .before(AuditJson.of("email", before))
+                .after(AuditJson.of("email", address, "signedOutEverywhere", true))
+                .build());
         return new AuthService.SignedIn(auth.session(user), refreshTokens.issueForNewSession(user, ip, userAgent));
     }
 

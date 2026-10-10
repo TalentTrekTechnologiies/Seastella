@@ -41,7 +41,8 @@ import java.util.stream.Collectors;
 @Service
 class ProvisioningService {
 
-    private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
+    /** What this platform accepts as a sign-in address. Shared with self-service changes. */
+    static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
 
     private final AppUserRepository users;
     private final UserVesselAssignmentRepository vesselAssignments;

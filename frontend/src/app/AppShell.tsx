@@ -7,6 +7,7 @@ import { AlertToasts } from '@/features/alerts/AlertToasts';
 import { navigationFor } from './navigation';
 import { useAuth } from './AuthContext';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { ChangeEmailDialog } from './ChangeEmailDialog';
 import { ChatLauncher } from './ChatLauncher';
 import './shell.css';
 import './brand.css';
@@ -26,6 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [changingEmail, setChangingEmail] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       return (localStorage.getItem('seastella.theme') as 'dark' | 'light') ?? 'dark';
@@ -95,9 +97,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="rail__station">
             <b>{user.fullName}</b>
             <span>{user.roleLabel}</span>
-            <button type="button" className="rail__account" onClick={() => setChangingPassword(true)}>
-              Change password
-            </button>
+            <div className="rail__links">
+              <button type="button" className="rail__account" onClick={() => setChangingEmail(true)}>
+                Change email
+              </button>
+              <button type="button" className="rail__account" onClick={() => setChangingPassword(true)}>
+                Change password
+              </button>
+            </div>
           </div>
           <div className="rail__actions">
             <button
@@ -154,6 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="content console-ground">{children}</main>
       </div>
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
+      {changingEmail && <ChangeEmailDialog onClose={() => setChangingEmail(false)} />}
       {/* Alerts announce themselves here; the bell keeps the full inbox. */}
       <AlertToasts />
       <ChatLauncher />

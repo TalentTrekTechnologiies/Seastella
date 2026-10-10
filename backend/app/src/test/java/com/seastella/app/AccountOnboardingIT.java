@@ -294,11 +294,81 @@ class AccountOnboardingIT {
                 .andReturn().getResponse().getStatus()).isEqualTo(401);
     }
 
+    // -------------------------------------------------------------- own email
+
+    @Test
+    @DisplayName("changing one's own email needs the current password, ends other sessions and moves the sign-in")
+    void changeOwnEmail() throws Exception {
+        String email = unique("th");
+        String moved = unique("moved");
+        activate(email);
+        MvcResult first = login(email, CHOSEN);
+        String otherDevice = cookie(login(email, CHOSEN));
+        String access = body(first).path("accessToken").asText();
+
+        // The password is what proves the owner is at the keyboard.
+        assertThat(changeEmail(access, "not my password", moved).getResponse().getStatus()).isEqualTo(400);
+        // Nothing to change, and nothing that is an address.
+        assertThat(changeEmail(access, CHOSEN, email).getResponse().getStatus()).isEqualTo(400);
+        assertThat(changeEmail(access, CHOSEN, "not-an-address").getResponse().getStatus()).isEqualTo(400);
+        // Somebody else's address.
+        assertThat(changeEmail(access, CHOSEN, "tech.head@acme-shipmanagement.example").getResponse().getStatus())
+                .isEqualTo(409);
+
+        // Typed with spaces and capitals, stored as the address it is.
+        MvcResult changed = changeEmail(access, CHOSEN, "  " + moved.toUpperCase() + "  ");
+        assertThat(changed.getResponse().getStatus()).as(changed.getResponse().getContentAsString()).isEqualTo(200);
+        assertThat(body(changed).path("user").path("email").asText()).isEqualTo(moved);
+        assertThat(changed.getResponse().getHeader(HttpHeaders.SET_COOKIE)).startsWith(COOKIE + "=");
+
+        assertThat(refresh(otherDevice).getResponse().getStatus()).isEqualTo(401);
+        assertThat(refresh(cookie(changed)).getResponse().getStatus()).isEqualTo(200);
+        assertThat(login(moved, CHOSEN).getResponse().getStatus()).isEqualTo(200);
+        assertThat(login(email, CHOSEN).getResponse().getStatus()).isEqualTo(401);
+    }
+
+    /**
+     * The case this exists for: the first Platform Admin is created with a
+     * placeholder address, and the administrator's correction of an account
+     * refuses to act on its own caller - so before this, nobody could fix it.
+     */
+    @Test
+    @DisplayName("a Platform Admin can correct their own sign-in address")
+    void platformAdminChangesOwnEmail() throws Exception {
+        String seeded = "admin@seastella.example";
+        String real = unique("ops");
+        try {
+            MvcResult changed = changeEmail(adminToken(), SEED_PASSWORD, real);
+            assertThat(changed.getResponse().getStatus()).as(changed.getResponse().getContentAsString()).isEqualTo(200);
+            assertThat(login(real, SEED_PASSWORD).getResponse().getStatus()).isEqualTo(200);
+            assertThat(login(seeded, SEED_PASSWORD).getResponse().getStatus()).isEqualTo(401);
+        } finally {
+            // The other cases sign in as the seeded admin; put the address back however this one ends.
+            jdbc.update("update app_user set email = ? where email = ?", seeded, real);
+        }
+    }
+
+    @Test
+    @DisplayName("changing an email requires being signed in")
+    void changeEmailNeedsAuthentication() throws Exception {
+        assertThat(mvc.perform(post("/api/v1/auth/email").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"x\",\"newEmail\":\"someone@example.com\"}"))
+                .andReturn().getResponse().getStatus()).isEqualTo(401);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private record Password(String password) {}
 
     private record PasswordChange(String currentPassword, String newPassword) {}
+
+    private record EmailChange(String currentPassword, String newEmail) {}
+
+    private MvcResult changeEmail(String access, String current, String newEmail) throws Exception {
+        return mvc.perform(post("/api/v1/auth/email").header(HttpHeaders.AUTHORIZATION, bearer(access))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(new EmailChange(current, newEmail)))).andReturn();
+    }
 
     private JsonNode createTechnicalHead(String email) throws Exception {
         Long organizationId = jdbc.queryForObject(

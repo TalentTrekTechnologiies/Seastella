@@ -141,6 +141,8 @@
   text-underline-offset: 3px;
 }
 .rail__account:hover { color: var(--rail-ink); }
+/* Change email and Change password, side by side; they wrap on a narrow rail. */
+.rail__links { display: flex; flex-wrap: wrap; gap: 0 14px; }
 .rail__actions { display: flex; gap: 6px; }
 .rail__btn {
   display: flex;

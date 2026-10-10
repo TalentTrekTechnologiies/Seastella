@@ -32,5 +32,12 @@ export const completePasswordReset = (token: string, password: string) =>
 export const changeOwnPassword = (currentPassword: string, newPassword: string) =>
   api.post<LoginResponse>('/api/v1/auth/password', { currentPassword, newPassword });
 
+/**
+ * Moves the signed-in user's own sign-in address. Needs the current password;
+ * other devices are signed out and this one carries on with a fresh session.
+ */
+export const changeOwnEmail = (currentPassword: string, newEmail: string) =>
+  api.post<LoginResponse>('/api/v1/auth/email', { currentPassword, newEmail });
+
 /** Mirrors the server's policy so the form can say so before submitting; the server still decides. */
 export const PASSWORD_MIN_LENGTH = 12;

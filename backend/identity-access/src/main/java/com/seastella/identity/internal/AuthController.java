@@ -97,6 +97,23 @@ class AuthController {
                 clientIp(http), http.getHeader("User-Agent")));
     }
 
+    /**
+     * Changes the signed-in user's own sign-in address. Needs the current
+     * password; every other session ends, and this one continues on a fresh
+     * cookie, as with a password change.
+     */
+    @PostMapping("/email")
+    ResponseEntity<AuthDtos.LoginResponse> changeEmail(@AuthenticationPrincipal SeaStellaPrincipal principal,
+                                                       @RequestBody EmailChange body,
+                                                       HttpServletRequest http) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return started(accounts.changeEmail(principal.userId(),
+                body == null ? null : body.currentPassword(), body == null ? null : body.newEmail(),
+                clientIp(http), http.getHeader("User-Agent")));
+    }
+
     /** The caller's own profile, re-read from the database rather than the token. */
     @GetMapping("/me")
     ResponseEntity<AuthDtos.UserProfile> me(@AuthenticationPrincipal SeaStellaPrincipal principal) {
@@ -131,4 +148,6 @@ class AuthController {
     }
 
     record PasswordChange(String currentPassword, String newPassword) {}
+
+    record EmailChange(String currentPassword, String newEmail) {}
 }
