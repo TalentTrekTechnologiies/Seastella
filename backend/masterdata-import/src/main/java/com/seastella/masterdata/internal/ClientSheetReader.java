@@ -115,9 +115,10 @@ final class ClientSheetReader {
 
         // --- critical spares (the minimum-spares form) ---
         SPARE_PART("sparepartname", "sparepart", "partname", "spares", "spareparts"),
-        MINIMUM_QTY("minimumquantity", "minimumqty", "minqty", "minimum", "requiredquantity", "reqqty"),
-        ON_BOARD("quantityonhand", "qtyonboard", "onboard", "rob", "actualquantity", "actualqty", "stock",
-                "availablequantity"),
+        MINIMUM_QTY("minimumquantity", "minimumqty", "minqty", "minimum", "requiredquantity", "reqqty",
+                "neededspares", "sparesneeded", "requiredspares", "sparesrequired"),
+        ON_BOARD("quantityonhand", "qtyonboard", "onboard", "remainingonboard", "sparesonboard", "rob",
+                "actualquantity", "actualqty", "stock", "availablequantity"),
         COMPLIANCE("compliance", "complied"),
         REMARKS("remarks", "remark", "comments", "observation");
 
@@ -285,11 +286,14 @@ final class ClientSheetReader {
             // "2 nos." still means at least two: the words stay as the note, and the
             // leading figure drives the below-minimum alert.
             if (minimum == null) minimum = leadingCount(minimumNote);
+            String onBoardText = text(row, columns.get(Field.ON_BOARD), formatter);
+            Integer onBoard = wholeNumber(row, columns.get(Field.ON_BOARD), formatter);
+            if (onBoard == null) onBoard = leadingCount(onBoardText);
 
             String vmpRef = vmpRef(cell(row, columns.get(Field.VMP_REF)), formatter);
             String name = text(row, columns.get(Field.NAME), formatter);
 
-            boolean isSpare = partName != null || minimum != null || minimumNote != null;
+            boolean isSpare = partName != null || minimum != null || minimumNote != null || onBoardText != null;
             if (isSpare) {
                 // The form repeats the equipment only on its first line, so a
                 // blank equipment cell means "the one above".
@@ -302,7 +306,7 @@ final class ClientSheetReader {
                 spares.add(new CriticalSpareRow(r + 1, equipmentRef, equipmentName,
                         partName != null ? partName : name,
                         minimum, minimumNote,
-                        wholeNumber(row, columns.get(Field.ON_BOARD), formatter),
+                        onBoard,
                         compliance(rawText(row, columns.get(Field.COMPLIANCE), formatter)),
                         text(row, columns.get(Field.REMARKS), formatter),
                         warnings));

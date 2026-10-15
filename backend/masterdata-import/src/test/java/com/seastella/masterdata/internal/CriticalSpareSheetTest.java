@@ -50,6 +50,18 @@ class CriticalSpareSheetTest {
     }
 
     @Test
+    @DisplayName("an AVI row maps needed and on-board spares counts")
+    void readsNeededAndOnBoardSpareCounts() throws IOException {
+        ClientSheet sheet = ClientSheetReader.read(aviSparesForm());
+
+        assertThat(sheet.equipment()).isEmpty();
+        assertThat(sheet.criticalSpares()).hasSize(1);
+        assertThat(sheet.criticalSpares().get(0).partName()).isEqualTo("Fuse");
+        assertThat(sheet.criticalSpares().get(0).minimumQuantity()).isEqualTo(30);
+        assertThat(sheet.criticalSpares().get(0).quantityOnHand()).isEqualTo(4);
+    }
+
+    @Test
     @DisplayName("a blank equipment cell means the equipment above it, as the form is written")
     void continuationRowsKeepTheirEquipment() throws IOException {
         ClientSheet sheet = ClientSheetReader.read(minimumSparesForm());
@@ -108,6 +120,16 @@ class CriticalSpareSheetTest {
             write(sheet, 3, "2", "Navtex Printer", "Paper Rolls", "6 pcs", "7", "", "");
             write(sheet, 4, "3", "Radars", "Magnetron", "1", "1", "No", "Requisition 4471 raised");
             write(sheet, 5, "", "", "Carbon brush", "2", "2", "NA", "X-band only; not fitted");
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private byte[] aviSparesForm() throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("AVI");
+            write(sheet, 0, "Equipment", "Spare Part Name", "Needed Spares", "On Board Spares");
+            write(sheet, 1, "Emergency Lighting", "Fuse", "30", "4 Nos.");
             workbook.write(out);
             return out.toByteArray();
         }
