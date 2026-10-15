@@ -28,7 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>The sheet is built here rather than checked in, so the test says in code
  * exactly which quirks of their form it is claiming to handle — the equipment
  * named once and left blank for its remaining parts, quantities written as
- * "6 pcs", and a compliance column of Yes / No / NA.
+ * "6 pcs", an ROB (remaining on board) count, and a compliance column of
+ * Yes / No / NA.
  */
 @DisplayName("reading a minimum-spares form")
 class CriticalSpareSheetTest {
@@ -44,6 +45,7 @@ class CriticalSpareSheetTest {
         CriticalSpareRow bulbs = spareNamed(sheet, "Bulbs").orElseThrow();
         assertThat(bulbs.equipmentName()).isEqualTo("Magnetic Compass");
         assertThat(bulbs.minimumQuantity()).isEqualTo(2);
+        assertThat(bulbs.quantityOnHand()).as("the count under ROB").isEqualTo(3);
         assertThat(bulbs.compliance()).isEqualTo("YES");
     }
 
@@ -98,13 +100,14 @@ class CriticalSpareSheetTest {
     private byte[] minimumSparesForm() throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Minimum Spares");
-            write(sheet, 0, "S.No.", "Equipment", "Spare Part Name", "Minimum Quantity", "Compliance", "Remarks");
-            write(sheet, 1, "1", "Magnetic Compass", "Bulbs", "2", "Yes", "");
+            write(sheet, 0, "S.No.", "Equipment", "Spare Part Name", "Minimum Quantity",
+                    "ROB", "Compliance", "Remarks");
+            write(sheet, 1, "1", "Magnetic Compass", "Bulbs", "2", "3", "Yes", "");
             write(sheet, 2, "", "", "Magnetic Correctors",
-                    "2 pcs each athwartship, fore & aft and Flinders bar", "", "");
-            write(sheet, 3, "2", "Navtex Printer", "Paper Rolls", "6 pcs", "", "");
-            write(sheet, 4, "3", "Radars", "Magnetron", "1", "No", "Requisition 4471 raised");
-            write(sheet, 5, "", "", "Carbon brush", "2", "NA", "X-band only; not fitted");
+                    "2 pcs each athwartship, fore & aft and Flinders bar", "2", "", "");
+            write(sheet, 3, "2", "Navtex Printer", "Paper Rolls", "6 pcs", "7", "", "");
+            write(sheet, 4, "3", "Radars", "Magnetron", "1", "1", "No", "Requisition 4471 raised");
+            write(sheet, 5, "", "", "Carbon brush", "2", "2", "NA", "X-band only; not fitted");
             workbook.write(out);
             return out.toByteArray();
         }

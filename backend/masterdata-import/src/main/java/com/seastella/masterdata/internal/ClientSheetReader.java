@@ -116,7 +116,7 @@ final class ClientSheetReader {
         // --- critical spares (the minimum-spares form) ---
         SPARE_PART("sparepartname", "sparepart", "partname", "spares", "spareparts"),
         MINIMUM_QTY("minimumquantity", "minimumqty", "minqty", "minimum", "requiredquantity", "reqqty"),
-        ON_BOARD("quantityonhand", "qtyonboard", "onboard", "actualquantity", "actualqty", "stock",
+        ON_BOARD("quantityonhand", "qtyonboard", "onboard", "rob", "actualquantity", "actualqty", "stock",
                 "availablequantity"),
         COMPLIANCE("compliance", "complied"),
         REMARKS("remarks", "remark", "comments", "observation");
