@@ -47,16 +47,19 @@ class NotificationFanout {
     private final NotificationRuleRepository rules;
     private final NotificationRepository notifications;
     private final NotificationDeliveryRepository deliveries;
+    private final NotificationEmailSettingsRepository emailSettings;
     private final UserDirectory users;
     private final ServiceRequestMetrics requests;
     private final TransactionTemplate tx;
 
     NotificationFanout(NotificationRuleRepository rules, NotificationRepository notifications,
-                       NotificationDeliveryRepository deliveries, UserDirectory users,
+                       NotificationDeliveryRepository deliveries, NotificationEmailSettingsRepository emailSettings,
+                       UserDirectory users,
                        ServiceRequestMetrics requests, PlatformTransactionManager transactions) {
         this.rules = rules;
         this.notifications = notifications;
         this.deliveries = deliveries;
+        this.emailSettings = emailSettings;
         this.users = users;
         this.requests = requests;
         this.tx = new TransactionTemplate(transactions);
@@ -309,7 +312,17 @@ class NotificationFanout {
                 organizationId, vesselId, dueStatus, rule.isInApp()));
 
         if (rule.isEmail() && user.email() != null && !user.email().isBlank()) {
-            deliveries.save(new NotificationDelivery(notification.getId(), NotificationDelivery.EMAIL, user.email()));
+            NotificationDelivery delivery = new NotificationDelivery(
+                    notification.getId(), NotificationDelivery.EMAIL, user.email());
+            if (!emailEnabled()) {
+                delivery.skipped("Alert email delivery is paused by an administrator.");
+            }
+            deliveries.save(delivery);
         }
+    }
+
+    private boolean emailEnabled() {
+        return emailSettings.findEnabledById(NotificationEmailSettings.SINGLETON_ID)
+                .orElseThrow(() -> new IllegalStateException("Alert email settings are missing."));
     }
 }

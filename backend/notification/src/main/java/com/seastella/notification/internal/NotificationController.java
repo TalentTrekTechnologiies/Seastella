@@ -40,14 +40,17 @@ class NotificationController {
 
     private final NotificationRepository notifications;
     private final NotificationDeliveryRepository deliveries;
+    private final NotificationEmailSettingsRepository emailSettings;
     private final NotificationRuleRepository rules;
     private final ScopeResolver scopeResolver;
     private final AuditService audit;
 
     NotificationController(NotificationRepository notifications, NotificationDeliveryRepository deliveries,
-                           NotificationRuleRepository rules, ScopeResolver scopeResolver, AuditService audit) {
+                           NotificationEmailSettingsRepository emailSettings, NotificationRuleRepository rules,
+                           ScopeResolver scopeResolver, AuditService audit) {
         this.notifications = notifications;
         this.deliveries = deliveries;
+        this.emailSettings = emailSettings;
         this.rules = rules;
         this.scopeResolver = scopeResolver;
         this.audit = audit;
@@ -109,6 +112,41 @@ class NotificationController {
         }).toList());
     }
 
+    /** Platform-wide pause for alert email delivery; queued alerts are discarded when paused. */
+    @GetMapping("/email-settings")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @Transactional(readOnly = true)
+    ResponseEntity<EmailSettingsView> emailSettings() {
+        return ResponseEntity.ok(toEmailSettings(requiredEmailSettings()));
+    }
+
+    @PutMapping("/email-settings")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @Transactional
+    ResponseEntity<EmailSettingsView> configureEmailSettings(@RequestBody EmailSettingsUpdate body) {
+        if (body == null || body.enabled() == null) {
+            throw new ValidationException("Say whether alert email delivery should be enabled.");
+        }
+        NotificationEmailSettings settings = requiredEmailSettings();
+        boolean wasEnabled = settings.isEnabled();
+        settings.setEnabled(body.enabled());
+        emailSettings.save(settings);
+        if (!body.enabled()) {
+            deliveries.skipPending(NotificationDelivery.PENDING, NotificationDelivery.SKIPPED,
+                    "Alert email delivery is paused by an administrator.");
+        }
+
+        AccessScope scope = scopeResolver.currentScope();
+        audit.record(AuditEntry.builder()
+                .actor(scope.userId(), scope.role() == null ? null : scope.role().name())
+                .action(AuditAction.CONFIGURATION_CHANGED)
+                .entity("NotificationEmailSettings", settings.getId())
+                .before(AuditJson.of("enabled", wasEnabled))
+                .after(AuditJson.of("enabled", settings.isEnabled()))
+                .build());
+        return ResponseEntity.ok(toEmailSettings(settings));
+    }
+
     /** Who hears about what (SoW s11), as configured. */
     @GetMapping("/rules")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
@@ -153,6 +191,15 @@ class NotificationController {
                 r.isActive(), r.getSourceRef());
     }
 
+    private NotificationEmailSettings requiredEmailSettings() {
+        return emailSettings.findById(NotificationEmailSettings.SINGLETON_ID)
+                .orElseThrow(() -> new IllegalStateException("Alert email settings are missing."));
+    }
+
+    private static EmailSettingsView toEmailSettings(NotificationEmailSettings settings) {
+        return new EmailSettingsView(settings.isEnabled());
+    }
+
     record Inbox(long unreadCount, List<Item> items) {}
 
     record UnreadCount(long unreadCount) {}
@@ -168,4 +215,8 @@ class NotificationController {
                     boolean active, String sourceRef) {}
 
     record RuleUpdate(Boolean inApp, Boolean email, Boolean active) {}
+
+    record EmailSettingsView(boolean enabled) {}
+
+    record EmailSettingsUpdate(Boolean enabled) {}
 }

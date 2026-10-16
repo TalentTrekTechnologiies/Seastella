@@ -78,5 +78,15 @@ export const fetchNotificationRules = () => api.get<NotificationRule[]>('/api/v1
 export const updateNotificationRule = (id: number, change: { inApp?: boolean; email?: boolean; active?: boolean }) =>
   api.put<NotificationRule>(`/api/v1/notifications/rules/${id}`, change);
 
+export interface NotificationEmailSettings {
+  enabled: boolean;
+}
+
+export const fetchNotificationEmailSettings = () =>
+  api.get<NotificationEmailSettings>('/api/v1/notifications/email-settings');
+
+export const updateNotificationEmailSettings = (enabled: boolean) =>
+  api.put<NotificationEmailSettings>('/api/v1/notifications/email-settings', { enabled });
+
 export const fetchDeliveryLog = (limit = 100) =>
   api.get<NotificationDelivery[]>(`/api/v1/notifications/deliveries?limit=${limit}`);

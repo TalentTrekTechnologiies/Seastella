@@ -29,6 +29,16 @@
 .rules__who { display: flex; align-items: baseline; gap: 8px; font-size: 14px; color: var(--sbs-ink-2); }
 .rules__source { font-size: 12px; color: var(--sbs-ink-3); }
 
+.email-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+}
+.email-control__status { font-size: 14.5px; font-weight: 600; }
+.email-control__hint { margin-top: 3px; font-size: 13px; color: var(--sbs-ink-3); }
+
 /* A switch, not a checkbox: these are settings, not a form to submit. */
 .swtch {
   justify-self: center;

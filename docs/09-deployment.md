@@ -76,6 +76,12 @@ Docker volumes and survive rebuilds.
 `SPRING_PROFILES_ACTIVE=prod`, `DB_URL` and `UPLOAD_DIR` are set by
 `docker-compose.yml`.
 
+Platform Admins can pause alert emails immediately in **Platform administration
+→ Alerts and delivery**. Pausing cancels queued alert emails and suppresses
+new ones while leaving in-app alerts active. An email already being sent may
+still finish. Resuming sends only new alert emails; messages cancelled during
+the pause are not replayed.
+
 ### What happens on first start
 
 1. Flyway creates the schema, including the reference data the app needs: the

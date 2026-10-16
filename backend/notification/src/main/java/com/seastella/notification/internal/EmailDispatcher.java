@@ -39,6 +39,7 @@ class EmailDispatcher {
 
     private final NotificationDeliveryRepository deliveries;
     private final NotificationRepository notifications;
+    private final NotificationEmailSettingsRepository emailSettings;
     private final ObjectProvider<JavaMailSender> mailSender;
     private final TransactionTemplate tx;
     private final String from;
@@ -48,6 +49,7 @@ class EmailDispatcher {
     private final String appBaseUrl;
 
     EmailDispatcher(NotificationDeliveryRepository deliveries, NotificationRepository notifications,
+                    NotificationEmailSettingsRepository emailSettings,
                     ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactions,
                     @Value("${seastella.notification.email.from:SeaStella Maritime Ops <no-reply@seastella.in>}") String from,
                     @Value("${seastella.notification.email.reply-to:team@seastella.in}") String replyTo,
@@ -56,6 +58,7 @@ class EmailDispatcher {
                     @Value("${seastella.notification.app-base-url:http://localhost:5173}") String appBaseUrl) {
         this.deliveries = deliveries;
         this.notifications = notifications;
+        this.emailSettings = emailSettings;
         this.mailSender = mailSender;
         this.tx = new TransactionTemplate(transactions);
         this.from = from;
@@ -79,6 +82,12 @@ class EmailDispatcher {
         List<NotificationDelivery> pending = deliveries.findTop50ByStatusOrderByIdAsc(NotificationDelivery.PENDING);
         if (pending.isEmpty()) return;
 
+        if (!emailEnabled()) {
+            deliveries.skipPending(NotificationDelivery.PENDING, NotificationDelivery.SKIPPED,
+                    "Alert email delivery is paused by an administrator.");
+            return;
+        }
+
         Map<Long, Notification> byId = notifications.findAllById(
                         pending.stream().map(NotificationDelivery::getNotificationId).toList())
                 .stream().collect(Collectors.toMap(Notification::getId, Function.identity()));
@@ -88,6 +97,10 @@ class EmailDispatcher {
         int sent = 0;
 
         for (NotificationDelivery delivery : pending) {
+            if (!emailEnabled()) {
+                delivery.skipped("Alert email delivery is paused by an administrator.");
+                continue;
+            }
             Notification n = byId.get(delivery.getNotificationId());
             if (n == null) {
                 delivery.skipped("The notification no longer exists.");
@@ -116,6 +129,11 @@ class EmailDispatcher {
         }
         deliveries.saveAll(pending);
         if (sent > 0) log.info("Sent {} email alert(s)", sent);
+    }
+
+    private boolean emailEnabled() {
+        return emailSettings.findEnabledById(NotificationEmailSettings.SINGLETON_ID)
+                .orElseThrow(() -> new IllegalStateException("Alert email settings are missing."));
     }
 
     private static String subject(Notification n) {

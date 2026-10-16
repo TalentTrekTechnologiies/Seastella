@@ -3,7 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
 import {
   fetchDeliveryLog,
+  fetchNotificationEmailSettings,
   fetchNotificationRules,
+  updateNotificationEmailSettings,
   updateNotificationRule,
   type NotificationDelivery,
   type NotificationRule,
@@ -32,9 +34,15 @@ import './alerts-admin.css';
 export function AlertRulesPage() {
   const client = useQueryClient();
   const rules = useQuery({ queryKey: ['notification-rules'], queryFn: fetchNotificationRules });
+  const emailSettings = useQuery({
+    queryKey: ['notification-email-settings'],
+    queryFn: fetchNotificationEmailSettings,
+  });
   const deliveries = useQuery({ queryKey: ['notification-deliveries'], queryFn: () => fetchDeliveryLog(100) });
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const byEvent = useMemo(() => {
     const map = new Map<string, NotificationRule[]>();
@@ -47,6 +55,7 @@ export function AlertRulesPage() {
   }, [rules.data]);
 
   if (rules.error) return <ErrorState error={rules.error} onRetry={() => rules.refetch()} />;
+  if (emailSettings.error) return <ErrorState error={emailSettings.error} onRetry={() => emailSettings.refetch()} />;
 
   const toggle = async (rule: NotificationRule, field: 'inApp' | 'email' | 'active') => {
     setBusyId(rule.id);
@@ -63,6 +72,21 @@ export function AlertRulesPage() {
     }
   };
 
+  const toggleEmailDelivery = async () => {
+    if (emailSettings.data == null) return;
+    setEmailBusy(true);
+    setEmailError(null);
+    try {
+      const saved = await updateNotificationEmailSettings(!emailSettings.data.enabled);
+      client.setQueryData(['notification-email-settings'], saved);
+      await client.invalidateQueries({ queryKey: ['notification-deliveries'] });
+    } catch (e) {
+      setEmailError(e instanceof ApiError ? e.message : 'Alert email delivery could not be changed.');
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
   const skipped = (deliveries.data ?? []).filter((d) => d.status === 'SKIPPED').length;
 
   return (
@@ -72,6 +96,31 @@ export function AlertRulesPage() {
         title="Alerts and delivery"
         subtitle="Who is told about what, and what happened to each message. Changing a rule takes effect on the next event."
       />
+
+      <Plate
+        title="Alert email delivery"
+        subtitle="Pause queued and future alert emails; in-app alerts continue."
+      >
+        <div className="email-control">
+          <div>
+            <div className="email-control__status">
+              {emailSettings.data?.enabled ? 'Email delivery is on' : 'Email delivery is paused'}
+            </div>
+            <div className="email-control__hint">
+              {emailSettings.data?.enabled
+                ? 'Turning this off cancels queued alert emails. A message already being sent may still finish; cancelled messages are not replayed.'
+                : 'New alert emails are suppressed and queued emails have been cancelled. In-app alerts are unaffected.'}
+            </div>
+          </div>
+          <Switch
+            on={emailSettings.data?.enabled ?? false}
+            busy={emailBusy || emailSettings.isLoading || emailSettings.data == null}
+            label={emailSettings.data?.enabled ? 'Pause all alert emails' : 'Resume alert emails'}
+            onChange={toggleEmailDelivery}
+          />
+        </div>
+        <FormError message={emailError} />
+      </Plate>
 
       <Plate
         title="Alert matrix"
