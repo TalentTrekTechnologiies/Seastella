@@ -128,7 +128,7 @@ class SpareCreationController {
         if (parent == null) {
             // The vessel already has this type's heading item - 11 VDR - so a new
             // unit of that type is its next child, 11.1 then 11.2, as the VMP nests.
-            parent = spares.findByVesselIdOrderByPathAsc(vesselId).stream()
+            parent = spares.inVmpOrder(vesselId).stream()
                     .filter(sp -> sp.getParentSpareId() == null && sp.getPath().indexOf('.') < 0)
                     .filter(sp -> sp.getEquipmentCategoryId().equals(categoryId))
                     .findFirst().orElse(null);
@@ -210,7 +210,7 @@ class SpareCreationController {
             return parent.getPath() + "." + (highestSegment(children) + 1);
         }
 
-        List<Spare> onThisVessel = spares.findByVesselIdOrderByPathAsc(vesselId).stream()
+        List<Spare> onThisVessel = spares.inVmpOrder(vesselId).stream()
                 .filter(sp -> sp.getParentSpareId() == null)
                 .filter(sp -> sp.getEquipmentCategoryId().equals(categoryId))
                 .toList();

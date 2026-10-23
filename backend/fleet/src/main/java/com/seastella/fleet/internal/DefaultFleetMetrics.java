@@ -10,6 +10,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -223,8 +225,10 @@ class DefaultFleetMetrics implements FleetMetrics {
     @Transactional(readOnly = true)
     public List<SpareNode> spareTree(Long vesselId) {
         if (vesselId == null) return List.of();
-        return jdbc.query(SPARE_SELECT + " where s.vessel_id = ? order by s.path",
-                (rs, i) -> mapSpare(rs), vesselId);
+        List<SpareNode> tree = new ArrayList<>(jdbc.query(SPARE_SELECT + " where s.vessel_id = ?",
+                (rs, i) -> mapSpare(rs), vesselId));
+        tree.sort(Comparator.comparing(SpareNode::path, VmpPathOrder.PATHS));
+        return tree;
     }
 
     @Override

@@ -398,7 +398,7 @@ class FleetServiceHistoryController {
         /** By VMP number first, then by name - which must pick out exactly one item. */
         Spare spare(Vessel vessel, String equipment, List<String> problems) {
             if (equipment == null) return null;
-            List<Spare> onVessel = sparesByVessel.computeIfAbsent(vessel.getId(), spares::findByVesselIdOrderByPathAsc);
+            List<Spare> onVessel = sparesByVessel.computeIfAbsent(vessel.getId(), spares::inVmpOrder);
             String wanted = equipment.trim();
             for (Spare s : onVessel) {
                 if (wanted.equals(s.getPath())) return s;

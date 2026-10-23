@@ -59,7 +59,7 @@ class SpareController {
                 .collect(Collectors.toMap(SoftwareBaseline::getMatchKey, Function.identity(),
                         (first, second) -> first));
 
-        List<SpareNode> nodes = spares.findByVesselIdOrderByPathAsc(vesselId).stream()
+        List<SpareNode> nodes = spares.inVmpOrder(vesselId).stream()
                 .map(s -> {
                     EquipmentCategory c = byId.get(s.getEquipmentCategoryId());
                     String key = SoftwareMatchKey.of(s.getMake(), s.getModel());

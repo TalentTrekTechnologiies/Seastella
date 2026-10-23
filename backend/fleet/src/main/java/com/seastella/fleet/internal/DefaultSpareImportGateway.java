@@ -95,7 +95,7 @@ class DefaultSpareImportGateway implements SpareImportGateway {
         categories.findAll().forEach(c -> categoryCodes.put(c.getId(), c.getCode()));
 
         Map<String, ExistingSpare> byRef = new LinkedHashMap<>();
-        for (Spare s : spares.findByVesselIdOrderByPathAsc(vesselId)) {
+        for (Spare s : spares.inVmpOrder(vesselId)) {
             String ref = s.getVmpRef() == null ? s.getPath() : s.getVmpRef();
             byRef.put(ref, new ExistingSpare(s.getId(), ref, s.getEquipmentCategoryId(),
                     categoryCodes.get(s.getEquipmentCategoryId()), valuesOf(s)));
@@ -106,7 +106,7 @@ class DefaultSpareImportGateway implements SpareImportGateway {
     @Override
     @Transactional(readOnly = true)
     public List<String> vmpRefs(Long vesselId) {
-        return spares.findByVesselIdOrderByPathAsc(vesselId).stream()
+        return spares.inVmpOrder(vesselId).stream()
                 .map(s -> s.getVmpRef() == null ? s.getPath() : s.getVmpRef())
                 .toList();
     }
@@ -173,7 +173,7 @@ class DefaultSpareImportGateway implements SpareImportGateway {
     @Transactional(readOnly = true)
     public Map<String, ExistingPart> criticalSparesByKey(Long vesselId) {
         Map<Long, String> equipmentNames = new LinkedHashMap<>();
-        spares.findByVesselIdOrderByPathAsc(vesselId)
+        spares.inVmpOrder(vesselId)
                 .forEach(sp -> equipmentNames.put(sp.getId(), sp.getName()));
 
         Map<String, ExistingPart> byKey = new LinkedHashMap<>();
@@ -237,7 +237,7 @@ class DefaultSpareImportGateway implements SpareImportGateway {
         int lastDot = vmpRef.lastIndexOf('.');
         if (lastDot <= 0) return Optional.empty();
         String parentRef = vmpRef.substring(0, lastDot);
-        return spares.findByVesselIdOrderByPathAsc(vesselId).stream()
+        return spares.inVmpOrder(vesselId).stream()
                 .filter(s -> parentRef.equals(s.getVmpRef()) || parentRef.equals(s.getPath()))
                 .findFirst();
     }

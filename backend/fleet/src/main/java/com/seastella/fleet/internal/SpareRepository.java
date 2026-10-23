@@ -9,9 +9,17 @@ import java.util.Set;
 
 public interface SpareRepository extends JpaRepository<Spare, Long> {
 
-    List<Spare> findByVesselIdOrderByPathAsc(Long vesselId);
+    List<Spare> findByVesselId(Long vesselId);
 
-    List<Spare> findByVesselIdInOrderByPathAsc(Set<Long> vesselIds);
+    /**
+     * A vessel's equipment in VMP order: 1, 2, ... 10, not 1, 10, 11, 2. The
+     * database can only sort the path as text, so the order is applied here.
+     */
+    default List<Spare> inVmpOrder(Long vesselId) {
+        List<Spare> list = new java.util.ArrayList<>(findByVesselId(vesselId));
+        list.sort(VmpPathOrder.SPARES);
+        return list;
+    }
 
     List<Spare> findByParentSpareId(Long parentSpareId);
 

@@ -84,7 +84,7 @@ class DefaultFleetDirectory implements FleetDirectory {
         if (vesselId == null) {
             return result;
         }
-        for (Spare spare : spares.findByVesselIdOrderByPathAsc(vesselId)) {
+        for (Spare spare : spares.inVmpOrder(vesselId)) {
             result.put(spare.getId(), spare.isTracksRunningHours());
         }
         return result;
