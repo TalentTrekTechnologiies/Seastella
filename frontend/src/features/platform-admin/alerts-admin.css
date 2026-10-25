@@ -53,6 +53,8 @@
   transition: background 120ms ease, border-color 120ms ease;
 }
 .swtch:disabled { cursor: progress; opacity: 0.6; }
+/* Beside long text in a flex row the switch must keep its shape. */
+.email-control .swtch { flex: none; }
 .swtch__dot {
   width: 16px;
   height: 16px;
@@ -77,3 +79,26 @@
 .deliveries__error { color: var(--c-overdue); }
 .deliveries__side { display: grid; justify-items: end; gap: 3px; flex: none; }
 .deliveries__side time { font-size: 12.5px; color: var(--sbs-ink-3); }
+
+/* WhatsApp: the test buttons, what Meta answered, and the template editor. */
+.rules__head,
+.rules__row { grid-template-columns: minmax(0, 1fr) 68px 68px 76px 68px; }
+@media (max-width: 640px) {
+  .rules__head,
+  .rules__row { grid-template-columns: minmax(0, 1fr) repeat(4, 50px); gap: 4px; padding: 8px 12px; }
+  .rules__head { font-size: 9.5px; letter-spacing: 0; }
+}
+.wa-test { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 0 20px 14px; }
+.wa-test .email-control__hint { flex: 1 1 260px; margin: 0; }
+.wa-test__result { margin: 0 20px 14px; padding: 10px 12px; border-radius: 8px; font-size: 13.5px; overflow-wrap: anywhere; }
+.wa-test__result--ok { background: var(--sbs-plate-sunk); color: var(--sbs-ink-1); }
+.wa-test__result--bad { background: var(--sbs-plate-sunk); color: var(--c-overdue); }
+.wa-edit { align-items: flex-start; }
+.wa-edit__fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px 12px; margin-top: 8px; }
+.wa-edit__fields label { display: grid; gap: 4px; font-size: 12.5px; color: var(--sbs-ink-3); }
+.wa-edit__fields .checkline { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .wa-edit { flex-direction: column; }
+  .wa-edit__fields { grid-template-columns: 1fr; }
+  .wa-edit .deliveries__side { display: flex; justify-items: initial; }
+}

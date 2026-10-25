@@ -93,7 +93,7 @@ class NotificationController {
         return ResponseEntity.ok(new UnreadCount(0));
     }
 
-    /** Email delivery log, newest first (SoW s8.5 system status). */
+    /** Email and WhatsApp delivery log, newest first (SoW s8.5 system status). */
     @GetMapping("/deliveries")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     @Transactional(readOnly = true)
@@ -132,7 +132,7 @@ class NotificationController {
         settings.setEnabled(body.enabled());
         emailSettings.save(settings);
         if (!body.enabled()) {
-            deliveries.skipPending(NotificationDelivery.PENDING, NotificationDelivery.SKIPPED,
+            deliveries.skipPending(NotificationDelivery.EMAIL, NotificationDelivery.PENDING, NotificationDelivery.SKIPPED,
                     "Alert email delivery is paused by an administrator.");
         }
 
@@ -164,8 +164,11 @@ class NotificationController {
             throw new ValidationException("Say whether the rule is active, and whether it alerts in the app and by email.");
         }
         NotificationRule rule = rules.findById(id).orElseThrow(() -> NotFoundException.ofResource("NotificationRule", id));
-        String before = AuditJson.of("inApp", rule.isInApp(), "email", rule.isEmail(), "active", rule.isActive());
-        rule.configure(body.inApp(), body.email(), body.active());
+        String before = AuditJson.of("inApp", rule.isInApp(), "email", rule.isEmail(), "whatsapp", rule.isWhatsapp(),
+                "active", rule.isActive());
+        // An older screen that knows nothing of WhatsApp leaves it as it was.
+        boolean whatsapp = body.whatsapp() == null ? rule.isWhatsapp() : body.whatsapp();
+        rule.configure(body.inApp(), body.email(), whatsapp, body.active());
         rules.save(rule);
 
         AccessScope scope = scopeResolver.currentScope();
@@ -175,7 +178,8 @@ class NotificationController {
                 .entity("NotificationRule", rule.getId())
                 .before(before)
                 .after(AuditJson.of("eventType", rule.getEventType(), "recipientRole", rule.getRecipientRole(),
-                        "inApp", rule.isInApp(), "email", rule.isEmail(), "active", rule.isActive()))
+                        "inApp", rule.isInApp(), "email", rule.isEmail(), "whatsapp", rule.isWhatsapp(),
+                        "active", rule.isActive()))
                 .build());
         return ResponseEntity.ok(toRule(rule));
     }
@@ -188,7 +192,7 @@ class NotificationController {
 
     private static RuleView toRule(NotificationRule r) {
         return new RuleView(r.getId(), r.getEventType(), r.getRecipientRole().name(), r.isInApp(), r.isEmail(),
-                r.isActive(), r.getSourceRef());
+                r.isWhatsapp(), r.isActive(), r.getSourceRef());
     }
 
     private NotificationEmailSettings requiredEmailSettings() {
@@ -212,9 +216,9 @@ class NotificationController {
                         String lastError, Instant sentAt, Instant createdAt, String eventType, String title) {}
 
     record RuleView(Long id, String eventType, String recipientRole, boolean inApp, boolean email,
-                    boolean active, String sourceRef) {}
+                    boolean whatsapp, boolean active, String sourceRef) {}
 
-    record RuleUpdate(Boolean inApp, Boolean email, Boolean active) {}
+    record RuleUpdate(Boolean inApp, Boolean email, Boolean whatsapp, Boolean active) {}
 
     record EmailSettingsView(boolean enabled) {}
 

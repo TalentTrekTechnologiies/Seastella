@@ -19,6 +19,7 @@ import java.time.Instant;
 class NotificationDelivery extends BaseEntity {
 
     static final String EMAIL = "EMAIL";
+    static final String WHATSAPP = "WHATSAPP";
 
     static final String PENDING = "PENDING";
     static final String SENT = "SENT";
@@ -81,5 +82,12 @@ class NotificationDelivery extends BaseEntity {
         attempts++;
         lastError = error == null ? null : error.length() > 500 ? error.substring(0, 500) : error;
         status = attempts >= maxAttempts ? FAILED : PENDING;
+    }
+
+    /** A refusal no retry will change - an unknown template, a number not on WhatsApp. */
+    void rejected(String error) {
+        attempts++;
+        lastError = error == null ? null : error.length() > 500 ? error.substring(0, 500) : error;
+        status = FAILED;
     }
 }

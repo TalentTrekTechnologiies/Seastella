@@ -39,5 +39,18 @@ export const changeOwnPassword = (currentPassword: string, newPassword: string) 
 export const changeOwnEmail = (currentPassword: string, newEmail: string) =>
   api.post<LoginResponse>('/api/v1/auth/email', { currentPassword, newEmail });
 
+/** The signed-in person's own WhatsApp number for alerts. */
+export interface OwnWhatsApp {
+  number?: string;
+  optedIn: boolean;
+  optedInAt?: string;
+}
+
+export const fetchOwnWhatsApp = () => api.get<OwnWhatsApp>('/api/v1/auth/whatsapp');
+
+/** A blank number removes it and alerts stop. A number is only kept with consent. */
+export const saveOwnWhatsApp = (number: string, consent: boolean) =>
+  api.put<OwnWhatsApp>('/api/v1/auth/whatsapp', { number, consent });
+
 /** Mirrors the server's policy so the form can say so before submitting; the server still decides. */
 export const PASSWORD_MIN_LENGTH = 12;

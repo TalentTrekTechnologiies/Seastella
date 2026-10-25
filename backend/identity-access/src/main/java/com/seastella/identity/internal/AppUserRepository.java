@@ -12,6 +12,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findByEmailIgnoreCase(String email);
 
+    /** Active people who have agreed to WhatsApp alerts and given a number. */
+    long countByStatusAndWhatsappNumberIsNotNullAndWhatsappOptInAtIsNotNull(String status);
+
     boolean existsByEmailIgnoreCase(String email);
 
     List<AppUser> findByOrganizationIdAndRole(Long organizationId, Role role);

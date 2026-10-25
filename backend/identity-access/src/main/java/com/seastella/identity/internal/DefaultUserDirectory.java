@@ -62,7 +62,14 @@ class DefaultUserDirectory implements UserDirectory {
                 .map(DefaultUserDirectory::toRef).toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long whatsappOptInCount() {
+        return users.countByStatusAndWhatsappNumberIsNotNullAndWhatsappOptInAtIsNotNull("ACTIVE");
+    }
+
     private static UserRef toRef(AppUser u) {
-        return new UserRef(u.getId(), u.getFullName(), u.getEmail(), u.getRole(), u.getOrganizationId(), u.isActive());
+        return new UserRef(u.getId(), u.getFullName(), u.getEmail(), u.getRole(), u.getOrganizationId(), u.isActive(),
+                u.whatsappForAlerts());
     }
 }

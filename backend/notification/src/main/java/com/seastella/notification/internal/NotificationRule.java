@@ -31,6 +31,9 @@ class NotificationRule extends BaseEntity {
     @Column(name = "email", nullable = false)
     private boolean email;
 
+    @Column(name = "whatsapp", nullable = false)
+    private boolean whatsapp;
+
     @Column(name = "active", nullable = false)
     private boolean active;
 
@@ -44,12 +47,14 @@ class NotificationRule extends BaseEntity {
     Role getRecipientRole() { return recipientRole; }
     boolean isInApp() { return inApp; }
     boolean isEmail() { return email; }
+    boolean isWhatsapp() { return whatsapp; }
     boolean isActive() { return active; }
     String getSourceRef() { return sourceRef; }
 
-    void configure(boolean inApp, boolean email, boolean active) {
+    void configure(boolean inApp, boolean email, boolean whatsapp, boolean active) {
         this.inApp = inApp;
         this.email = email;
+        this.whatsapp = whatsapp;
         this.active = active;
     }
 }

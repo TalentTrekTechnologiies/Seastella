@@ -32,5 +32,18 @@ public interface UserDirectory {
      */
     List<UserRef> activeForOrganization(Role role, Long organizationId);
 
-    record UserRef(Long id, String fullName, String email, Role role, Long organizationId, boolean active) {}
+    /** How many active people have agreed to WhatsApp alerts. */
+    long whatsappOptInCount();
+
+    /**
+     * @param whatsapp the number for WhatsApp alerts, or null when this person
+     *                 has not agreed to them - never a number without consent
+     */
+    record UserRef(Long id, String fullName, String email, Role role, Long organizationId, boolean active,
+                   String whatsapp) {
+
+        public UserRef(Long id, String fullName, String email, Role role, Long organizationId, boolean active) {
+            this(id, fullName, email, role, organizationId, active, null);
+        }
+    }
 }

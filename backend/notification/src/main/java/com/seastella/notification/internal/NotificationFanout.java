@@ -47,19 +47,19 @@ class NotificationFanout {
     private final NotificationRuleRepository rules;
     private final NotificationRepository notifications;
     private final NotificationDeliveryRepository deliveries;
-    private final NotificationEmailSettingsRepository emailSettings;
+    private final NotificationEmailSettingsRepository settings;
     private final UserDirectory users;
     private final ServiceRequestMetrics requests;
     private final TransactionTemplate tx;
 
     NotificationFanout(NotificationRuleRepository rules, NotificationRepository notifications,
-                       NotificationDeliveryRepository deliveries, NotificationEmailSettingsRepository emailSettings,
+                       NotificationDeliveryRepository deliveries, NotificationEmailSettingsRepository settings,
                        UserDirectory users,
                        ServiceRequestMetrics requests, PlatformTransactionManager transactions) {
         this.rules = rules;
         this.notifications = notifications;
         this.deliveries = deliveries;
-        this.emailSettings = emailSettings;
+        this.settings = settings;
         this.users = users;
         this.requests = requests;
         this.tx = new TransactionTemplate(transactions);
@@ -305,7 +305,8 @@ class NotificationFanout {
 
     private void create(UserRef user, NotificationRule rule, String eventType, AlertMessages.Message message,
                         String entityType, Long entityId, Long organizationId, Long vesselId, String dueStatus) {
-        if (!rule.isInApp() && !rule.isEmail()) return;
+        boolean byWhatsapp = rule.isWhatsapp() && user.whatsapp() != null && redEnoughForWhatsapp(dueStatus);
+        if (!rule.isInApp() && !rule.isEmail() && !byWhatsapp) return;
 
         Notification notification = notifications.save(new Notification(user.id(), eventType,
                 message.category(), message.title(), message.body(), entityType, entityId,
@@ -314,15 +315,30 @@ class NotificationFanout {
         if (rule.isEmail() && user.email() != null && !user.email().isBlank()) {
             NotificationDelivery delivery = new NotificationDelivery(
                     notification.getId(), NotificationDelivery.EMAIL, user.email());
-            if (!emailEnabled()) {
+            if (!settings.emailEnabled()) {
                 delivery.skipped("Alert email delivery is paused by an administrator.");
+            }
+            deliveries.save(delivery);
+        }
+
+        if (byWhatsapp) {
+            NotificationDelivery delivery = new NotificationDelivery(
+                    notification.getId(), NotificationDelivery.WHATSAPP, user.whatsapp());
+            if (!settings.whatsappEnabled()) {
+                delivery.skipped(WhatsAppDispatcher.PAUSED);
             }
             deliveries.save(delivery);
         }
     }
 
-    private boolean emailEnabled() {
-        return emailSettings.findEnabledById(NotificationEmailSettings.SINGLETON_ID)
-                .orElseThrow(() -> new IllegalStateException("Alert email settings are missing."));
+    /**
+     * A colour-banded alert reaches WhatsApp only once it is red - 15 days or
+     * less, due, or overdue. The yellow 60-day notice is a planning prompt,
+     * and in-app and email carry it; a phone buzzing for it would teach people
+     * to ignore the one that matters. Alerts without a band always qualify.
+     */
+    static boolean redEnoughForWhatsapp(String dueStatus) {
+        return dueStatus == null || "URGENT".equals(dueStatus) || "DUE".equals(dueStatus)
+                || "OVERDUE".equals(dueStatus);
     }
 }

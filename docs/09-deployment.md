@@ -204,6 +204,59 @@ Check it end to end after configuring: create a test account, confirm the
 invitation arrives in a real inbox (not spam), and that a reply to it reaches
 `team@seastella.in`.
 
+## 5a. WhatsApp: what is needed to send
+
+Built and deployed already; it sends nothing until two values from the client's
+Meta Business account are in `deploy/.env`. Until then the delivery log shows
+WhatsApp rows as "Not sent" with the reason, and the Alerts page says
+"Waiting for the Meta account".
+
+**From the client (once):**
+
+1. A Meta Business account in the company's name, with business verification
+   (GST or company registration documents). Meta's verification takes 2-7 days.
+2. A phone number for sending that is **not** on the ordinary WhatsApp app. A
+   new SIM or a landline that can receive a voice call for the code both work.
+3. A payment method added in Meta. Meta bills the client per message.
+4. The display name "Thawe Marine" approved by Meta.
+
+**In WhatsApp Manager (with the client):**
+
+1. *API setup*: note the **Phone number ID**.
+2. *Business settings > System users*: create a system user with full control
+   of the WhatsApp account and generate a **permanent token** with the
+   `whatsapp_business_messaging` and `whatsapp_business_management`
+   permissions. (The 24-hour test token on the API setup page expires.)
+3. *Message templates > Create*, category **Utility**, name `thawe_alert`,
+   language **English** (`en`):
+   - Body: `Thawe Marine alert: {{1}}` - new line - `Details: {{2}}` - new
+     line - `Open Thawe Marine to act on it.` (Meta refuses a body that starts
+     or ends with a variable, or has two variables with nothing between them.)
+   - Sample values: `Invoice raised: INV-ACME-202610-0007` and
+     `An invoice for SR-0042 on MV Kestrel Trader is waiting for your acceptance.`
+   - Button: *Visit website*, dynamic URL `https://thaweone.com/{{1}}`,
+     sample `requests/42`.
+
+   Meta usually approves a utility template within minutes to a day. More
+   templates (one per alert, in other wording) can be added later and named on
+   the Alerts page; each takes the same two values.
+
+**On the server:**
+
+```
+cd /opt/thawemarine
+nano deploy/.env        # add the two lines below, save
+WHATSAPP_PHONE_NUMBER_ID=<Phone number ID>
+WHATSAPP_ACCESS_TOKEN=<permanent token>
+./deploy/deploy.sh
+```
+
+**Check it:** add your own number under "WhatsApp alerts" (beside Change
+password), then on Alerts press **Test the account** (Meta's built-in
+`hello_world`, works before our template is approved) and, once `thawe_alert`
+is approved, **Test the alert template**. Each shows Meta's own answer. A
+refused message in the delivery log carries Meta's reason and error code.
+
 ## 6. Go-live checks
 
 - [ ] `curl http://127.0.0.1:8080/actuator/health` on the VPS answers `UP`

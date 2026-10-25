@@ -226,6 +226,45 @@ class AccountService {
         return new AuthService.SignedIn(auth.session(user), refreshTokens.issueForNewSession(user, ip, userAgent));
     }
 
+    record WhatsAppContact(String number, java.time.Instant optedInAt) {}
+
+    @Transactional(readOnly = true)
+    WhatsAppContact whatsapp(Long userId) {
+        AppUser user = users.findById(userId).orElseThrow(() -> NotFoundException.ofResource("User", userId));
+        return new WhatsAppContact(user.getWhatsappNumber(), user.getWhatsappOptInAt());
+    }
+
+    /**
+     * Sets or removes the signed-in person's own WhatsApp number. A number is
+     * stored only with consent - Meta forbids messaging anyone who has not
+     * agreed - so saving one without the box ticked is refused rather than
+     * kept unused. A blank number removes it, and alerts stop.
+     */
+    @Transactional
+    WhatsAppContact changeWhatsapp(Long userId, String rawNumber, boolean consent) {
+        AppUser user = users.findById(userId).filter(AppUser::isActive)
+                .orElseThrow(() -> NotFoundException.ofResource("User", userId));
+        String number = WhatsAppNumbers.normalize(rawNumber);
+        if (number != null && !consent) {
+            throw new ValidationException("Tick the box to agree to receive alerts on WhatsApp.");
+        }
+        String before = user.getWhatsappNumber();
+        java.time.Instant consentedAt = number == null ? null
+                : number.equals(before) && user.getWhatsappOptInAt() != null
+                ? user.getWhatsappOptInAt() : java.time.Instant.now();
+        user.setWhatsapp(number, consentedAt);
+        users.save(user);
+        audit.record(AuditEntry.builder()
+                .actor(user.getId(), user.getRole().name())
+                .action(AuditAction.USER_UPDATED)
+                .entity("AppUser", user.getId())
+                .scope(user.getOrganizationId(), null)
+                .before(AuditJson.of("whatsapp", before))
+                .after(AuditJson.of("whatsapp", number, "consented", number != null))
+                .build());
+        return new WhatsAppContact(user.getWhatsappNumber(), user.getWhatsappOptInAt());
+    }
+
     private void record(String action, AppUser user) {
         audit.record(AuditEntry.builder()
                 .actor(user.getId(), user.getRole().name())

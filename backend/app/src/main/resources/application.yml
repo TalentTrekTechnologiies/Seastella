@@ -116,3 +116,18 @@ seastella:
       brand: ${BRAND_NAME:Thawe Marine}
       brand-site: ${BRAND_SITE:seastella.in}
       dispatch-interval-ms: 10000
+    whatsapp:
+      # Meta's WhatsApp Cloud API, on the client's own Meta Business account.
+      # Both values come from Meta (WhatsApp Manager > API setup). Until they
+      # are set, every WhatsApp alert is recorded as SKIPPED and nothing is sent.
+      phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+      access-token: ${WHATSAPP_ACCESS_TOKEN:}
+      api-version: ${WHATSAPP_API_VERSION:v21.0}
+      # The approved template every alert uses unless the Platform Admin names
+      # another per alert. It takes two parameters - the alert's title, then its
+      # details - and, with link-button, an "Open" button whose link is
+      # https://<site>/{{1}}. docs/09-deployment.md has the wording to submit.
+      template: ${WHATSAPP_TEMPLATE:thawe_alert}
+      language: ${WHATSAPP_TEMPLATE_LANGUAGE:en}
+      link-button: ${WHATSAPP_TEMPLATE_LINK_BUTTON:true}
+      dispatch-interval-ms: 10000

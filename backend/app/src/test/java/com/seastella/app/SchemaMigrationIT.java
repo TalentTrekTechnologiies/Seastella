@@ -83,7 +83,9 @@ class SchemaMigrationIT {
                 // notification (V38): the last software gap announced per unit
                 "software_alert_state",
                 // notification (V39): whether alert email is paused
-                "notification_email_settings");
+                "notification_email_settings",
+                // notification (V41): the approved WhatsApp template per alert
+                "whatsapp_template");
     }
 
     @Test
@@ -133,7 +135,9 @@ class SchemaMigrationIT {
                 "36",  // maintenance: the client's bands - yellow at 60, red at 15
                 "37",  // notification: reminders before a unit's own expiry date
                 "38",  // notification: a unit has fallen behind the software master sheet
-                "39"); // notification: an admin-wide pause on alert email
+                "39",  // notification: an admin-wide pause on alert email
+                "40",  // identity-access: a person's own WhatsApp number, with consent
+                "41"); // notification: WhatsApp as a third alert channel
     }
 
     @Test

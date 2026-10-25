@@ -53,6 +53,14 @@ public class AppUser extends BaseEntity {
     @Column(name = "seed_marker", length = 8)
     private String seedMarker;
 
+    /** International form, "+919876543210". Used only while {@link #whatsappOptInAt} is set. */
+    @Column(name = "whatsapp_number", length = 20)
+    private String whatsappNumber;
+
+    /** When the person agreed to WhatsApp alerts - Meta requires that consent, and this is its record. */
+    @Column(name = "whatsapp_opt_in_at")
+    private Instant whatsappOptInAt;
+
     protected AppUser() {
     }
 
@@ -95,6 +103,18 @@ public class AppUser extends BaseEntity {
     public void changeEmail(String email) { this.email = email; }
 
     public void setStatus(String status) { this.status = status; }
+
+    public String getWhatsappNumber() { return whatsappNumber; }
+    public Instant getWhatsappOptInAt() { return whatsappOptInAt; }
+
+    /** The number WhatsApp alerts go to, or null when this person has not agreed to them. */
+    public String whatsappForAlerts() { return whatsappOptInAt == null ? null : whatsappNumber; }
+
+    /** The person's own choice: a number they agree to receive alerts on, or null to stop. */
+    public void setWhatsapp(String number, Instant consentedAt) {
+        this.whatsappNumber = number;
+        this.whatsappOptInAt = number == null ? null : consentedAt;
+    }
 
     public void changePassword(String newHash) {
         this.passwordHash = newHash;

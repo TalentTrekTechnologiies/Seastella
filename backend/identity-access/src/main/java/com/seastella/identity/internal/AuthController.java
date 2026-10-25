@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -114,6 +115,26 @@ class AuthController {
                 clientIp(http), http.getHeader("User-Agent")));
     }
 
+    /** The signed-in person's own WhatsApp number for alerts, if they gave one. */
+    @GetMapping("/whatsapp")
+    ResponseEntity<WhatsAppView> whatsapp(@AuthenticationPrincipal SeaStellaPrincipal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(WhatsAppView.of(accounts.whatsapp(principal.userId())));
+    }
+
+    /** Sets or removes it. Only the person can: consent is theirs to give. */
+    @PutMapping("/whatsapp")
+    ResponseEntity<WhatsAppView> changeWhatsapp(@AuthenticationPrincipal SeaStellaPrincipal principal,
+                                                @RequestBody WhatsAppChange body) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(WhatsAppView.of(accounts.changeWhatsapp(principal.userId(),
+                body == null ? null : body.number(), body != null && Boolean.TRUE.equals(body.consent()))));
+    }
+
     /** The caller's own profile, re-read from the database rather than the token. */
     @GetMapping("/me")
     ResponseEntity<AuthDtos.UserProfile> me(@AuthenticationPrincipal SeaStellaPrincipal principal) {
@@ -150,4 +171,12 @@ class AuthController {
     record PasswordChange(String currentPassword, String newPassword) {}
 
     record EmailChange(String currentPassword, String newEmail) {}
+
+    record WhatsAppChange(String number, Boolean consent) {}
+
+    record WhatsAppView(String number, boolean optedIn, java.time.Instant optedInAt) {
+        static WhatsAppView of(AccountService.WhatsAppContact c) {
+            return new WhatsAppView(c.number(), c.number() != null && c.optedInAt() != null, c.optedInAt());
+        }
+    }
 }

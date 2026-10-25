@@ -8,6 +8,7 @@ import { navigationFor } from './navigation';
 import { useAuth } from './AuthContext';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { ChangeEmailDialog } from './ChangeEmailDialog';
+import { WhatsAppDialog } from './WhatsAppDialog';
 import { ChatLauncher } from './ChatLauncher';
 import './shell.css';
 import './brand.css';
@@ -28,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [changingEmail, setChangingEmail] = useState(false);
+  const [changingWhatsApp, setChangingWhatsApp] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       return (localStorage.getItem('seastella.theme') as 'dark' | 'light') ?? 'dark';
@@ -104,6 +106,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button type="button" className="rail__account" onClick={() => setChangingPassword(true)}>
                 Change password
               </button>
+              <button type="button" className="rail__account" onClick={() => setChangingWhatsApp(true)}>
+                WhatsApp alerts
+              </button>
             </div>
           </div>
           <div className="rail__actions">
@@ -162,6 +167,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       {changingPassword && <ChangePasswordDialog onClose={() => setChangingPassword(false)} />}
       {changingEmail && <ChangeEmailDialog onClose={() => setChangingEmail(false)} />}
+      {changingWhatsApp && <WhatsAppDialog onClose={() => setChangingWhatsApp(false)} />}
       {/* Alerts announce themselves here; the bell keeps the full inbox. */}
       <AlertToasts />
       <ChatLauncher />

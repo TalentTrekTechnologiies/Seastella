@@ -15,6 +15,8 @@ import { FormError } from '@/design-system/Dialog';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { Pill } from '@/design-system/StatusBadge';
 import { formatDateTime } from '@/lib/format';
+import { Switch } from './Switch';
+import { WhatsAppPlate, WhatsAppTemplatesPlate } from './WhatsAppAdmin';
 import './alerts-admin.css';
 
 /**
@@ -57,11 +59,12 @@ export function AlertRulesPage() {
   if (rules.error) return <ErrorState error={rules.error} onRetry={() => rules.refetch()} />;
   if (emailSettings.error) return <ErrorState error={emailSettings.error} onRetry={() => emailSettings.refetch()} />;
 
-  const toggle = async (rule: NotificationRule, field: 'inApp' | 'email' | 'active') => {
+  const toggle = async (rule: NotificationRule, field: 'inApp' | 'email' | 'whatsapp' | 'active') => {
     setBusyId(rule.id);
     setError(null);
     try {
-      const saved = await updateNotificationRule(rule.id, { [field]: !rule[field] });
+      const { inApp, email, whatsapp, active } = rule;
+      const saved = await updateNotificationRule(rule.id, { inApp, email, whatsapp, active, [field]: !rule[field] });
       client.setQueryData<NotificationRule[]>(['notification-rules'], (old) =>
         old?.map((r) => (r.id === saved.id ? saved : r)),
       );
@@ -122,10 +125,12 @@ export function AlertRulesPage() {
         <FormError message={emailError} />
       </Plate>
 
+      <WhatsAppPlate onSwitched={() => client.invalidateQueries({ queryKey: ['notification-deliveries'] })} />
+
       <Plate
         title="Alert matrix"
         count={rules.data?.length}
-        subtitle="One row per event and recipient role, as SoW §11 sets it out"
+        subtitle="One row per event and recipient role, as SoW §11 sets it out. WhatsApp reaches only people who gave a number; maintenance and expiry alerts go to WhatsApp only once red."
         flush
       >
         {rules.isLoading ? (
@@ -142,6 +147,7 @@ export function AlertRulesPage() {
               <span>Event and recipient</span>
               <span>In app</span>
               <span>Email</span>
+              <span>WhatsApp</span>
               <span>Active</span>
             </div>
             {byEvent.map(([eventType, group]) => (
@@ -155,6 +161,7 @@ export function AlertRulesPage() {
                     </span>
                     <Switch on={rule.inApp} busy={busyId === rule.id} label={`In-app alerts for ${roleName(rule.recipientRole)}`} onChange={() => toggle(rule, 'inApp')} />
                     <Switch on={rule.email} busy={busyId === rule.id} label={`Email alerts for ${roleName(rule.recipientRole)}`} onChange={() => toggle(rule, 'email')} />
+                    <Switch on={rule.whatsapp} busy={busyId === rule.id} label={`WhatsApp alerts for ${roleName(rule.recipientRole)}`} onChange={() => toggle(rule, 'whatsapp')} />
                     <Switch on={rule.active} busy={busyId === rule.id} label={`Rule active for ${roleName(rule.recipientRole)}`} onChange={() => toggle(rule, 'active')} />
                   </div>
                 ))}
@@ -165,12 +172,14 @@ export function AlertRulesPage() {
         <FormError message={error} />
       </Plate>
 
+      <WhatsAppTemplatesPlate label={eventLabel} />
+
       <Plate
-        title="Email delivery log"
+        title="Delivery log"
         count={deliveries.data?.length}
         subtitle={
           skipped > 0
-            ? `${skipped} skipped — no mail server is configured, so alerts stay in the app`
+            ? `${skipped} not sent — paused, or that channel is not set up yet; the reason is on each row`
             : 'Every off-app message the platform has tried to send'
         }
         flush
@@ -195,29 +204,13 @@ export function AlertRulesPage() {
   );
 }
 
-function Switch({ on, busy, label, onChange }: { on: boolean; busy: boolean; label: string; onChange: () => void }) {
-  return (
-    <button
-      type="button"
-      className={`swtch${on ? ' swtch--on' : ''}`}
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={busy}
-      onClick={onChange}
-    >
-      <span className="swtch__dot" />
-    </button>
-  );
-}
-
 function DeliveryRow({ delivery: d }: { delivery: NotificationDelivery }) {
   return (
     <li className="deliveries__row">
       <div className="deliveries__main">
         <div className="deliveries__title">{d.title}</div>
         <div className="deliveries__meta">
-          {d.address} · {eventLabel(d.eventType)}
+          {d.channel === 'WHATSAPP' ? 'WhatsApp' : 'Email'} · {d.address} · {eventLabel(d.eventType)}
           {d.lastError && <span className="deliveries__error"> · {d.lastError}</span>}
         </div>
       </div>

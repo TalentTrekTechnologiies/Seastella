@@ -337,6 +337,42 @@ a change to the fanout alone — the sweep and its bookmark stay as they are.
 
 ---
 
+## V-15 — WhatsApp as a third alert channel
+
+**Client request (October 2026):** urgent alerts on WhatsApp as well as in the
+app and by email. SoW §7 commits in-app and email only, and §16 makes any
+messaging provider's costs the client's, so this is a **Change Request** under
+§19.
+
+**Decision:** built ahead of the client's Meta account, switched off by the
+absence of its two values, so the only work left when the account arrives is
+configuration (`docs/09-deployment.md` §5a).
+
+- **Provider:** Meta's own WhatsApp Cloud API, no reseller. The client's Meta
+  Business account, the client's number, Meta's per-message price billed to the
+  client directly.
+- **Consent is the person's own.** Each user adds their own number with an
+  explicit "I agree" (Meta forbids messaging anyone who has not opted in; the
+  time of consent is stored). An administrator cannot add a number for someone.
+- **What the client controls:** which alerts go to WhatsApp and to which roles
+  (a WhatsApp switch on every alert rule), one switch for all WhatsApp alerts,
+  which approved template each alert uses, and a test message to one's own
+  phone.
+- **Red only for colour-banded alerts.** Maintenance and expiry alerts reach
+  WhatsApp only at 15 days or less, due or overdue; the 60-day yellow notice
+  stays in-app and email. A phone that buzzes for planning prompts teaches
+  people to ignore the one that matters.
+- **Suggested starting set:** request raised, invoice raised and request
+  completed (Ship Manager), engineer assigned (Engineer), maintenance and
+  equipment expiry in the red (Captain, Ship Manager, Technical Head).
+
+**What WhatsApp itself does not allow,** to set expectations: free text (every
+message is a Meta-approved template), messaging anyone without opt-in, replies
+that act in the app (alerts are one-way), promotional wording inside alerts,
+and a sending number that is still on the ordinary WhatsApp app.
+
+---
+
 ## Summary
 
 | ID | Item | Brief | SoW | Building? |
@@ -355,6 +391,7 @@ a change to the fanout alone — the sweep and its bookmark stay as they are.
 | V-12 | 60/15 bands, orange retired | client asked | §11 says 15/10/9 | ✓ defaults moved, configurable |
 | V-13 | Equipment expiry banded + alerted | client asked | recorded, unwatched | ✓ same engine, own column |
 | V-14 | Outdated software raises an alert | client asked | column only | ✓ once per gap, per unit |
+| V-15 | WhatsApp alerts | client asked | in-app + email only | ✓ built, waits for the client's Meta account |
 
 **V-01 and V-02 are the two that remove committed brief scope.** They are the items
 to confirm before scope freeze: either accept the SoW's Phase-2 classification, or
@@ -365,6 +402,6 @@ raise a Change Request under SOURCE-A §19 and extend the timeline accordingly.
 not built and cannot be without a decision from the client:** it needs a gateway
 account (Twilio, MSG91, Gupshup or similar), DLT registration for Indian
 recipients, and a per-message budget. The notification layer is ready for it —
-`NotificationDelivery` is keyed by channel and currently defines `EMAIL` only, so
-an `SMS` channel is an added delivery row and a sender, not a redesign. Estimate
+`NotificationDelivery` is keyed by channel (`EMAIL`, and now `WHATSAPP` - V-15),
+so an `SMS` channel is an added delivery row and a sender, not a redesign. Estimate
 once a provider is chosen.

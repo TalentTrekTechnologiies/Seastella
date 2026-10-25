@@ -79,11 +79,11 @@ class EmailDispatcher {
     }
 
     private void sendPending() {
-        List<NotificationDelivery> pending = deliveries.findTop50ByStatusOrderByIdAsc(NotificationDelivery.PENDING);
+        List<NotificationDelivery> pending = deliveries.findTop50ByChannelAndStatusOrderByIdAsc(NotificationDelivery.EMAIL, NotificationDelivery.PENDING);
         if (pending.isEmpty()) return;
 
         if (!emailEnabled()) {
-            deliveries.skipPending(NotificationDelivery.PENDING, NotificationDelivery.SKIPPED,
+            deliveries.skipPending(NotificationDelivery.EMAIL, NotificationDelivery.PENDING, NotificationDelivery.SKIPPED,
                     "Alert email delivery is paused by an administrator.");
             return;
         }
@@ -132,8 +132,7 @@ class EmailDispatcher {
     }
 
     private boolean emailEnabled() {
-        return emailSettings.findEnabledById(NotificationEmailSettings.SINGLETON_ID)
-                .orElseThrow(() -> new IllegalStateException("Alert email settings are missing."));
+        return emailSettings.emailEnabled();
     }
 
     private static String subject(Notification n) {
