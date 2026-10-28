@@ -142,7 +142,7 @@ export function SbmcDialog({
           )}
           <dl className="sbmc__facts">
             <dt>Vessel</dt>
-            <dd>MV. {preview.vesselName.toUpperCase()}</dd>
+            <dd>{vesselLine(preview.vesselName)}</dd>
             <dt>Call sign</dt>
             <dd className={preview.callSign ? '' : 'sbmc__gap'}>{preview.callSign || 'Not recorded'}</dd>
             <dt>MMSI</dt>
@@ -184,4 +184,9 @@ export function SbmcDialog({
       )}
     </Dialog>
   );
+}
+
+/** As the certificate prints it: the template's own "MV." is not doubled for "MV Kestrel Trader". */
+function vesselLine(name: string) {
+  return `MV. ${name.trim().toUpperCase().replace(/^M\s*[./]?\s*V\.?\s+/, '')}`;
 }
