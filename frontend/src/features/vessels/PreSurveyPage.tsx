@@ -145,7 +145,7 @@ export function PreSurveyPage() {
             <span>
               <i className="psf__swatch psf__swatch--typed" /> Typed here: this form only{changed ? ` (${changed})` : ''}; the vessel's records do not change
             </span>
-            <span>Dates print as month/year ({d.dateFormat}), as the form defines them.</span>
+            <span>Dates print in full, like {d.dateExample}.</span>
           </div>
 
           {d.sections.map((s) => (

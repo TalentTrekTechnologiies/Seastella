@@ -34,7 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PreSurveyTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 27);
-    private static final DateTimeFormatter MM_YY = DateTimeFormatter.ofPattern("MM/yy");
+    /** Full dates, as the client chose (28 Oct 2026). */
+    private static final DateTimeFormatter DATES = DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.ENGLISH);
     private static final VesselParticulars ARDBEG = new VesselParticulars(5L, 3L, "OSM Thome", "ARDBEG", "9301234",
             "563012345", "9V2345", "Singapore", "DNV", "Worldwide", "Bulk carrier", null, "ACTIVE", null, null, null);
 
@@ -80,7 +81,7 @@ class PreSurveyTest {
 
     private static Map<String, String> fill(List<EquipmentRecord> register, List<DueItem> overdue,
                                             List<RequestSummary> open) {
-        return new PreSurveyAssembler(register, overdue, open, TODAY, MM_YY).assemble(ARDBEG).values();
+        return new PreSurveyAssembler(register, overdue, open, TODAY, DATES).assemble(ARDBEG).values();
     }
 
     @Nested
@@ -99,13 +100,13 @@ class PreSurveyTest {
         @DisplayName("EPIRB No 1 with its battery and HRU; the empty EPIRB No 2 prints blank")
         void epirb() {
             assertThat(v).containsEntry("MakeEPIRB No 1", "JOTRON").containsEntry("ModelEPIRB No 1", "TRON 60AIS")
-                    .containsEntry("Date8_af_date.0.0", "04/36").containsEntry("Date8_af_date.0.1", "05/27")
+                    .containsEntry("Date8_af_date.0.0", "30 Apr 2036").containsEntry("Date8_af_date.0.1", "30 May 2027")
                     .containsEntry("MakeEPIRB No 2", "").containsEntry("Date8_af_date.1.0", "");
         }
 
         @Test
         void sartAndWalkieTalkies() {
-            assertThat(v).containsEntry("ModelSART No 1", "TRON SART 20").containsEntry("Date13_af_date.0", "05/30")
+            assertThat(v).containsEntry("ModelSART No 1", "TRON SART 20").containsEntry("Date13_af_date.0", "30 May 2030")
                     .containsEntry("MakeGMDSS Walkie Talkie No 3", "JOTRON")
                     .containsEntry("ModelGMDSS Walkie Talkie No 1", "TRON TR 30");
         }
@@ -114,8 +115,8 @@ class PreSurveyTest {
         @DisplayName("the VDR at 11 with its four parts at 11.1-11.4")
         void vdr() {
             assertThat(v).containsEntry("MakeVDR", "JRC").containsEntry("ModelVDR", "JCY 1900")
-                    .containsEntry("Date11_af_date.0", "02/29").containsEntry("Date11_af_date.1", "08/27")
-                    .containsEntry("Date11_af_date.2", "05/30").containsEntry("Date11_af_date.3", "05/27")
+                    .containsEntry("Date11_af_date.0", "28 Feb 2029").containsEntry("Date11_af_date.1", "30 Aug 2027")
+                    .containsEntry("Date11_af_date.2", "30 May 2030").containsEntry("Date11_af_date.3", "30 May 2027")
                     .containsEntry("Dropdown4", "Good").containsEntry("Error IF any T", "");
         }
 
@@ -131,7 +132,7 @@ class PreSurveyTest {
 
         @Test
         void ecdisAndGyro() {
-            assertThat(v).containsEntry("ModelECDIS No 1", "9201").containsEntry("Date10_af_date.1.0", "03/25")
+            assertThat(v).containsEntry("ModelECDIS No 1", "9201").containsEntry("Date10_af_date.1.0", "14 Mar 2025")
                     .containsEntry("MakeGyro No 1", "TOKYO KEIKI").containsEntry("ModelGyro No 1", "TG 8100");
         }
     }
@@ -146,9 +147,9 @@ class PreSurveyTest {
                 item("11.1.3", "VDR FFC Battery", null, null, LocalDate.of(2029, 3, 31)),
                 item("11.1.4", "VDR FFC HRU", null, null, LocalDate.of(2027, 9, 30)));
         Map<String, String> v = fill(r, List.of(), List.of());
-        assertThat(v).containsEntry("MakeVDR", "Furuno").containsEntry("Date11_af_date.0", "01/28")
-                .containsEntry("Date11_af_date.1", "06/27").containsEntry("Date11_af_date.2", "03/29")
-                .containsEntry("Date11_af_date.3", "09/27");
+        assertThat(v).containsEntry("MakeVDR", "Furuno").containsEntry("Date11_af_date.0", "31 Jan 2028")
+                .containsEntry("Date11_af_date.1", "30 Jun 2027").containsEntry("Date11_af_date.2", "31 Mar 2029")
+                .containsEntry("Date11_af_date.3", "30 Sep 2027");
     }
 
     @Test
@@ -189,7 +190,7 @@ class PreSurveyTest {
             assertThat(doc.getDocumentCatalog().getAcroForm()).isNull();
             String text = new PDFTextStripper().getText(doc).replaceAll("\\s+", " ");
             assertThat(text).contains("ARDBEG").contains("TRON 60AIS").contains("JCY 1900").contains("6149")
-                    .contains("S-Band").contains("Good")
+                    .contains("S-Band").contains("Good").contains("30 Apr 2036")
                     .contains("Survey at Singapore, 4 Nov 2026")
                     .contains("IMPORTANT NOTES FOR GMDSS RADIO SURVEY")
                     .contains("QM-F11 / 1 / 0 / May 2018");

@@ -411,12 +411,12 @@ Request** under §19.
 
 | Question | Default chosen |
 |---|---|
-| Certificate number format | `TM-2026-0001`, per year, never reused |
-| Expiry rule | Issue date + 1 year + 1 day, as the sample runs; editable in the preview |
+| Certificate number format | `TM-2026-0001`, per year, never reused - confirmed by the client |
+| Expiry rule | Issue date + 1 year + 1 day, as the sample runs; editable in the preview - confirmed by the client |
 | Block SBMC when equipment is overdue? | Not blocked |
 | Who downloads issued SBMCs | Admin and coordinator from the certificate list; every role that sees the vessel's documents sees the filed copy |
 | Owner differs from manager | Defaults to the organization; editable in the preview |
-| Date format on the form | `MM/yy`, the format the client's form fields are set to (`seastella.pre-survey.date-format`) |
+| Date format on the form | Full date, `30 Apr 2036` - the client's choice, 28 Oct 2026 (`seastella.pre-survey.date-format`) |
 | Vessel names already starting "MV" | Printed once: "MV. KESTREL TRADER", not "MV. MV ..." |
 
 ---

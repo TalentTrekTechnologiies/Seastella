@@ -86,7 +86,7 @@ class VesselDocumentsService {
                            PreSurveyFormRepository forms, CertificateNumbers numbers, SbmcRenderer sbmc,
                            PreSurveyRenderer preSurvey, ScopeResolver scopes, ScopeGuard scopeGuard,
                            UserDirectory users, AuditService audit, ObjectMapper json,
-                           @Value("${seastella.pre-survey.date-format:MM/yy}") String formDatePattern) {
+                           @Value("${seastella.pre-survey.date-format:d MMM yyyy}") String formDatePattern) {
         this.records = records;
         this.fleet = fleet;
         this.maintenance = maintenance;
@@ -282,7 +282,8 @@ class VesselDocumentsService {
 
     record SectionView(String title, CellView status, CellView error, List<RowView> rows) {}
 
-    record PreSurveyDraft(Long vesselId, String vesselName, String dateFormat, List<SectionView> sections,
+    /** {@code dateExample}: how a date prints, so the screen can say so in the client's own terms. */
+    record PreSurveyDraft(Long vesselId, String vesselName, String dateExample, List<SectionView> sections,
                           long missingCount) {}
 
     record PreSurveyRequest(Map<String, String> values, String remarks) {}
@@ -300,7 +301,7 @@ class VesselDocumentsService {
                 s.rows().stream().map(r -> new RowView(r.label(), r.cells().stream().map(this::cell).toList())).toList()))
                 .toList();
         long missing = draft.cells().stream().filter(PreSurveyAssembler.Cell::missing).count();
-        return new PreSurveyDraft(v.id(), v.name(), formDatePattern, sections, missing);
+        return new PreSurveyDraft(v.id(), v.name(), formDates.format(LocalDate.of(2036, 4, 30)), sections, missing);
     }
 
     @Transactional

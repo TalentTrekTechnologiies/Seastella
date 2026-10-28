@@ -253,7 +253,7 @@ class VesselDocumentsIT {
                         "kind", "SPHERE_REPLACEMENT")), 201);
         JsonNode draft = body(call(get("/api/v1/vessels/" + kestrel + "/pre-survey/draft"),
                 "admin@seastella.example", null), 200);
-        String expected = String.format("%02d/%02d", when.getMonthValue(), when.getYear() % 100);
+        String expected = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.ENGLISH).format(when);
         assertThat(draft.toString()).contains("\"key\":\"Date9_af_date.0.1\",\"label\":\"Sphere\",\"value\":\""
                 + expected + "\"");
     }

@@ -127,8 +127,8 @@ export interface FormSection {
 export interface PreSurveyDraft {
   vesselId: number;
   vesselName: string;
-  /** How dates print, as the form defines them - month/year. */
-  dateFormat: string;
+  /** How a date prints on the form, e.g. "30 Apr 2036". */
+  dateExample: string;
   sections: FormSection[];
   missingCount: number;
 }
