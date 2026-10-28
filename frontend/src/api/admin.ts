@@ -116,6 +116,28 @@ export const fetchVesselRemoval = (vesselId: number) => api.get<VesselRemoval>(`
 export const deleteVessel = (vesselId: number, confirm: string) =>
   api.del<VesselRemoval>(`/api/v1/vessels/${vesselId}?confirm=${encodeURIComponent(confirm)}`);
 
+/** What deleting a client organization would remove; Thawe Marine's own people are never part of it. */
+export interface OrganizationRemoval {
+  organizationId: number;
+  name: string;
+  code: string;
+  vessels: number;
+  vesselNames: string[];
+  people: number;
+  equipment: number;
+  serviceRequests: number;
+  invoices: number;
+  documents: number;
+  /** Service Coordinators serving it: they stay, and stop serving it. */
+  coordinators: number;
+}
+
+export const fetchOrganizationRemoval = (organizationId: number) =>
+  api.get<OrganizationRemoval>(`/api/v1/organizations/${organizationId}/removal`);
+
+export const deleteOrganization = (organizationId: number, confirm: string) =>
+  api.del<OrganizationRemoval>(`/api/v1/organizations/${organizationId}?confirm=${encodeURIComponent(confirm)}`);
+
 export const fetchAccounts = () => api.get<AccountSummary[]>('/api/v1/users');
 
 export const createAccount = (body: {

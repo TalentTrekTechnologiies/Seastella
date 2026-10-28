@@ -8,6 +8,7 @@ import { FormError } from '@/design-system/Dialog';
 import { Icon } from '@/design-system/Icon';
 import { Pill } from '@/design-system/StatusBadge';
 import { AccountLine, LinkSentDialog, useAccountActions } from './AdminParts';
+import { DeleteOrganizationDialog } from './DeleteOrganizationDialog';
 import { AddOrganizationDialog, AddPersonDialog } from './SetupDialogs';
 
 /**
@@ -25,6 +26,7 @@ export function OrganizationsPage() {
   const [adding, setAdding] = useState(false);
   const [headFor, setHeadFor] = useState<OrganizationRow | null>(null);
   const [invited, setInvited] = useState<LinkSent | null>(null);
+  const [deleting, setDeleting] = useState<OrganizationRow | null>(null);
 
   const refresh = () => {
     client.invalidateQueries({ queryKey: ['organizations'] });
@@ -99,6 +101,9 @@ export function OrganizationsPage() {
                   <Button variant={o.technicalHeads.length ? 'secondary' : 'primary'} onClick={() => setHeadFor(o)}>
                     Add Technical Head
                   </Button>
+                  <Button variant="ghost" onClick={() => setDeleting(o)}>
+                    Delete
+                  </Button>
                 </div>
               </li>
             ))}
@@ -157,6 +162,17 @@ export function OrganizationsPage() {
       )}
       {invited && (
         <LinkSentDialog result={invited} kind="invitation" onClose={() => setInvited(null)} />
+      )}
+      {deleting && (
+        <DeleteOrganizationDialog
+          organization={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            refresh();
+            client.invalidateQueries({ queryKey: ['admin-vessels'] });
+          }}
+        />
       )}
       {actions.dialogs}
     </div>

@@ -51,7 +51,7 @@ import java.util.List;
 class VesselRemovalController {
 
     /** Child rows first, parents after; each removes one vessel's rows. */
-    private static final List<String> DELETES = List.of(
+    static final List<String> DELETES = List.of(
             // Troubleshooting and live chat, under their requests.
             "delete from troubleshooting_response where session_id in "
                     + "(select id from troubleshooting_session where vessel_id = :v)",
@@ -60,9 +60,12 @@ class VesselRemovalController {
             "delete from conversation_message where conversation_id in "
                     + "(select id from conversation where vessel_id = :v)",
             "delete from conversation where vessel_id = :v",
-            // Service requests and their paperwork.
+            // Service requests and their paperwork: the engineer's job log and the
+            // payments recorded against an invoice go before what they hang from.
             "delete from service_request_transition where vessel_id = :v",
+            "delete from job_log_entry where vessel_id = :v",
             "delete from completion_report where vessel_id = :v",
+            "delete from invoice_payment where invoice_id in (select id from invoice where vessel_id = :v)",
             "update invoice set supersedes_invoice_id = null where vessel_id = :v",
             "delete from invoice where vessel_id = :v",
             "delete from service_request where vessel_id = :v",
@@ -128,20 +131,7 @@ class VesselRemovalController {
             throw new ValidationException("Type the vessel's name, " + vessel.getName() + ", to confirm.");
         }
         Impact removed = impactOf(vessel);
-        MapSqlParameterSource v = new MapSqlParameterSource("v", vesselId);
-        List<String> files = jdbc.queryForList("select storage_key from document where vessel_id = :v", v, String.class);
-
-        for (String statement : DELETES) jdbc.update(statement, v);
-
-        // Files are not transactional: remove them only once the rows are gone for good.
-        if (!files.isEmpty() && TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    files.forEach(storage::deleteQuietly);
-                }
-            });
-        }
+        deleteFilesAfterCommit(storage, removeRows(jdbc, vesselId));
 
         audit.record(AuditEntry.builder()
                 .actor(actor.userId(), actor.role().name())
@@ -155,6 +145,29 @@ class VesselRemovalController {
                 .after(AuditJson.of("deleted", true))
                 .build());
         return ResponseEntity.ok(removed);
+    }
+
+    /**
+     * Removes every row belonging to one vessel, the vessel last, and returns
+     * the storage keys of its files. Shared with deleting a whole organization.
+     */
+    static List<String> removeRows(NamedParameterJdbcTemplate jdbc, Long vesselId) {
+        MapSqlParameterSource v = new MapSqlParameterSource("v", vesselId);
+        List<String> files = jdbc.queryForList("select storage_key from document where vessel_id = :v", v, String.class);
+        for (String statement : DELETES) jdbc.update(statement, v);
+        return files;
+    }
+
+    /** Files are not transactional: remove them only once the rows are gone for good. */
+    static void deleteFilesAfterCommit(DocumentStorage storage, List<String> files) {
+        if (!files.isEmpty() && TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    files.forEach(storage::deleteQuietly);
+                }
+            });
+        }
     }
 
     private Vessel target(Long vesselId) {

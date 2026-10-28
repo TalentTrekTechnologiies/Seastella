@@ -1,7 +1,9 @@
-import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAdminVessels, fetchOrganizations } from '@/api/admin';
-import { ConsoleHeader, Plate } from '@/design-system/Console';
+import { Button, ConsoleHeader, Plate } from '@/design-system/Console';
+import { DeleteOrganizationDialog } from '@/features/admin/DeleteOrganizationDialog';
 import { ErrorState, LoadingState } from '@/design-system/States';
 import { Pill } from '@/design-system/StatusBadge';
 import { VesselList } from './VesselList';
@@ -12,6 +14,9 @@ export function OrganizationPage() {
   const organizationId = Number(useParams().organizationId);
   const organizations = useQuery({ queryKey: ['organizations'], queryFn: fetchOrganizations });
   const vessels = useQuery({ queryKey: ['admin-vessels'], queryFn: fetchAdminVessels });
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+  const client = useQueryClient();
 
   if (organizations.error) return <ErrorState error={organizations.error} onRetry={() => organizations.refetch()} />;
   if (vessels.error) return <ErrorState error={vessels.error} onRetry={() => vessels.refetch()} />;
@@ -30,6 +35,13 @@ export function OrganizationPage() {
             : undefined
         }
         badge={org ? <Pill size="sm">{org.code}</Pill> : undefined}
+        actions={
+          org ? (
+            <Button variant="ghost" onClick={() => setDeleting(true)}>
+              Delete organization
+            </Button>
+          ) : undefined
+        }
       />
       {org && (
         <div className="vfacts">
@@ -51,6 +63,19 @@ export function OrganizationPage() {
           <VesselList vessels={fleet} showOrganization={false} empty="This organization has no vessels yet." />
         )}
       </Plate>
+      {deleting && org && (
+        <DeleteOrganizationDialog
+          organization={org}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => {
+            client.invalidateQueries({ queryKey: ['organizations'] });
+            client.invalidateQueries({ queryKey: ['admin-vessels'] });
+            client.invalidateQueries({ queryKey: ['accounts'] });
+            client.invalidateQueries({ queryKey: ['dashboard'] });
+            navigate('/organizations');
+          }}
+        />
+      )}
     </div>
   );
 }

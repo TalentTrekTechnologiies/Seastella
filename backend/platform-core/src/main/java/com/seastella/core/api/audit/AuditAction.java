@@ -33,6 +33,7 @@ public final class AuditAction {
     // Fleet and master data (AUD-05, AUD-06)
     public static final String ORGANIZATION_CREATED = "ORGANIZATION_CREATED";
     public static final String ORGANIZATION_UPDATED = "ORGANIZATION_UPDATED";
+    public static final String ORGANIZATION_DELETED = "ORGANIZATION_DELETED";
     public static final String VESSEL_CREATED = "VESSEL_CREATED";
     public static final String VESSEL_DELETED = "VESSEL_DELETED";
     public static final String VESSEL_UPDATED = "VESSEL_UPDATED";
