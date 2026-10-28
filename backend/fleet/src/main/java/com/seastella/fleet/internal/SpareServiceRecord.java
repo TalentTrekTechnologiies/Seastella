@@ -57,6 +57,20 @@ public class SpareServiceRecord extends BaseEntity implements VesselScoped {
     @Column(name = "notes", length = 1000)
     private String notes;
 
+    /**
+     * What kind of work this was. Most rows are a service; a replacement is
+     * kept apart because surveys ask for it by name - the QM-F11 pre-survey
+     * form prints the last SSD replacement and the last gyro sphere
+     * replacement, which no service date can stand in for.
+     */
+    @Column(name = "kind", nullable = false, length = 24)
+    private String kind = SERVICE;
+
+    static final String SERVICE = "SERVICE";
+    static final String REPLACEMENT = "REPLACEMENT";
+    static final String SPHERE_REPLACEMENT = "SPHERE_REPLACEMENT";
+    static final java.util.Set<String> KINDS = java.util.Set.of(SERVICE, REPLACEMENT, SPHERE_REPLACEMENT);
+
     protected SpareServiceRecord() {
     }
 
@@ -107,4 +121,7 @@ public class SpareServiceRecord extends BaseEntity implements VesselScoped {
     String getRequestNumber() { return requestNumber; }
     Long getRecordedByUserId() { return recordedByUserId; }
     String getNotes() { return notes; }
+    String getKind() { return kind; }
+
+    void kind(String kind) { this.kind = kind == null ? SERVICE : kind; }
 }

@@ -16,6 +16,7 @@ import { ServiceHistoryPanel } from './ServiceHistoryPanel';
 import { AddSpareDialog } from './AddSpareDialog';
 import { ImportFileButton } from '@/features/import/ImportFileButton';
 import { Dialog as DocumentsDialog } from '@/design-system/Dialog';
+import { useAuth } from '@/app/AuthContext';
 
 /**
  * A vessel's equipment, as the Technical Head maintains it (SoW §9.3).
@@ -27,6 +28,10 @@ import { Dialog as DocumentsDialog } from '@/design-system/Dialog';
  */
 export function VesselEquipmentPage() {
   const vesselId = Number(useParams().vesselId);
+  // Master data is the Technical Head's, under the Platform Admin; a Service
+  // Coordinator reads the register to prepare a survey but does not change it.
+  const { user } = useAuth();
+  const canEdit = user?.role === 'PLATFORM_ADMIN' || user?.role === 'TECHNICAL_HEAD';
   // Arrived from the fleet drawer on one spare (DSH-13).
   const focusSpare = Number(useSearchParams()[0].get('spare')) || undefined;
   const client = useQueryClient();
@@ -110,9 +115,17 @@ export function VesselEquipmentPage() {
   return (
     <div className="console">
       <ConsoleHeader
-        scope={[{ label: <Link to="/fleet/setup">Vessels &amp; managers</Link> }, { label: fit.data?.vesselName ?? 'Vessel', strong: true }]}
+        scope={[
+          ...(user?.role === 'TECHNICAL_HEAD' ? [{ label: <Link to="/fleet/setup">Vessels &amp; managers</Link> }] : []),
+          { label: <Link to={`/fleet/vessels/${vesselId}`}>{fit.data?.vesselName ?? 'Vessel'}</Link> },
+          { label: 'Equipment', strong: true },
+        ]}
         title={`${fit.data?.vesselName ?? 'Vessel'} equipment`}
-        subtitle="The vessel's navigational equipment in VMP order. Record each item's details and last annual service to bring it under maintenance tracking."
+        subtitle={
+          canEdit
+            ? "The vessel's navigational equipment in VMP order. Record each item's details and last annual service to bring it under maintenance tracking."
+            : "The vessel's navigational equipment in VMP order, as the Technical Head keeps it."
+        }
       />
 
       {notice && (
@@ -128,12 +141,14 @@ export function VesselEquipmentPage() {
         count={spares.length}
         subtitle={`${withDetails} with details recorded · ${tracked} under maintenance tracking`}
         action={
-          <div className="plate-actions">
-            <ImportFileButton vesselId={vesselId} />
-            <Button variant="primary" onClick={() => setAddingUnder(null)}>
-              Add equipment
-            </Button>
-          </div>
+          canEdit ? (
+            <div className="plate-actions">
+              <ImportFileButton vesselId={vesselId} />
+              <Button variant="primary" onClick={() => setAddingUnder(null)}>
+                Add equipment
+              </Button>
+            </div>
+          ) : undefined
         }
         flush
       >
@@ -157,7 +172,7 @@ export function VesselEquipmentPage() {
                 <Button variant="ghost" onClick={() => setDocumentsFor(spare)}>
                   Documents
                 </Button>
-                <Button onClick={() => setEditing(spare)}>Edit details</Button>
+                {canEdit && <Button onClick={() => setEditing(spare)}>Edit details</Button>}
               </>
             )}
           />
@@ -165,13 +180,13 @@ export function VesselEquipmentPage() {
       </Plate>
 
       {/* The client's own minimum-spares form (GM 2.3.9.9), per vessel. */}
-      <CriticalSparesPanel vesselId={vesselId} equipment={spares} canManage />
+      <CriticalSparesPanel vesselId={vesselId} equipment={spares} canManage={canEdit} />
 
       <Plate
         title="Vessel documents"
         subtitle="Certificates and paperwork that belong to the vessel rather than to one piece of equipment"
       >
-        <DocumentsPanel ownerType="VESSEL" ownerId={vesselId} ownerName={fit.data?.vesselName ?? 'this vessel'} canAttach />
+        <DocumentsPanel ownerType="VESSEL" ownerId={vesselId} ownerName={fit.data?.vesselName ?? 'this vessel'} canAttach={canEdit} />
       </Plate>
 
       {historyFor && (
@@ -184,7 +199,7 @@ export function VesselEquipmentPage() {
           <ServiceHistoryPanel
             spareId={historyFor.id}
             spareName={historyFor.name}
-            canRecord
+            canRecord={canEdit}
             onChanged={() => {
               client.invalidateQueries({ queryKey: ['vessel-fit', vesselId] });
               client.invalidateQueries({ queryKey: ['vessel-maintenance', vesselId] });
@@ -213,7 +228,7 @@ export function VesselEquipmentPage() {
           onClose={() => setDocumentsFor(null)}
           width={760}
         >
-          <DocumentsPanel ownerType="SPARE" ownerId={documentsFor.id} ownerName={documentsFor.name} canAttach />
+          <DocumentsPanel ownerType="SPARE" ownerId={documentsFor.id} ownerName={documentsFor.name} canAttach={canEdit} />
         </DocumentsDialog>
       )}
 

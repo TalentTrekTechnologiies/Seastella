@@ -51,6 +51,7 @@ const SETUP: Partial<Record<Role, NavItem[]>> = {
   PLATFORM_ADMIN: [
     { label: 'Activity feed', to: '/platform/activity', icon: 'history' },
     { label: 'Organizations', to: '/organizations', icon: 'org' },
+    { label: 'Vessels', to: '/fleet/vessels', icon: 'ship' },
     { label: 'Guided checks', to: '/platform/checks', icon: 'check' },
     { label: 'Problem types', to: '/platform/problem-types', icon: 'board' },
     { label: 'Maintenance bands', to: '/platform/bands', icon: 'cog' },
@@ -74,6 +75,7 @@ const SETUP: Partial<Record<Role, NavItem[]>> = {
     { label: 'Service history', to: '/fleet/history', icon: 'history' },
   ],
   SERVICE_COORDINATOR: [
+    { label: 'Vessels', to: '/fleet/vessels', icon: 'ship' },
     { label: 'Invoices', to: '/invoices', icon: 'invoice' },
     { label: 'Engineers', to: '/engineers', icon: 'users' },
   ],

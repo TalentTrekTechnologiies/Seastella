@@ -96,4 +96,11 @@ public final class AuditAction {
     public static final String IMPORT_UPLOADED = "IMPORT_UPLOADED";
     public static final String IMPORT_COMMITTED = "IMPORT_COMMITTED";
     public static final String IMPORT_REJECTED = "IMPORT_REJECTED";
+
+    // Documents the platform issues: the SBMC certificate and the QM-F11 pre-survey form
+    public static final String CERTIFICATE_GENERATED = "CERTIFICATE_GENERATED";
+    public static final String CERTIFICATE_DOWNLOADED = "CERTIFICATE_DOWNLOADED";
+    public static final String CERTIFICATE_SUPERSEDED = "CERTIFICATE_SUPERSEDED";
+    public static final String CERTIFICATE_REVOKED = "CERTIFICATE_REVOKED";
+    public static final String PRE_SURVEY_FORM_GENERATED = "PRE_SURVEY_FORM_GENERATED";
 }

@@ -373,6 +373,54 @@ and a sending number that is still on the ordinary WhatsApp app.
 
 ---
 
+## V-16 — SBMC certificate, QM-F11 pre-survey form, and vessel pages for the Platform Admin
+
+**Client request:** developer brief "SBMC, Pre-Survey Form & Admin Vessel
+Details" (27 Oct 2026). Not in the SoW: §7 lists four PDF reports and
+document *upload*, not documents the platform issues; §17 asked for
+statutory formats before scope freeze and none were supplied. A **Change
+Request** under §19.
+
+**Built:**
+
+- **Vessel pages.** The Platform Admin opens every vessel (Organizations →
+  organization → vessel, or the new Vessels list); a Service Coordinator opens
+  the vessels of the organizations they serve; a Technical Head's vessel name
+  now opens the same page. Particulars, health, equipment register, SBMC
+  history, pre-survey forms, documents and the vessel's activity. Edit vessel
+  for Platform Admin and own-fleet Technical Head. The equipment register
+  moved to `/fleet/vessels/{id}/equipment`; read-only for the coordinator.
+- **SBMC** (Platform Admin only; 403 for everyone else). Printed on the
+  client's own `SBMC- SAMPLE.pdf` with only its placeholders removed, values on
+  the sample's baselines in fonts of the same widths (overlay against the
+  sample: under 1 pixel). Numbered `TM-<year>-<0001>` under a row lock;
+  a new one supersedes the last; revoke needs a reason; nothing is deleted.
+  Filed in Vessel documents as a certificate, so the existing "certificate
+  expiring" alert covers it (90/30/7/0 days).
+- **QM-F11 pre-survey form** (Platform Admin; coordinator for served
+  organizations - 403 outside them). The client's fillable PDF supplies every
+  field's position; equipment is matched by name within its VMP block, so
+  both the client-sheet numbering (VDR 11, parts 11.1-11.4) and the standard
+  fit (VDR 11.1) read correctly. Missing values amber in the preview; typed
+  values change that form only and are audited. Status Good / Not Good from
+  overdue items, expired parts and open requests, overridable.
+- **Service history types** Service / Replacement / Gyro sphere replacement,
+  so the form's "Last SSD replacement" and "Sphere" have a source.
+
+**Open questions in the brief, answered with defaults (each a one-line change):**
+
+| Question | Default chosen |
+|---|---|
+| Certificate number format | `TM-2026-0001`, per year, never reused |
+| Expiry rule | Issue date + 1 year + 1 day, as the sample runs; editable in the preview |
+| Block SBMC when equipment is overdue? | Not blocked |
+| Who downloads issued SBMCs | Admin and coordinator from the certificate list; every role that sees the vessel's documents sees the filed copy |
+| Owner differs from manager | Defaults to the organization; editable in the preview |
+| Date format on the form | `MM/yy`, the format the client's form fields are set to (`seastella.pre-survey.date-format`) |
+| Vessel names already starting "MV" | Printed once: "MV. KESTREL TRADER", not "MV. MV ..." |
+
+---
+
 ## Summary
 
 | ID | Item | Brief | SoW | Building? |
@@ -392,6 +440,7 @@ and a sending number that is still on the ordinary WhatsApp app.
 | V-13 | Equipment expiry banded + alerted | client asked | recorded, unwatched | ✓ same engine, own column |
 | V-14 | Outdated software raises an alert | client asked | column only | ✓ once per gap, per unit |
 | V-15 | WhatsApp alerts | client asked | in-app + email only | ✓ built, waits for the client's Meta account |
+| V-16 | SBMC, QM-F11 pre-survey form, admin vessel pages | client brief 27 Oct | not in SoW | ✓ on the client's own templates |
 
 **V-01 and V-02 are the two that remove committed brief scope.** They are the items
 to confirm before scope freeze: either accept the SoW's Phase-2 classification, or

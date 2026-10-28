@@ -17,6 +17,10 @@ import { ActivityFeedPage } from '@/features/platform-admin/ActivityFeedPage';
 import { MaintenanceBandsPage } from '@/features/platform-admin/MaintenanceBandsPage';
 import { SoftwareBaselinesPage } from '@/features/platform-admin/SoftwareBaselinesPage';
 import { AlertRulesPage } from '@/features/platform-admin/AlertRulesPage';
+import { VesselsPage } from '@/features/vessels/VesselsPage';
+import { VesselDetailsPage } from '@/features/vessels/VesselDetailsPage';
+import { OrganizationPage } from '@/features/vessels/OrganizationPage';
+import { PreSurveyPage } from '@/features/vessels/PreSurveyPage';
 import { AuditTrailPage } from '@/features/platform-admin/AuditTrailPage';
 import { UsersPage } from '@/features/platform-admin/UsersPage';
 import { FleetSetupPage } from '@/features/admin/FleetSetupPage';
@@ -89,6 +93,7 @@ function Console() {
         <Route path="/jobs" element={<Guard role="SERVICE_ENGINEER" user={user.role}><EngineerPage /></Guard>} />
         {/* Fleet setup, down the SoW §4.1 chain. */}
         <Route path="/organizations" element={<Guard role="PLATFORM_ADMIN" user={user.role}><OrganizationsPage /></Guard>} />
+        <Route path="/organizations/:organizationId" element={<Guard role="PLATFORM_ADMIN" user={user.role}><OrganizationPage /></Guard>} />
         <Route path="/platform/activity" element={<Guard role="PLATFORM_ADMIN" user={user.role}><ActivityFeedPage /></Guard>} />
         {/* The four due colours and how much warning precedes them (SoW §11). */}
         <Route path="/platform/bands" element={<Guard role="PLATFORM_ADMIN" user={user.role}><MaintenanceBandsPage /></Guard>} />
@@ -104,7 +109,10 @@ function Console() {
         <Route path="/platform/checks/:flowId" element={<Guard role="PLATFORM_ADMIN" user={user.role}><CheckEditorPage /></Guard>} />
         <Route path="/platform/problem-types" element={<Guard role="PLATFORM_ADMIN" user={user.role}><ProblemTypesPage /></Guard>} />
         <Route path="/fleet/setup" element={<Guard role="TECHNICAL_HEAD" user={user.role}><FleetSetupPage /></Guard>} />
-        <Route path="/fleet/vessels/:vesselId" element={<Guard role="TECHNICAL_HEAD" user={user.role}><VesselEquipmentPage /></Guard>} />
+        <Route path="/fleet/vessels" element={<Guard role={['PLATFORM_ADMIN', 'SERVICE_COORDINATOR']} user={user.role}><VesselsPage /></Guard>} />
+        <Route path="/fleet/vessels/:vesselId" element={<Guard role={['PLATFORM_ADMIN', 'SERVICE_COORDINATOR', 'TECHNICAL_HEAD']} user={user.role}><VesselDetailsPage /></Guard>} />
+        <Route path="/fleet/vessels/:vesselId/equipment" element={<Guard role={['PLATFORM_ADMIN', 'SERVICE_COORDINATOR', 'TECHNICAL_HEAD']} user={user.role}><VesselEquipmentPage /></Guard>} />
+        <Route path="/fleet/vessels/:vesselId/pre-survey" element={<Guard role={['PLATFORM_ADMIN', 'SERVICE_COORDINATOR']} user={user.role}><PreSurveyPage /></Guard>} />
         <Route path="/vessels/captains" element={<Guard role="SHIP_MANAGER" user={user.role}><CaptainsPage /></Guard>} />
         {/* The fleet's service history in one place: shore roles; recording is the Technical Head's. */}
         <Route

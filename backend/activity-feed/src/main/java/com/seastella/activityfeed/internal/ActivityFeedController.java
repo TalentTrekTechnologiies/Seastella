@@ -59,7 +59,8 @@ class ActivityFeedController {
             Category.INVOICES, Set.of("INVOICE_RAISED", "INVOICE_ACCEPTED", "INVOICE_REJECTED", "INVOICE_QUERIED"),
             Category.MAINTENANCE, Set.of("MAINTENANCE_STATUS_CHANGED", "RUNNING_HOURS_RECORDED", "SPARE_UPDATED",
                     "SPARE_CREATED", "SPARE_DELETED", "SERVICE_DATE_CHANGED", "PART_STOCK_CHANGED",
-                    "DOCUMENT_UPLOADED", "DOCUMENT_DELETED"),
+                    "DOCUMENT_UPLOADED", "DOCUMENT_DELETED", "CERTIFICATE_GENERATED", "CERTIFICATE_DOWNLOADED",
+                    "CERTIFICATE_SUPERSEDED", "CERTIFICATE_REVOKED", "PRE_SURVEY_FORM_GENERATED"),
             Category.SETUP, Set.of("ORGANIZATION_CREATED", "USER_CREATED", "VESSEL_CREATED", "VESSEL_ASSIGNED",
                     "VESSEL_UNASSIGNED", "USER_STATUS_CHANGED", "PASSWORD_RESET", "ORGANIZATION_ASSIGNED",
                     "CONFIGURATION_CHANGED", "INVITATION_ACCEPTED", "PROBLEM_TYPE_CREATED", "PROBLEM_TYPE_UPDATED",
@@ -332,6 +333,16 @@ class ActivityFeedController {
             }
             case "DOCUMENT_UPLOADED" -> "uploaded the document “" + text(after, "title") + "”" + on;
             case "DOCUMENT_DELETED" -> "deleted the document “" + text(before, "title") + "”" + on;
+            case "CERTIFICATE_GENERATED" -> "issued SBMC " + text(after, "certificateNumber") + on
+                    + ", valid until " + text(after, "expiryDate");
+            case "CERTIFICATE_DOWNLOADED" -> "downloaded SBMC " + text(after, "certificateNumber") + on;
+            case "CERTIFICATE_SUPERSEDED" -> "replaced SBMC " + text(before, "certificateNumber") + on
+                    + " with " + text(after, "supersededBy");
+            case "CERTIFICATE_REVOKED" -> "revoked SBMC " + text(before, "certificateNumber") + on
+                    + ": “" + text(after, "reason") + "”";
+            case "PRE_SURVEY_FORM_GENERATED" -> "generated the pre-survey form (QM-F11)" + on
+                    + (text(after, "typedOver").isEmpty() || "0".equals(text(after, "typedOver")) ? ""
+                    : ", typing over " + text(after, "typedOver") + " recorded values");
             case "VESSEL_UPDATED" -> "updated the particulars of " + firstNonNull(vessel, "a vessel");
             case "USER_UPDATED" -> "updated the account of " + firstNonNull(target, "a user");
             case "IMPORT_UPLOADED" -> "uploaded " + text(after, "file") + " for import (" + text(after, "rows") + " rows)";

@@ -69,6 +69,9 @@ class DocumentService {
         this.audit = audit;
     }
 
+    static final String ISSUED = "Thawe Marine issued this document, so it changes only from the vessel page: "
+            + "revoke the certificate, or issue a new one.";
+
     record NewDocument(OwnerType ownerType, Long ownerId, DocumentType documentType, String title,
                        String certificateNumber, String issuingAuthority, LocalDate issuedDate, LocalDate expiryDate,
                        Long supersedesId) {}
@@ -77,7 +80,7 @@ class DocumentService {
                         String documentType, String title, String certificateNumber, String issuingAuthority,
                         LocalDate issuedDate, LocalDate expiryDate, Integer daysToExpiry, String fileName,
                         String contentType, long sizeBytes, String uploadedBy, Instant uploadedAt,
-                        Long supersededById, boolean current, boolean removed) {}
+                        Long supersededById, boolean current, boolean removed, boolean issuedByPlatform) {}
 
     record FileContent(byte[] content, String fileName, String contentType) {}
 
@@ -140,6 +143,9 @@ class DocumentService {
         if (superseded != null) {
             if (!superseded.isCurrent()) {
                 throw new WorkflowException("That document has already been replaced or removed.");
+            }
+            if (superseded.isIssuedByPlatform()) {
+                throw new WorkflowException(ISSUED);
             }
             if (!Objects.equals(superseded.getOwnerId(), command.ownerId())
                     || superseded.getOwnerType() != command.ownerType()) {
@@ -252,6 +258,9 @@ class DocumentService {
         if (document.getRemovedAt() != null) {
             throw new WorkflowException("That document has already been removed.");
         }
+        if (document.isIssuedByPlatform()) {
+            throw new WorkflowException(ISSUED);
+        }
         document.removed(actor.userId(), Instant.now());
         documents.save(document);
         audit.record(entry(actor, AuditAction.DOCUMENT_DELETED, document)
@@ -318,7 +327,8 @@ class DocumentService {
                 d.getExpiryDate() == null ? null : (int) ChronoUnit.DAYS.between(today, d.getExpiryDate()),
                 d.getFileName(), d.getContentType(), d.getSizeBytes(),
                 people.containsKey(d.getUploadedByUserId()) ? people.get(d.getUploadedByUserId()).fullName() : null,
-                d.getUploadedAt(), d.getSupersededById(), d.isCurrent(), d.getRemovedAt() != null)).toList();
+                d.getUploadedAt(), d.getSupersededById(), d.isCurrent(), d.getRemovedAt() != null,
+                d.isIssuedByPlatform())).toList();
     }
 
     /** What the document is filed against, in words, for a list to read sensibly. */

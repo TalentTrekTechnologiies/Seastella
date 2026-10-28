@@ -66,6 +66,9 @@ class VesselRemovalController {
             "update invoice set supersedes_invoice_id = null where vessel_id = :v",
             "delete from invoice where vessel_id = :v",
             "delete from service_request where vessel_id = :v",
+            // Issued SBMCs and pre-survey forms point at their documents, so they go first.
+            "delete from vessel_certificate where vessel_id = :v",
+            "delete from pre_survey_form where vessel_id = :v",
             // Documents; their files are removed once this commits.
             "delete from certificate_alert_state where document_id in (select id from document where vessel_id = :v)",
             "update document set superseded_by_id = null where vessel_id = :v",

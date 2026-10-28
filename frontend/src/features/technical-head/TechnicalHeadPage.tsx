@@ -111,7 +111,7 @@ export function TechnicalHeadPage() {
               totals={{ overdue: kpi(data, 'overdue'), dueSoon: kpi(data, 'dueSoon') }}
               category={category}
               onClearCategory={() => setCategory(null)}
-              spareHref={(d) => `/fleet/vessels/${d.vesselId}?spare=${d.spareId}`}
+              spareHref={(d) => `/fleet/vessels/${d.vesselId}/equipment?spare=${d.spareId}`}
             />
           </div>
 

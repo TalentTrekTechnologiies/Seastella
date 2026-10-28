@@ -99,6 +99,7 @@ export function DocumentsPanel({
                   <ExpiryPill row={row} />
                   {row.removed && <Pill size="sm">Removed</Pill>}
                   {!row.removed && !row.current && <Pill size="sm">Replaced</Pill>}
+                  {row.issuedByPlatform && <Pill size="sm">Issued by Thawe Marine</Pill>}
                 </div>
                 <div className="docs__meta">
                   {row.fileName} · {kilobytes(row.sizeBytes)} · uploaded by {row.uploadedBy ?? 'someone'}{' '}
@@ -121,7 +122,7 @@ export function DocumentsPanel({
                 <Button variant="ghost" onClick={() => download(row)}>
                   Download
                 </Button>
-                {canAttach && row.current && (
+                {canAttach && row.current && !row.issuedByPlatform && (
                   <>
                     <Button variant="ghost" onClick={() => setAdding({ supersedes: row })}>
                       Replace

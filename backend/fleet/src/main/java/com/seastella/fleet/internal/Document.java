@@ -87,6 +87,10 @@ class Document extends BaseEntity implements VesselScoped {
     @Column(name = "removed_by_user_id")
     private Long removedByUserId;
 
+    /** Issued by the platform (an SBMC, a pre-survey form): changed only through its own record. */
+    @Column(name = "issued_by_platform", nullable = false)
+    private boolean issuedByPlatform;
+
     protected Document() {
     }
 
@@ -131,6 +135,10 @@ class Document extends BaseEntity implements VesselScoped {
     Instant getRemovedAt() { return removedAt; }
 
     boolean isCurrent() { return removedAt == null && supersededById == null; }
+
+    boolean isIssuedByPlatform() { return issuedByPlatform; }
+
+    void markIssuedByPlatform() { this.issuedByPlatform = true; }
 
     void describeCertificate(String number, String authority, LocalDate issued, LocalDate expiry) {
         this.certificateNumber = number;

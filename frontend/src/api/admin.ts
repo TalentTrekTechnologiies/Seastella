@@ -205,8 +205,18 @@ export const fetchVesselMaintenance = (vesselId: number) =>
  * contractor who was never on it. A fleet joining the platform arrives with
  * years of the second kind.
  */
+/** Replacements are kept apart because surveys ask for them by name (QM-F11: SSD, gyro sphere). */
+export type ServiceKind = 'SERVICE' | 'REPLACEMENT' | 'SPHERE_REPLACEMENT';
+
+export const SERVICE_KIND_LABEL: Record<ServiceKind, string> = {
+  SERVICE: 'Service',
+  REPLACEMENT: 'Replacement',
+  SPHERE_REPLACEMENT: 'Gyro sphere replacement',
+};
+
 export interface ServiceRecord {
   id: number;
+  kind?: ServiceKind;
   serviceDate: string;
   source: 'PLATFORM' | 'RECORDED';
   workPerformed: string;
@@ -225,7 +235,14 @@ export const fetchServiceHistory = (spareId: number) =>
 
 export const recordService = (
   spareId: number,
-  entry: { serviceDate: string; workPerformed: string; partsUsed?: string; performedBy?: string; notes?: string },
+  entry: {
+    serviceDate: string;
+    workPerformed: string;
+    partsUsed?: string;
+    performedBy?: string;
+    notes?: string;
+    kind?: ServiceKind;
+  },
 ) => api.post<ServiceRecord>(`/api/v1/spares/${spareId}/service-history`, entry);
 
 export const removeServiceRecord = (spareId: number, recordId: number) =>

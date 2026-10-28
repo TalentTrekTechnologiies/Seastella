@@ -82,6 +82,12 @@ public class Vessel extends BaseEntity implements OrganizationScoped {
     public String getSeedMarker() { return seedMarker; }
 
     public void setName(String n) { this.name = n; }
+
+    /** A correction of the name or IMO number - the vessel stays the same record. */
+    public void correctParticulars(String name, String imoNumber) {
+        this.name = name;
+        this.imoNumber = imoNumber;
+    }
     public void setMmsi(String m) { this.mmsi = m; }
     public void setCallSign(String c) { this.callSign = c; }
     public void setFlag(String f) { this.flag = f; }

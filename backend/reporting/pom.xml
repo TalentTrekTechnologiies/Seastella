@@ -39,6 +39,11 @@
       <groupId>com.github.librepdf</groupId>
       <artifactId>openpdf</artifactId>
     </dependency>
+    <!-- Fills the client's own PDF templates (SBMC, QM-F11) rather than drawing new pages. -->
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>

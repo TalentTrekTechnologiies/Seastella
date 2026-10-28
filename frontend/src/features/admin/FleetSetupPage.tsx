@@ -93,7 +93,7 @@ export function FleetSetupPage() {
               <li key={v.id} className="setup-row">
                 <div className="setup-row__main">
                   <div className="setup-row__title">
-                    {v.name}
+                    <Link to={`/fleet/vessels/${v.id}`}>{v.name}</Link>
                     {v.status !== 'ACTIVE' && <Pill size="sm">{title(v.status)}</Pill>}
                   </div>
                   <div className="setup-row__meta">
@@ -119,7 +119,7 @@ export function FleetSetupPage() {
                   </div>
                 </div>
                 <div className="setup-row__actions">
-                  <Link to={`/fleet/vessels/${v.id}`} className="cbtn cbtn--secondary cbtn--md">
+                  <Link to={`/fleet/vessels/${v.id}/equipment`} className="cbtn cbtn--secondary cbtn--md">
                     Equipment
                   </Link>
                   <Button variant="ghost" onClick={() => setDeleting(v)}>

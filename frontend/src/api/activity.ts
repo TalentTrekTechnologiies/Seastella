@@ -25,12 +25,14 @@ export interface ActivityFeed {
 
 export function fetchActivity(filter: {
   organizationId?: number;
+  vesselId?: number;
   category?: ActivityCategory;
   before?: number;
   after?: number;
 }) {
   const q = new URLSearchParams({ limit: '50' });
   if (filter.organizationId) q.set('organizationId', String(filter.organizationId));
+  if (filter.vesselId) q.set('vesselId', String(filter.vesselId));
   if (filter.category) q.set('category', filter.category);
   if (filter.before) q.set('before', String(filter.before));
   if (filter.after) q.set('after', String(filter.after));

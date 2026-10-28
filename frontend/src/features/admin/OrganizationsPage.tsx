@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchAccounts, fetchOrganizations, type LinkSent, type OrganizationRow } from '@/api/admin';
 import { Button, ConsoleHeader, EmptyNote, Plate } from '@/design-system/Console';
@@ -67,7 +68,7 @@ export function OrganizationsPage() {
               <li key={o.id} className="setup-row">
                 <div className="setup-row__main">
                   <div className="setup-row__title">
-                    {o.name}
+                    <Link to={`/organizations/${o.id}`}>{o.name}</Link>
                     <Pill size="sm">{o.code}</Pill>
                   </div>
                   <div className="setup-row__meta">{[o.address, o.contactEmail, o.contactPhone].filter(Boolean).join(' · ') || 'No contact details'}</div>
@@ -92,6 +93,9 @@ export function OrganizationsPage() {
                   </div>
                 </div>
                 <div className="setup-row__actions">
+                  <Link to={`/organizations/${o.id}`} className="cbtn cbtn--secondary cbtn--md">
+                    Vessels
+                  </Link>
                   <Button variant={o.technicalHeads.length ? 'secondary' : 'primary'} onClick={() => setHeadFor(o)}>
                     Add Technical Head
                   </Button>

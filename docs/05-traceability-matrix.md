@@ -752,6 +752,9 @@ Source keys: **A** = SoW (governing), **B** = Software Requirements Spec,
 | NOT-17 | Software behind the master sheet → Captain, Ship Manager, Tech Head | client 30 Sep 2026 | notification | `SoftwareCurrencyMonitorTest` | BUILT (V-14) |
 | NOT-16 | SMS channel | client 29 Sep 2026 | notification | — | NOT BUILT (OI-14: needs a gateway account and budget) |
 | NOT-18 | WhatsApp channel: own number with consent, per-rule switch, pause, templates, test | client Oct 2026 | notification, identity-access | `WhatsAppAlertsIT`, `WhatsAppDispatcherTest`, `MetaWhatsAppGatewayTest` | VERIFIED (V-15: sends once the client's Meta account is configured) |
+| DOC-20 | SBMC: Platform Admin only, client's template, sequential number, supersede, revoke, filed and alerted | brief 27 Oct 2026 | reporting, fleet | `VesselDocumentsIT`, `SbmcRendererTest` | VERIFIED (V-16) |
+| DOC-21 | QM-F11 pre-survey form: admin + served coordinator, filled from the register, typed values audited | brief 27 Oct 2026 | reporting, fleet | `VesselDocumentsIT`, `PreSurveyTest` | VERIFIED (V-16) |
+| FLT-30 | Vessel details page and vessel list for Platform Admin and Service Coordinator; edit vessel | brief 27 Oct 2026 | fleet, frontend | `VesselDocumentsIT` | VERIFIED (V-16) |
 | NOT-14 | Recipients configurable | A§11, B§35 | notification | `NotificationRuleTest` | BUILT (OI-03 assumption) |
 | FEE-01 | Platform-wide activity feed for Platform Admin | A§8.5 | activity-feed | `ActivityFeedIT` | BUILT |
 | FEE-02 | Every state change lands in the feed in real time | A§11 | activity-feed | `FeedCoverageTest` | BUILT |

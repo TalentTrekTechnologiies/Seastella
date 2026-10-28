@@ -104,18 +104,24 @@ class ServiceHistoryController {
                     + spare.getInstallationDate() + ").");
         }
 
-        SpareServiceRecord saved = records.save(SpareServiceRecord.recorded(
+        String kind = body.kind() == null || body.kind().isBlank() ? SpareServiceRecord.SERVICE : body.kind().trim();
+        if (!SpareServiceRecord.KINDS.contains(kind)) {
+            throw new ValidationException("Say whether this was a service, a replacement or a gyro sphere replacement.");
+        }
+        SpareServiceRecord entry = SpareServiceRecord.recorded(
                 spare.getId(), spare.getVesselId(), body.serviceDate(),
                 required(body.workPerformed(), 2000),
                 text(body.partsUsed(), 1000),
                 text(body.performedBy(), 200),
                 text(body.notes(), 1000),
-                actor.userId()));
+                actor.userId());
+        entry.kind(kind);
+        SpareServiceRecord saved = records.save(entry);
 
         dates.applyNewestDate(spare, actor.userId());
         audit.record(entry(actor, AuditAction.SERVICE_DATE_CHANGED, spare)
                 .after(AuditJson.of("serviceDate", saved.getServiceDate(), "workPerformed", saved.getWorkPerformed(),
-                        "performedBy", saved.getPerformedBy(), "source", "RECORDED"))
+                        "performedBy", saved.getPerformedBy(), "source", "RECORDED", "kind", saved.getKind()))
                 .build());
         return ResponseEntity.status(HttpStatus.CREATED).body(view(saved, Map.of()));
     }
@@ -168,7 +174,7 @@ class ServiceHistoryController {
         UserDirectory.UserRef who = r.getRecordedByUserId() == null ? null : people.get(r.getRecordedByUserId());
         return new RecordView(r.getId(), r.getServiceDate(), r.getSource(), r.getWorkPerformed(), r.getPartsUsed(),
                 r.getPerformedBy(), r.getServiceRequestId(), r.getRequestNumber(),
-                who == null ? null : who.fullName(), r.getNotes(), r.isRecorded());
+                who == null ? null : who.fullName(), r.getNotes(), r.isRecorded(), r.getKind());
     }
 
     private static AuditEntry.Builder entry(AccessScope actor, String action, Spare spare) {
@@ -195,9 +201,9 @@ class ServiceHistoryController {
     }
 
     record RecordBody(LocalDate serviceDate, String workPerformed, String partsUsed, String performedBy,
-                      String notes) {}
+                      String notes, String kind) {}
 
     record RecordView(Long id, LocalDate serviceDate, String source, String workPerformed, String partsUsed,
                       String performedBy, Long serviceRequestId, String requestNumber, String recordedBy,
-                      String notes, boolean removable) {}
+                      String notes, boolean removable, String kind) {}
 }

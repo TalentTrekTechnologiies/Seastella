@@ -1,0 +1,63 @@
+/* Vessel list, vessel details, the SBMC dialog and the QM-F11 pre-survey form. */
+
+/* ---- list filters ---- */
+.vfilter { display: flex; gap: 8px; flex-wrap: wrap; }
+.vfilter .input { width: 240px; max-width: 100%; }
+.vfacts { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--sbs-ink-2); margin: -6px 0 16px; }
+.vfacts b { color: var(--sbs-ink); font-weight: 600; }
+
+/* ---- details ---- */
+.vdetail { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-bottom: 20px; }
+/* Four health tiles in the side column read best two by two. */
+.vtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.vparticulars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; margin: 0; }
+.vparticulars__item { display: grid; gap: 2px; min-width: 0; }
+.vparticulars__item dt { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--sbs-ink-3); }
+.vparticulars__item dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.vparticulars__none { color: var(--sbs-ink-3); font-style: italic; }
+.vcert__reason { color: var(--c-overdue); }
+.vform { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+
+@media (max-width: 960px) {
+  .vdetail { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .vparticulars, .vform { grid-template-columns: 1fr; }
+}
+
+/* ---- SBMC dialog ---- */
+.sbmc { display: grid; gap: 16px; }
+.sbmc__facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; padding: 12px 16px; border: 1px solid var(--sbs-line); border-radius: 12px; }
+.sbmc__facts dt { font-size: 13px; color: var(--sbs-ink-3); }
+.sbmc__facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.sbmc__gap { color: var(--c-approaching); }
+.sbmc__dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) {
+  .sbmc__dates { grid-template-columns: 1fr; }
+}
+
+/* ---- pre-survey form ---- */
+.psf__legend { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 0 16px; font-size: 13.5px; color: var(--sbs-ink-2); }
+.psf__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.psf__swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid; }
+.psf__swatch--gap { background: var(--c-approaching-weak); border-color: var(--c-approaching); }
+.psf__swatch--typed { background: var(--sbs-signal-weak); border-color: var(--sbs-signal); }
+
+.psf__status { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; padding: 4px 20px 14px; border-bottom: 1px solid var(--sbs-line); }
+.psf__status label { display: grid; gap: 4px; font-size: 12.5px; color: var(--sbs-ink-3); }
+.psf__table { display: grid; }
+.psf__row { display: grid; grid-template-columns: 210px repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; align-items: end; padding: 10px 20px; }
+.psf__row + .psf__row { border-top: 1px solid var(--sbs-line); }
+.psf__label { font-size: 14.5px; font-weight: 600; align-self: center; }
+.psf__cell { display: grid; gap: 4px; font-size: 12px; color: var(--sbs-ink-3); min-width: 0; }
+.psf__input { width: 100%; min-width: 0; }
+.psf__input--gap { background: var(--c-approaching-weak); border-color: var(--c-approaching); }
+.psf__input--gap::placeholder { color: var(--c-approaching); opacity: 1; }
+.psf__input--typed { background: var(--sbs-signal-weak); border-color: var(--sbs-signal); }
+.psf__notes { margin-top: 10px; }
+
+@media (max-width: 720px) {
+  .psf__status { grid-template-columns: 1fr; padding: 4px 16px 14px; }
+  .psf__row { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px 16px; }
+  .psf__label { grid-column: 1 / -1; }
+}

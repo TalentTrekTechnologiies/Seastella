@@ -40,6 +40,8 @@ export interface DocumentRow {
   supersededById: number | null;
   current: boolean;
   removed: boolean;
+  /** An SBMC or pre-survey form: changed only by revoking or issuing again, on the vessel page. */
+  issuedByPlatform?: boolean;
 }
 
 export interface NewDocument {

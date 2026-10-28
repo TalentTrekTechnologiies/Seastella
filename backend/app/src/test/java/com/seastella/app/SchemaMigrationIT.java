@@ -85,7 +85,9 @@ class SchemaMigrationIT {
                 // notification (V39): whether alert email is paused
                 "notification_email_settings",
                 // notification (V41): the approved WhatsApp template per alert
-                "whatsapp_template");
+                "whatsapp_template",
+                // reporting (V43): issued SBMCs, their numbering, and pre-survey forms
+                "vessel_certificate", "certificate_counter", "pre_survey_form");
     }
 
     @Test
@@ -137,7 +139,9 @@ class SchemaMigrationIT {
                 "38",  // notification: a unit has fallen behind the software master sheet
                 "39",  // notification: an admin-wide pause on alert email
                 "40",  // identity-access: a person's own WhatsApp number, with consent
-                "41"); // notification: WhatsApp as a third alert channel
+                "41",  // notification: WhatsApp as a third alert channel
+                "42",  // fleet: a service history entry says whether it was a replacement
+                "43"); // reporting: SBMC certificates and QM-F11 pre-survey forms
     }
 
     @Test

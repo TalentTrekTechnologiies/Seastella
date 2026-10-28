@@ -726,6 +726,13 @@
 }
 .orgcard:hover { border-color: var(--sbs-signal-line); box-shadow: var(--shadow-raised); transform: translateY(-2px); }
 .orgcard--on { border-color: var(--sbs-signal); box-shadow: inset 0 0 0 1px var(--sbs-signal); background: var(--sbs-signal-weak); }
+/* The card filters the activity; the link under it opens the organization's fleet. */
+.orgcard__wrap { display: grid; gap: 6px; }
+.orgcard__wrap > .orgcard { width: 100%; }
+.orgcard__open { justify-self: start; padding: 2px 4px; font-size: 13.5px; font-weight: 600; color: var(--sbs-signal); text-decoration: none; }
+.orgcard__open:hover { text-decoration: underline; }
+.figure--link { color: inherit; text-decoration: none; border-radius: 8px; }
+.figure--link:hover span { color: var(--sbs-signal); text-decoration: underline; }
 .orgcard__top { display: flex; align-items: center; gap: 12px; }
 .orgcard__mark {
   width: 42px;

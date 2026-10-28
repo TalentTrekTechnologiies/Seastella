@@ -203,7 +203,7 @@ function DueSection({
           {items.map((d) => (
             <li key={d.spareId}>
               {/* The spare, opened where it lives in the tree (DSH-13). */}
-              <Link to={`/fleet/vessels/${vesselId}?spare=${d.spareId}`}>
+              <Link to={`/fleet/vessels/${vesselId}/equipment?spare=${d.spareId}`}>
                 <span className="drawer__spare">{d.spareName}</span>
                 <span className="drawer__spare-meta mono">
                   {d.sparePath} · {d.categoryCode.replace(/_/g, ' ')} · due {formatDate(d.nextDueDate)}

@@ -198,7 +198,7 @@ export function ServiceHistoryPage({ role }: { role: Role }) {
               <span>Source</span>
             </div>
             {shown.map((r) => (
-              <HistoryRow key={r.id} record={r} linkEquipment={role === 'TECHNICAL_HEAD'} />
+              <HistoryRow key={r.id} record={r} linkEquipment={role === 'TECHNICAL_HEAD' || role === 'PLATFORM_ADMIN'} />
             ))}
           </div>
         )}
@@ -248,7 +248,7 @@ function HistoryRow({ record: r, linkEquipment }: { record: FleetServiceRecord; 
       <span className="hist__date">{formatDate(r.serviceDate)}</span>
       <span className="hist__vessel">{r.vesselName ?? '—'}</span>
       <span className="hist__equipment">
-        {linkEquipment ? <Link to={`/fleet/vessels/${r.vesselId}?spare=${r.spareId}`}>{equipment}</Link> : equipment}
+        {linkEquipment ? <Link to={`/fleet/vessels/${r.vesselId}/equipment?spare=${r.spareId}`}>{equipment}</Link> : equipment}
       </span>
       <span className="hist__work">
         <span>{r.workPerformed}</span>

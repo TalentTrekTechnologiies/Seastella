@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchServiceHistory,
   recordService,
+  SERVICE_KIND_LABEL,
+  type ServiceKind,
   removeServiceRecord,
   type ServiceRecord,
 } from '@/api/admin';
@@ -113,6 +115,7 @@ export function ServiceHistoryPanel({
                 <Pill size="sm" tone={record.source === 'PLATFORM' ? 'normal' : 'neutral'}>
                   {record.source === 'PLATFORM' ? 'On Thawe Marine' : 'Recorded'}
                 </Pill>
+                {record.kind && record.kind !== 'SERVICE' && <Pill size="sm">{SERVICE_KIND_LABEL[record.kind]}</Pill>}
               </div>
               <div className="svchist__what">
                 <p className="svchist__work">{record.workPerformed}</p>
@@ -198,6 +201,7 @@ export function RecordServiceDialog({
   const [performedBy, setPerformedBy] = useState('');
   const [partsUsed, setPartsUsed] = useState('');
   const [notes, setNotes] = useState('');
+  const [kind, setKind] = useState<ServiceKind>('SERVICE');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -213,6 +217,7 @@ export function RecordServiceDialog({
         performedBy: performedBy.trim() || undefined,
         partsUsed: partsUsed.trim() || undefined,
         notes: notes.trim() || undefined,
+        kind,
       });
       onSaved();
     } catch (e) {
@@ -249,6 +254,20 @@ export function RecordServiceDialog({
           value={serviceDate}
           onChange={(e) => setServiceDate(e.target.value)}
         />
+      </Field>
+
+      <Field
+        label="Type"
+        htmlFor="svc-kind"
+        hint="Replacements are kept apart: the pre-survey form prints the last SSD and gyro sphere replacement."
+      >
+        <select id="svc-kind" className="input" value={kind} onChange={(e) => setKind(e.target.value as ServiceKind)}>
+          {Object.entries(SERVICE_KIND_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </Field>
 
       <Field label="What was done" htmlFor="svc-work" hint="As it would read on a service report.">

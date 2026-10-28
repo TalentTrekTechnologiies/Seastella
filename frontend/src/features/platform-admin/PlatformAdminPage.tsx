@@ -123,7 +123,7 @@ function Summary({ data }: { data: PlatformAdminDashboard }) {
       <Plate title="Platform at a glance" subtitle="Everything registered on Thawe Marine today">
         <div className="scale4">
           <Figure value={s.organizations} label="Organizations" />
-          <Figure value={s.vessels} label="Vessels" />
+          <Figure value={s.vessels} label="Vessels" to="/fleet/vessels" />
           <Figure value={s.users} label="Users" />
           <Figure value={s.spares} label="Spares tracked" />
         </div>
@@ -146,12 +146,19 @@ function Summary({ data }: { data: PlatformAdminDashboard }) {
   );
 }
 
-function Figure({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="figure">
+function Figure({ value, label, to }: { value: number; label: string; to?: string }) {
+  const body = (
+    <>
       <b>{value}</b>
       <span>{label}</span>
-    </div>
+    </>
+  );
+  return to ? (
+    <Link to={to} className="figure figure--link">
+      {body}
+    </Link>
+  ) : (
+    <div className="figure">{body}</div>
   );
 }
 
@@ -169,6 +176,7 @@ function OrgCard({
   onSelect: () => void;
 }) {
   return (
+    <div className="orgcard__wrap">
     <button
       type="button"
       className={`orgcard${selected ? ' orgcard--on' : ''}`}
@@ -187,6 +195,11 @@ function OrgCard({
       <Share label="Vessels" value={org.vesselCount} of={totalVessels} />
       <Share label="Users" value={org.userCount} of={totalUsers} />
     </button>
+    {/* The card filters the activity below; its fleet opens from here. */}
+    <Link to={`/organizations/${org.id}`} className="orgcard__open">
+      Open {org.vesselCount} vessel{org.vesselCount === 1 ? '' : 's'} →
+    </Link>
+    </div>
   );
 }
 

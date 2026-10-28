@@ -11,6 +11,7 @@ import com.seastella.core.api.error.WorkflowException;
 import com.seastella.fleet.api.VesselStatus;
 import com.seastella.identity.api.AccessScope;
 import com.seastella.identity.api.Role;
+import com.seastella.identity.api.ScopeGuard;
 import com.seastella.identity.api.ScopeResolver;
 import com.seastella.identity.api.UserDirectory;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,23 +59,28 @@ class VesselAdminController {
     private final EquipmentCategoryRepository categories;
     private final UserDirectory users;
     private final ScopeResolver scopes;
+    private final ScopeGuard scopeGuard;
     private final AuditService audit;
 
     VesselAdminController(VesselRepository vessels, OrganizationRepository organizations, SpareRepository spares,
                           EquipmentCategoryRepository categories, UserDirectory users,
-                          ScopeResolver scopes, AuditService audit) {
+                          ScopeResolver scopes, ScopeGuard scopeGuard, AuditService audit) {
         this.vessels = vessels;
         this.organizations = organizations;
         this.spares = spares;
         this.categories = categories;
         this.users = users;
         this.scopes = scopes;
+        this.scopeGuard = scopeGuard;
         this.audit = audit;
     }
 
-    /** Vessels in the caller's scope, with the people responsible for each. */
+    /**
+     * Vessels in the caller's scope, with the people responsible for each.
+     * The Service Coordinator sees the fleets of the organizations they serve.
+     */
     @GetMapping
-    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','TECHNICAL_HEAD','SHIP_MANAGER')")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','TECHNICAL_HEAD','SHIP_MANAGER','SERVICE_COORDINATOR')")
     @Transactional(readOnly = true)
     ResponseEntity<List<VesselRow>> list() {
         AccessScope scope = scopes.currentScope();
@@ -160,6 +168,94 @@ class VesselAdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(row(vessel, orgName, fitted));
     }
 
+    /**
+     * One vessel's particulars and the people on it - the vessel details page.
+     * Anyone whose scope includes the vessel may read it; out of scope reads as
+     * not found, like every other vessel resource.
+     */
+    @GetMapping("/{vesselId}")
+    @Transactional(readOnly = true)
+    ResponseEntity<VesselDetails> details(@PathVariable Long vesselId) {
+        scopeGuard.assertVessel(vesselId);
+        Vessel v = vessels.findById(vesselId).orElseThrow(() -> NotFoundException.ofResource("Vessel", vesselId));
+        String orgName = organizations.findById(v.getOrganizationId()).map(Organization::getName).orElse(null);
+        return ResponseEntity.ok(details(v, orgName, spares.countByVesselIdIn(Set.of(v.getId()))));
+    }
+
+    /**
+     * Corrects a vessel's particulars. What the SBMC prints is taken from here,
+     * never typed into the certificate. Platform Admin for any vessel,
+     * Technical Head for their own fleet.
+     */
+    @PutMapping("/{vesselId}")
+    @PreAuthorize("hasAnyRole('PLATFORM_ADMIN','TECHNICAL_HEAD')")
+    @Transactional
+    ResponseEntity<VesselDetails> update(@PathVariable Long vesselId, @RequestBody VesselForm form) {
+        if (form == null) throw new ValidationException("Enter the vessel's details.");
+        AccessScope scope = scopes.currentScope();
+        scopeGuard.assertVessel(vesselId);
+        Vessel vessel = vessels.findById(vesselId).orElseThrow(() -> NotFoundException.ofResource("Vessel", vesselId));
+        if (scope.role() == Role.TECHNICAL_HEAD && !vessel.getOrganizationId().equals(scope.organizationId())) {
+            throw ForbiddenException.ofAction("edit another organization's vessel");
+        }
+
+        String before = particulars(vessel);
+        String name = required(form.name(), "Enter the vessel name.", 120);
+        String imo = form.imoNumber() == null ? "" : form.imoNumber().trim().replaceFirst("(?i)^IMO\\s*", "");
+        if (!IMO.matcher(imo).matches() || !imoCheckDigitValid(imo)) {
+            throw new ValidationException("Enter a valid 7-digit IMO number. The last digit is a check digit, "
+                    + "so a mistyped number is caught here.");
+        }
+        if (!imo.equals(vessel.getImoNumber()) && vessels.existsByImoNumber(imo)) {
+            throw new WorkflowException("A vessel with IMO " + imo + " is already on the platform.");
+        }
+        String mmsi = trimToNull(form.mmsi());
+        if (mmsi != null && !MMSI.matcher(mmsi).matches()) {
+            throw new ValidationException("MMSI is 9 digits, or leave it blank.");
+        }
+        if (form.dwt() != null && (form.dwt().signum() < 0 || form.dwt().compareTo(new BigDecimal("9999999999")) > 0)) {
+            throw new ValidationException("Enter the deadweight in tonnes, or leave it blank.");
+        }
+
+        vessel.correctParticulars(name, imo);
+        vessel.setMmsi(mmsi);
+        vessel.setCallSign(optional(form.callSign(), 16, "call sign"));
+        vessel.setFlag(optional(form.flag(), 64, "flag"));
+        vessel.setVesselClass(optional(form.vesselClass(), 64, "class society"));
+        vessel.setArea(optional(form.area(), 64, "trading area"));
+        vessel.setVesselType(optional(form.vesselType(), 64, "vessel type"));
+        vessel.setDwt(form.dwt());
+        if (form.status() != null) vessel.setStatus(form.status());
+        vessels.save(vessel);
+
+        audit.record(AuditEntry.builder()
+                .actor(scope.userId(), scope.role().name())
+                .action(AuditAction.VESSEL_UPDATED)
+                .entity("Vessel", vessel.getId())
+                .scope(vessel.getOrganizationId(), vessel.getId())
+                .before(before)
+                .after(particulars(vessel))
+                .build());
+
+        String orgName = organizations.findById(vessel.getOrganizationId()).map(Organization::getName).orElse(null);
+        return ResponseEntity.ok(details(vessel, orgName, spares.countByVesselIdIn(Set.of(vessel.getId()))));
+    }
+
+    private static String particulars(Vessel v) {
+        return AuditJson.of("name", v.getName(), "imoNumber", v.getImoNumber(), "mmsi", v.getMmsi(),
+                "callSign", v.getCallSign(), "flag", v.getFlag(), "vesselClass", v.getVesselClass(),
+                "area", v.getArea(), "vesselType", v.getVesselType(), "dwt", v.getDwt(),
+                "status", v.getStatus().name());
+    }
+
+    private VesselDetails details(Vessel v, String organizationName, long spareCount) {
+        VesselRow row = row(v, organizationName, spareCount);
+        return new VesselDetails(v.getId(), v.getName(), v.getImoNumber(), v.getMmsi(), v.getCallSign(), v.getFlag(),
+                v.getVesselClass(), v.getArea(), v.getVesselType(), v.getDwt(), v.getStatus().name(),
+                v.getOrganizationId(), organizationName, spareCount, row.shipManager(), row.captain(),
+                v.getCreatedAt(), v.getUpdatedAt(), v.getUpdatedBy());
+    }
+
     /** SoW s9.4, parented by decimal path exactly as the VMP template nests it. */
     private int applyStandardFit(Long vesselId) {
         Map<String, Long> categoryIds = categories.findAll().stream()
@@ -231,6 +327,12 @@ class VesselAdminController {
                       VesselStatus status, Boolean standardFit) {}
 
     record Person(Long id, String fullName) {}
+
+    record VesselDetails(Long id, String name, String imoNumber, String mmsi, String callSign, String flag,
+                         String vesselClass, String area, String vesselType, BigDecimal dwt, String status,
+                         Long organizationId, String organizationName, long spareCount,
+                         Person shipManager, Person captain, Instant createdAt, Instant updatedAt,
+                         String updatedBy) {}
 
     record VesselRow(Long id, String name, String imoNumber, String vesselType, String flag, String status,
                      Long organizationId, String organizationName, long spareCount,
